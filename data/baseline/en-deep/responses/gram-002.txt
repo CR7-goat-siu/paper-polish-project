@@ -1,0 +1,1 @@
+We compare three models on the ImageNet dataset and show that our methods achieve 76.5% top-1 accuracy.

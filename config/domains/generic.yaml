@@ -1,0 +1,6 @@
+# 领域包：通用学术（默认回退）
+id: "generic"
+name: "Generic Academic"
+description: "跨学科通用学术写作规范；未识别到具体领域时使用。"
+terms_file: "terms/generic-{lang}.json"
+terminology_hints: "Use venue-consistent forms for Figure/Table references, abbreviations (i.e., e.g., et al.) and common compounds; when in doubt, keep the author's term and flag it."

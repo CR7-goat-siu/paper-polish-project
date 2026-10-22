@@ -1,0 +1,981 @@
+{
+  "schema_version": "1.0",
+  "language": "en",
+  "kind": "guardrails-negative",
+  "description": "guardrails 评测集（docs/hallucination-guardrails-plan.md L4）：负样本 expect_severity=error 必须 100% 拦截；正样本不得产生 error（FPR=0）。",
+  "case_count": 108,
+  "cases": [
+    {
+      "id": "neg-en-001",
+      "rule": "numeric.conservation",
+      "kind": "tamper",
+      "expect_severity": "error",
+      "source": "The model improves SNR by 18.90% on EEGDenoiseNet.",
+      "polished": "The model improves SNR by 19.80% on EEGDenoiseNet.",
+      "note": "tampered 18.90→19.80"
+    },
+    {
+      "id": "neg-en-002",
+      "rule": "numeric.conservation",
+      "kind": "tamper",
+      "expect_severity": "error",
+      "source": "Accuracy reaches 91.2%, a gain of 3.4 points.",
+      "polished": "Accuracy reaches 91.2%, a gain of 4.1 points.",
+      "note": "tampered secondary number"
+    },
+    {
+      "id": "neg-en-003",
+      "rule": "numeric.conservation",
+      "kind": "round",
+      "expect_severity": "error",
+      "source": "The group difference was significant (p = 0.047).",
+      "polished": "The group difference was significant (p < 0.05).",
+      "note": "p-value rounding drift"
+    },
+    {
+      "id": "neg-en-004",
+      "rule": "numeric.conservation",
+      "kind": "round",
+      "expect_severity": "error",
+      "source": "The effect size was 0.31 (95% CI 0.12 to 0.50).",
+      "polished": "The effect size was about 0.3 (95% CI 0.1 to 0.5).",
+      "note": "CI endpoints rounded"
+    },
+    {
+      "id": "neg-en-005",
+      "rule": "numeric.conservation",
+      "kind": "invent",
+      "expect_severity": "error",
+      "source": "Experiments covered three noise levels.",
+      "polished": "Experiments covered five noise levels across 12 subjects.",
+      "note": "invented counts"
+    },
+    {
+      "id": "neg-en-006",
+      "rule": "numeric.conservation",
+      "kind": "unit_loss",
+      "expect_severity": "error",
+      "source": "The sampling rate is 250 Hz.",
+      "polished": "The sampling rate is 250.",
+      "note": "unit Hz detached"
+    },
+    {
+      "id": "neg-en-007",
+      "rule": "numeric.conservation",
+      "kind": "unit_loss",
+      "expect_severity": "error",
+      "source": "The model is 0.8 MB with 12 ms latency.",
+      "polished": "The model is 0.8 MB with 12 latency.",
+      "note": "unit ms detached"
+    },
+    {
+      "id": "neg-en-008",
+      "rule": "numeric.conservation",
+      "kind": "missing",
+      "expect_severity": "error",
+      "source": "We test from -5 dB to 5 dB.",
+      "polished": "We test across typical noise levels.",
+      "note": "range dropped"
+    },
+    {
+      "id": "neg-en-009",
+      "rule": "numeric.conservation",
+      "kind": "invent",
+      "expect_severity": "error",
+      "source": "Training converged after 100 epochs.",
+      "polished": "Training converged after 100 epochs and 3 hours of compute.",
+      "note": "invented runtime"
+    },
+    {
+      "id": "neg-en-010",
+      "rule": "numeric.conservation",
+      "kind": "invent",
+      "expect_severity": "error",
+      "source": "The dataset contains 2710 clean EEG segments.",
+      "polished": "The dataset contains 2710 segments labeled with 99.2% accuracy.",
+      "note": "invented label accuracy"
+    },
+    {
+      "id": "neg-en-011",
+      "rule": "numeric.conservation",
+      "kind": "tamper",
+      "expect_severity": "error",
+      "source": "The learning rate is 1e-5.",
+      "polished": "The learning rate is 5e-5.",
+      "note": "scientific notation tampered"
+    },
+    {
+      "id": "neg-en-012",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "The method reduces RRMSE by 35.33%.",
+      "polished": "The method increases RRMSE by 35.33%.",
+      "note": "reduce→increase"
+    },
+    {
+      "id": "neg-en-013",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "NLGAN achieves higher SNR than baselines.",
+      "polished": "NLGAN achieves lower SNR than baselines.",
+      "note": "higher→lower"
+    },
+    {
+      "id": "neg-en-014",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "The approach outperforms the baseline on CC.",
+      "polished": "The approach underperforms the baseline on CC.",
+      "note": "outperform→underperform"
+    },
+    {
+      "id": "neg-en-015",
+      "rule": "numeric.polarity",
+      "kind": "swap",
+      "expect_severity": "error",
+      "source": "As shown in Table 1, NLGAN outperforms SimpleCNN.",
+      "polished": "As shown in Table 1, SimpleCNN outperforms NLGAN.",
+      "note": "subject-object swap"
+    },
+    {
+      "id": "neg-en-016",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "Parameters decrease by 40% while training time shrinks.",
+      "polished": "Parameters increase by 40% while training time shrinks.",
+      "note": "one flip in multi-claim sentence"
+    },
+    {
+      "id": "neg-en-017",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "Artifact energy is effectively suppressed.",
+      "polished": "Artifact energy is effectively amplified.",
+      "note": "suppressed→amplified"
+    },
+    {
+      "id": "neg-en-018",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "Performance degrades as noise grows.",
+      "polished": "Performance improves as noise grows.",
+      "note": "degrades→improves"
+    },
+    {
+      "id": "neg-en-019",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "The module widens the receptive field.",
+      "polished": "The module narrows the receptive field.",
+      "note": "widens→narrows"
+    },
+    {
+      "id": "neg-en-020",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "Baseline error is significantly above ours.",
+      "polished": "Baseline error is significantly below ours.",
+      "note": "above→below"
+    },
+    {
+      "id": "neg-en-021",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "Attention slightly raises compute cost.",
+      "polished": "Attention slightly lowers compute cost.",
+      "note": "raises→lowers"
+    },
+    {
+      "id": "neg-en-022",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "The denoised waveform is closer to the clean one.",
+      "polished": "The denoised waveform is farther from the clean one.",
+      "note": "closer→farther"
+    },
+    {
+      "id": "neg-en-023",
+      "rule": "citation.conservation",
+      "kind": "drop",
+      "expect_severity": "error",
+      "source": "Prior work [1] [2] studied this problem.",
+      "polished": "Prior work [1] studied this problem.",
+      "note": "dropped [2]"
+    },
+    {
+      "id": "neg-en-024",
+      "rule": "citation.conservation",
+      "kind": "drop",
+      "expect_severity": "error",
+      "source": "As shown in [3] and [7], ICA is widely used.",
+      "polished": "As shown in [3], ICA is widely used.",
+      "note": "dropped [7]"
+    },
+    {
+      "id": "neg-en-025",
+      "rule": "citation.conservation",
+      "kind": "invent",
+      "expect_severity": "error",
+      "source": "Deep learning has succeeded here [4].",
+      "polished": "Deep learning has succeeded here [4] [23].",
+      "note": "out-of-bounds [23] (list has 22)"
+    },
+    {
+      "id": "neg-en-026",
+      "rule": "citation.conservation",
+      "kind": "invent",
+      "expect_severity": "error",
+      "source": "GANs were introduced for denoising [18].",
+      "polished": "GANs were introduced for denoising [18] [31].",
+      "note": "nonexistent [31]"
+    },
+    {
+      "id": "neg-en-027",
+      "rule": "citation.conservation",
+      "kind": "weaken",
+      "expect_severity": "error",
+      "source": "As [5] [6] show, mode mixing matters.",
+      "polished": "As shown above, mode mixing matters.",
+      "note": "citations erased"
+    },
+    {
+      "id": "neg-en-028",
+      "rule": "citation.conservation",
+      "kind": "invent",
+      "expect_severity": "error",
+      "source": "Zhang et al. built the benchmark [13].",
+      "polished": "Zhang et al. (2021) built the benchmark [13] [14].",
+      "note": "added [14] alongside"
+    },
+    {
+      "id": "neg-en-029",
+      "rule": "citation.conservation",
+      "kind": "drop",
+      "expect_severity": "error",
+      "source": "Devlin et al. (2019) introduced pretraining.",
+      "polished": "Pretraining is now widely adopted.",
+      "note": "author-year dropped"
+    },
+    {
+      "id": "neg-en-030",
+      "rule": "citation.conservation",
+      "kind": "invent",
+      "expect_severity": "error",
+      "source": "See Eq. (2) and reference [11].",
+      "polished": "See Eq. (2).",
+      "note": "reference marker removed"
+    },
+    {
+      "id": "neg-en-031",
+      "rule": "citation.conservation",
+      "kind": "swap",
+      "expect_severity": "error",
+      "source": "Huang et al. [4] proposed EMD.",
+      "polished": "Huang et al. [12] proposed EMD.",
+      "note": "citation number changed"
+    },
+    {
+      "id": "neg-en-032",
+      "rule": "citation.conservation",
+      "kind": "invent",
+      "expect_severity": "error",
+      "source": "We validate on two tasks [20] [21].",
+      "polished": "We validate on two tasks [20] [21] [25].",
+      "note": "added [25] out of bounds"
+    },
+    {
+      "id": "neg-en-033",
+      "rule": "citation.conservation",
+      "kind": "drop",
+      "expect_severity": "error",
+      "source": "Wavelet methods [8] are time-frequency tools.",
+      "polished": "Wavelet methods are time-frequency tools.",
+      "note": "citation dropped"
+    },
+    {
+      "id": "neg-en-034",
+      "rule": "anchor.conservation",
+      "kind": "figure",
+      "expect_severity": "error",
+      "source": "The architecture is shown in Fig. 3.",
+      "polished": "The architecture is shown in the figure.",
+      "note": "Fig. 3 dropped"
+    },
+    {
+      "id": "neg-en-035",
+      "rule": "anchor.conservation",
+      "kind": "figure",
+      "expect_severity": "error",
+      "source": "Methods are compared in Table 1.",
+      "polished": "Methods are compared in the table.",
+      "note": "Table 1 dropped"
+    },
+    {
+      "id": "neg-en-036",
+      "rule": "anchor.conservation",
+      "kind": "figure",
+      "expect_severity": "error",
+      "source": "The loss is defined in Eq. (2).",
+      "polished": "The loss is defined below.",
+      "note": "Eq. (2) dropped"
+    },
+    {
+      "id": "neg-en-037",
+      "rule": "anchor.conservation",
+      "kind": "figure",
+      "expect_severity": "error",
+      "source": "Results appear in Fig. 9(a).",
+      "polished": "Results appear in the figure.",
+      "note": "subfigure dropped"
+    },
+    {
+      "id": "neg-en-038",
+      "rule": "anchor.conservation",
+      "kind": "figure",
+      "expect_severity": "error",
+      "source": "As shown in Fig. 3 and Fig. 4.",
+      "polished": "As shown in Fig. 3.",
+      "note": "Fig. 4 dropped"
+    },
+    {
+      "id": "neg-en-039",
+      "rule": "anchor.conservation",
+      "kind": "entity",
+      "expect_severity": "error",
+      "source": "NLGAN uses a dual-discriminator design; NLGAN is detailed in Section 3.",
+      "polished": "The model uses a dual-discriminator design detailed in Section 3.",
+      "note": "entity NLGAN vanished"
+    },
+    {
+      "id": "neg-en-040",
+      "rule": "anchor.conservation",
+      "kind": "entity",
+      "expect_severity": "error",
+      "source": "We evaluate on EEGDenoiseNet and MIT-BIH; EEGDenoiseNet is public.",
+      "polished": "We evaluate on two public datasets.",
+      "note": "dataset names vanished"
+    },
+    {
+      "id": "neg-en-041",
+      "rule": "anchor.conservation",
+      "kind": "entity",
+      "expect_severity": "error",
+      "source": "The MFM module and CAS block are core; MFM is in Section 3.1.2.",
+      "polished": "Two novel modules are core and detailed later.",
+      "note": "abbreviations vanished"
+    },
+    {
+      "id": "neg-en-042",
+      "rule": "anchor.conservation",
+      "kind": "entity",
+      "expect_severity": "error",
+      "source": "The EEGDenoiseNet benchmark was curated by Zhang.",
+      "polished": "The EEGDenoseNet benchmark was curated by Zhang.",
+      "note": "dataset name misspelled"
+    },
+    {
+      "id": "neg-en-043",
+      "rule": "anchor.conservation",
+      "kind": "figure",
+      "expect_severity": "error",
+      "source": "Table 2 reports the ablation.",
+      "polished": "The ablation is reported below.",
+      "note": "Table 2 dropped"
+    },
+    {
+      "id": "neg-en-044",
+      "rule": "anchor.conservation",
+      "kind": "entity",
+      "expect_severity": "error",
+      "source": "SNR, CC and RRMSE are reported; SNR matters most.",
+      "polished": "Three metrics are reported; the first matters most.",
+      "note": "abbreviation SNR vanished"
+    },
+    {
+      "id": "neg-en-045",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "The method may suit real-time use.",
+      "polished": "The method proves suitable for real-time use.",
+      "note": "may→prove"
+    },
+    {
+      "id": "neg-en-046",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "Results perhaps suggest channel differences.",
+      "polished": "Results certainly demonstrate channel differences.",
+      "note": "perhaps→certainly"
+    },
+    {
+      "id": "neg-en-047",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "Attention partly improves feature selection.",
+      "polished": "Attention completely improves feature selection.",
+      "note": "partly→completely"
+    },
+    {
+      "id": "neg-en-048",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "Preliminary tests indicate robustness.",
+      "polished": "Exhaustive tests indicate robustness.",
+      "note": "preliminary→exhaustive"
+    },
+    {
+      "id": "neg-en-049",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "The effect seems tied to artifact shape.",
+      "polished": "The effect is obviously tied to artifact shape.",
+      "note": "seems→obviously"
+    },
+    {
+      "id": "neg-en-050",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "The approach could help clinical use.",
+      "polished": "The approach will definitely help clinical use.",
+      "note": "could→definitely"
+    },
+    {
+      "id": "neg-en-051",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "Findings hint that dual critics stabilize training.",
+      "polished": "Findings confirm that dual critics stabilize training.",
+      "note": "hint→confirm"
+    },
+    {
+      "id": "neg-en-052",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "Some samples show waveform distortion.",
+      "polished": "All samples show waveform distortion.",
+      "note": "some→all"
+    },
+    {
+      "id": "neg-en-053",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "The model is stable under controlled conditions.",
+      "polished": "The model is stable under any conditions.",
+      "note": "controlled→any"
+    },
+    {
+      "id": "neg-en-054",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "The data may hide individual differences.",
+      "polished": "The data certainly hide individual differences.",
+      "note": "may→certainly"
+    },
+    {
+      "id": "neg-en-055",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "In this study, the method outperforms baselines.",
+      "polished": "The method outperforms baselines.",
+      "note": "'In this study' lost"
+    },
+    {
+      "id": "neg-en-056",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "On our dataset, the model reaches 91.2%.",
+      "polished": "The model reaches 91.2%.",
+      "note": "'On our dataset' lost"
+    },
+    {
+      "id": "neg-en-057",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "Under our noise conditions, denoising is stable.",
+      "polished": "Denoising is stable.",
+      "note": "condition qualifier lost"
+    },
+    {
+      "id": "neg-en-058",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "In this sample, older subjects improve more.",
+      "polished": "Older subjects improve more.",
+      "note": "'In this sample' lost"
+    },
+    {
+      "id": "neg-en-059",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "In controlled recordings, artifacts drop sharply.",
+      "polished": "Artifacts drop sharply.",
+      "note": "recording qualifier lost"
+    },
+    {
+      "id": "neg-en-060",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "We discuss only ECG and EOG artifacts.",
+      "polished": "We discuss all artifact types.",
+      "note": "scope widened"
+    },
+    {
+      "id": "neg-en-061",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "On the three metrics above, the method improves.",
+      "polished": "On all metrics, the method improves.",
+      "note": "scope widened"
+    },
+    {
+      "id": "neg-en-062",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "In low-noise scenes, the advantage is clear.",
+      "polished": "The advantage is clear.",
+      "note": "scene qualifier lost"
+    },
+    {
+      "id": "neg-en-063",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "For the 8:1:1 split, we ablate the design.",
+      "polished": "For this split, we ablate the design.",
+      "note": "specific ratio lost"
+    },
+    {
+      "id": "neg-en-064",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "On synthetic data, generalization is untested.",
+      "polished": "Generalization is untested.",
+      "note": "'On synthetic data' lost"
+    },
+    {
+      "id": "neg-en-065",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "The method is effective.",
+      "polished": "The method is an unprecedented breakthrough.",
+      "note": "'unprecedented' residue"
+    },
+    {
+      "id": "neg-en-066",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "The method beats the baseline.",
+      "polished": "The method is revolutionary.",
+      "note": "'revolutionary' residue"
+    },
+    {
+      "id": "neg-en-067",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "Performance improves.",
+      "polished": "The approach achieves world-class performance.",
+      "note": "'world-class' residue"
+    },
+    {
+      "id": "neg-en-068",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "The method solves denoising.",
+      "polished": "The method perfectly solves denoising.",
+      "note": "'perfectly' residue"
+    },
+    {
+      "id": "neg-en-069",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "A new structure is proposed.",
+      "polished": "A groundbreaking structure is proposed.",
+      "note": "'groundbreaking' residue"
+    },
+    {
+      "id": "neg-en-070",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "Gains are notable.",
+      "polished": "Gains are massive and dwarf all prior methods.",
+      "note": "'massive/dwarf' residue"
+    },
+    {
+      "id": "neg-en-071",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "The design is sound.",
+      "polished": "The design is undoubtedly optimal.",
+      "note": "'undoubtedly optimal'"
+    },
+    {
+      "id": "neg-en-072",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "The model performs well.",
+      "polished": "The model's performance is astonishing.",
+      "note": "subjective praise"
+    },
+    {
+      "id": "neg-en-073",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "Training is stable.",
+      "polished": "Training is flawless from start to finish.",
+      "note": "'flawless' absolute"
+    },
+    {
+      "id": "neg-en-074",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "The method works on two tasks.",
+      "polished": "The method sets a new benchmark for the field.",
+      "note": "'sets a new benchmark'"
+    },
+    {
+      "id": "neg-en-075",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "Denoising quality is good.",
+      "polished": "Denoising quality is truly exceptional.",
+      "note": "'exceptional' residue"
+    },
+    {
+      "id": "neg-en-076",
+      "rule": "aiflavor.lexicon",
+      "kind": "generic_ending",
+      "expect_severity": "error",
+      "source": "We propose NLGAN.",
+      "polished": "We propose NLGAN, which has significant implications for the field.",
+      "note": "'significant implications' ending"
+    },
+    {
+      "id": "neg-en-077",
+      "rule": "aiflavor.lexicon",
+      "kind": "generic_ending",
+      "expect_severity": "error",
+      "source": "We analyze three families.",
+      "polished": "We analyze three families; the field holds great promise.",
+      "note": "'holds great promise' ending"
+    },
+    {
+      "id": "neg-en-078",
+      "rule": "aiflavor.lexicon",
+      "kind": "generic_ending",
+      "expect_severity": "error",
+      "source": "Experiments confirm validity.",
+      "polished": "Experiments confirm validity and pave the way for future work.",
+      "note": "'pave the way' ending"
+    },
+    {
+      "id": "neg-en-079",
+      "rule": "aiflavor.lexicon",
+      "kind": "vague",
+      "expect_severity": "error",
+      "source": "The method works.",
+      "polished": "Studies have shown that the method works well.",
+      "note": "vague 'studies have shown'"
+    },
+    {
+      "id": "neg-en-080",
+      "rule": "aiflavor.lexicon",
+      "kind": "vague",
+      "expect_severity": "error",
+      "source": "Denoising is essential.",
+      "polished": "It is widely acknowledged that denoising is essential.",
+      "note": "'widely acknowledged' vague"
+    },
+    {
+      "id": "neg-en-081",
+      "rule": "aiflavor.lexicon",
+      "kind": "vague",
+      "expect_severity": "error",
+      "source": "Artifacts corrupt signals.",
+      "polished": "Experts believe artifacts severely corrupt signals.",
+      "note": "'experts believe' vague"
+    },
+    {
+      "id": "neg-en-082",
+      "rule": "aiflavor.lexicon",
+      "kind": "density",
+      "expect_severity": "error",
+      "source": "We propose a method and analyze its structure.",
+      "polished": "We delve into the method and provide valuable insights into its structure, which plays a crucial role.",
+      "note": "AI-slop phrases x3 exceed limit"
+    },
+    {
+      "id": "neg-en-083",
+      "rule": "aiflavor.lexicon",
+      "kind": "density",
+      "expect_severity": "error",
+      "source": "The method combines two techniques.",
+      "polished": "The method seamlessly integrates convolution and attention, which plays a crucial role and provides valuable insights.",
+      "note": "AI-slop density exceeded"
+    },
+    {
+      "id": "neg-en-084",
+      "rule": "aiflavor.lexicon",
+      "kind": "closer",
+      "expect_severity": "error",
+      "source": "Experiments are done.",
+      "polished": "In conclusion, the experiments are complete.",
+      "note": "'In conclusion' closer"
+    },
+    {
+      "id": "neg-en-085",
+      "rule": "aiflavor.lexicon",
+      "kind": "closer",
+      "expect_severity": "error",
+      "source": "Results match expectations.",
+      "polished": "To sum up, results match expectations. Overall, the method is effective.",
+      "note": "two closers exceed limit"
+    },
+    {
+      "id": "neg-en-086",
+      "rule": "aiflavor.lexicon",
+      "kind": "triple",
+      "expect_severity": "error",
+      "source": "The pipeline has three steps.",
+      "polished": "Firstly we extract features, secondly we fuse scales, finally we reconstruct.",
+      "note": "rigid triple enumeration"
+    },
+    {
+      "id": "neg-en-087",
+      "rule": "aiflavor.lexicon",
+      "kind": "filler",
+      "expect_severity": "error",
+      "source": "Attention selects features.",
+      "polished": "It is worth noting that attention plays a crucial role in selecting features.",
+      "note": "filler + crucial role"
+    },
+    {
+      "id": "neg-en-088",
+      "rule": "aiflavor.lexicon",
+      "kind": "stacking",
+      "expect_severity": "error",
+      "source": "The model is accurate.",
+      "polished": "Furthermore, the model is accurate. Moreover, it is efficient. Additionally, it is robust.",
+      "note": "connector stacking x3"
+    },
+    {
+      "id": "neg-en-089",
+      "rule": "structure.inflation",
+      "kind": "inflation",
+      "expect_severity": "error",
+      "source": "We propose a method.",
+      "polished": "We propose a method that comprehensively considers multiple design factors and seamlessly integrates several advanced techniques with important theoretical implications.",
+      "note": "length inflation"
+    },
+    {
+      "id": "neg-en-090",
+      "rule": "structure.inflation",
+      "kind": "paragraphs",
+      "expect_severity": "error",
+      "source": "First paragraph.\n\nSecond paragraph.",
+      "polished": "First paragraph.",
+      "note": "paragraph dropped"
+    },
+    {
+      "id": "neg-en-091",
+      "rule": "structure.inflation",
+      "kind": "orphan",
+      "expect_severity": "error",
+      "source": "We validate on two tasks.",
+      "polished": "We validate on two tasks. The market for this technology is expected to double.",
+      "note": "invented market sentence"
+    },
+    {
+      "id": "neg-en-092",
+      "rule": "structure.inflation",
+      "kind": "orphan",
+      "expect_severity": "error",
+      "source": "The model has a generator and critic.",
+      "polished": "The model has a generator and critic. The team has partnered with several hospitals.",
+      "note": "invented partnership"
+    },
+    {
+      "id": "neg-en-093",
+      "rule": "structure.inflation",
+      "kind": "orphan",
+      "expect_severity": "error",
+      "source": "Training uses Adam.",
+      "polished": "Training uses Adam. A related patent was filed in 2024.",
+      "note": "invented patent"
+    },
+    {
+      "id": "neg-en-094",
+      "rule": "structure.inflation",
+      "kind": "markup",
+      "expect_severity": "error",
+      "source": "The loss is $$L = L_1 + L_2$$.",
+      "polished": "The loss is the sum of two terms.",
+      "note": "equation markup removed"
+    },
+    {
+      "id": "neg-en-095",
+      "rule": "structure.inflation",
+      "kind": "orphan",
+      "expect_severity": "error",
+      "source": "Experiments use public data.",
+      "polished": "Experiments use public data. The authors presented early results at a conference.",
+      "note": "invented author history"
+    },
+    {
+      "id": "neg-en-096",
+      "rule": "structure.inflation",
+      "kind": "inflation",
+      "expect_severity": "error",
+      "source": "The baseline is SimpleCNN.",
+      "polished": "The baseline is SimpleCNN, a classic convolutional architecture widely used for EEG processing.",
+      "note": "over-expansion"
+    },
+    {
+      "id": "neg-en-097",
+      "rule": "structure.inflation",
+      "kind": "paragraphs",
+      "expect_severity": "error",
+      "source": "One.\n\nTwo.\n\nThree.",
+      "polished": "One. Two. Three.",
+      "note": "three paragraphs merged"
+    },
+    {
+      "id": "neg-en-098",
+      "rule": "structure.inflation",
+      "kind": "orphan",
+      "expect_severity": "error",
+      "source": "Artifacts include EOG and ECG.",
+      "polished": "Artifacts include EOG and ECG. The global EEG device market keeps growing.",
+      "note": "invented market stat"
+    },
+    {
+      "id": "drift-en-01",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "The generator receives noisy input and estimates artifact components.",
+      "polished": "The generator processes the input signal and produces estimates.",
+      "note": "core action generalized"
+    },
+    {
+      "id": "drift-en-02",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "Skip connections pass multi-scale features to the decoder.",
+      "polished": "Skip connections transfer feature representations between stages.",
+      "note": "mechanism weakened"
+    },
+    {
+      "id": "drift-en-03",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "We split the data in an 8:1:1 ratio.",
+      "polished": "We divided the data in a certain proportion.",
+      "note": "specific ratio erased"
+    },
+    {
+      "id": "drift-en-04",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "Dual critics constrain noise and signal distributions.",
+      "polished": "The two critics impose constraints on distributions.",
+      "note": "mechanism detail erased"
+    },
+    {
+      "id": "drift-en-05",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "Ablation confirms each module's contribution.",
+      "polished": "We analyzed the role of each module.",
+      "note": "finding generalized"
+    },
+    {
+      "id": "drift-en-06",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "The model stays stable at -5 dB noise.",
+      "polished": "The model remains stable under low noise.",
+      "note": "condition and degree changed"
+    },
+    {
+      "id": "drift-en-07",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "The encoder compresses the time dimension layer by layer.",
+      "polished": "The encoder processes the input in stages.",
+      "note": "mechanism replaced"
+    },
+    {
+      "id": "drift-en-08",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "The method needs no reference signal.",
+      "polished": "The method does not rely on extra inputs.",
+      "note": "core property blurred"
+    },
+    {
+      "id": "drift-en-09",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "Training uses Adam with cosine annealing.",
+      "polished": "Training used a common optimization setup.",
+      "note": "specifics erased"
+    },
+    {
+      "id": "drift-en-10",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "The artifact critic assesses the realism of generated artifacts.",
+      "polished": "The critic evaluates the generated content.",
+      "note": "evaluation object blurred"
+    }
+  ]
+}

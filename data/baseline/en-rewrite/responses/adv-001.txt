@@ -1,0 +1,1 @@
+Our proposed dynamic gating mechanism improves the visual quality of underwater images.

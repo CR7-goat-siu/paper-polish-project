@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "language": "en",
+  "domain": "deep_learning",
+  "entries": [
+    {"id": "deep-learning", "canonical": "deep learning", "aliases": ["DL"], "nonstandard": ["deep-learning"], "note": "Use open compound form in prose."},
+    {"id": "neural-network", "canonical": "neural network", "aliases": ["NN", "neural networks"], "nonstandard": ["neural-net"], "note": ""},
+    {"id": "convolutional-neural-network", "canonical": "convolutional neural network", "aliases": ["CNN", "convolutional neural networks"], "nonstandard": ["convolution neural network"], "note": ""},
+    {"id": "recurrent-neural-network", "canonical": "recurrent neural network", "aliases": ["RNN"], "nonstandard": ["recurrent network (ambiguous)"], "note": ""},
+    {"id": "long-short-term-memory", "canonical": "long short-term memory", "aliases": ["LSTM"], "nonstandard": ["long-short term memory"], "note": ""},
+    {"id": "generative-adversarial-network", "canonical": "generative adversarial network", "aliases": ["GAN"], "nonstandard": ["generative adversarial nets"], "note": ""},
+    {"id": "vision-transformer", "canonical": "vision transformer", "aliases": ["ViT"], "nonstandard": [], "note": ""},
+    {"id": "large-language-model", "canonical": "large language model", "aliases": ["LLM", "large language models"], "nonstandard": [], "note": ""},
+    {"id": "multi-layer-perceptron", "canonical": "multi-layer perceptron", "aliases": ["MLP", "multilayer perceptron"], "nonstandard": ["multi layered perceptron"], "note": ""},
+    {"id": "backpropagation", "canonical": "backpropagation", "aliases": ["back-propagation"], "nonstandard": ["backprop (informal)"], "note": ""},
+    {"id": "batch-normalization", "canonical": "batch normalization", "aliases": ["BN"], "nonstandard": ["batch normalisation"], "note": "Keep venue spelling; prefer normalization."},
+    {"id": "layer-normalization", "canonical": "layer normalization", "aliases": ["LN"], "nonstandard": [], "note": ""},
+    {"id": "stochastic-gradient-descent", "canonical": "stochastic gradient descent", "aliases": ["SGD"], "nonstandard": [], "note": ""},
+    {"id": "rectified-linear-unit", "canonical": "rectified linear unit", "aliases": ["ReLU", "rectified linear units"], "nonstandard": ["relu unit"], "note": ""},
+    {"id": "attention-mechanism", "canonical": "attention mechanism", "aliases": ["attention", "attention module"], "nonstandard": ["attentional mechanism"], "note": ""},
+    {"id": "self-attention", "canonical": "self-attention", "aliases": ["intra-attention"], "nonstandard": ["self attention (missing hyphen in attributive use)"], "note": ""},
+    {"id": "cross-attention", "canonical": "cross-attention", "aliases": [], "nonstandard": ["cross attention"], "note": ""},
+    {"id": "learning-rate", "canonical": "learning rate", "aliases": [], "nonstandard": ["learning-rate"], "note": "Hyphenate only in attributive use."},
+    {"id": "data-augmentation", "canonical": "data augmentation", "aliases": [], "nonstandard": ["data-augmentation"], "note": ""},
+    {"id": "transfer-learning", "canonical": "transfer learning", "aliases": [], "nonstandard": ["transfer-learning"], "note": ""},
+    {"id": "fine-tuning", "canonical": "fine-tuning", "aliases": ["finetuning"], "nonstandard": ["fine tuning"], "note": "Choose one and stay consistent."},
+    {"id": "loss-function", "canonical": "loss function", "aliases": ["objective function", "cost function"], "nonstandard": [], "note": "Prefer loss function for training loss."},
+    {"id": "overfitting", "canonical": "overfitting", "aliases": [], "nonstandard": ["over-fitting"], "note": ""},
+    {"id": "underfitting", "canonical": "underfitting", "aliases": [], "nonstandard": ["under-fitting"], "note": ""},
+    {"id": "hyperparameter", "canonical": "hyperparameter", "aliases": ["hyper-parameter"], "nonstandard": [], "note": ""}
+  ]
+}

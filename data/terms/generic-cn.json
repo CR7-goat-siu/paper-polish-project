@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "language": "zh-CN",
+  "domain": "generic",
+  "entries": [
+    {"id": "figure-ref", "canonical": "图1", "aliases": ["图 1"], "nonstandard": ["fig1"], "note": "全文统一“图N”或“图 N”其中一种写法。"},
+    {"id": "table-ref", "canonical": "表1", "aliases": ["表 1"], "nonstandard": ["tab1"], "note": "全文统一“表N”或“表 N”其中一种写法。"},
+    {"id": "reference-list", "canonical": "参考文献", "aliases": [], "nonstandard": ["参考文件", "引用文献列表"], "note": ""},
+    {"id": "abstract", "canonical": "摘要", "aliases": ["内容提要"], "nonstandard": ["概要"], "note": ""},
+    {"id": "conclusion", "canonical": "结论", "aliases": ["结束语"], "nonstandard": ["总结与心得"], "note": ""},
+    {"id": "ie", "canonical": "即", "aliases": ["也就是"], "nonstandard": ["i,e,"], "note": "中文行文优先用“即”。"},
+    {"id": "method", "canonical": "方法", "aliases": ["方法与实现"], "nonstandard": ["办法"], "note": ""}
+  ]
+}

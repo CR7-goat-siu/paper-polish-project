@@ -1,0 +1,190 @@
+# English academic polishing rules (domain-neutral; domain specifics come from config/domains/*.yaml)
+# Three strengths: light / deep / rewrite. All prompt bodies live under prompts/en.
+schema_version: "2.0"
+language: "en"
+
+agent:
+  role: "You are a senior academic editor for research papers across science and engineering."
+  language_note: "Output formal, fluent, publication-ready academic English."
+  boundaries:
+    - "Never add experimental data, results, or conclusions the authors did not state."
+    - "Never change equations, code, citations, or bibliographic records beyond configured rules."
+    - "Never silently replace technical terminology; enforce canonical terms from the loaded glossary."
+    - "Never strengthen a claim beyond what the reported evidence supports."
+
+default_strength: "deep"
+
+strengths:
+  light:
+    label: "Light copy-edit"
+    prompt_template: "polish-light.md"
+    max_input_tokens_per_chunk: 4000
+    temperature: 0.1
+    scope:
+      - "Fix grammar, spelling, punctuation, articles, prepositions, tense, and subject-verb agreement."
+      - "Remove redundant fillers when meaning is unchanged."
+      - "Normalize spacing, capitalization, and typographic slips."
+      - "Replace exaggerated or subjective words with neutral, evidence-matched wording."
+    forbidden:
+      - "Do not restructure sentences, move arguments, or reorder paragraphs."
+      - "Do not replace domain terminology without a rule."
+      - "Do not add or delete content sentences."
+    quality_gates:
+      unchanged_min_ratio: 0.85
+      length_ratio_min: 0.8
+      length_ratio_max: 1.25
+      numbers_required: true
+      citations_required: true
+      paragraph_mode: "exact"
+      hype_residue_allowed: false
+      term_error_max: 0
+      max_gate_retries: 1
+      # —— guardrails 扩展门禁（docs/hallucination-guardrails-plan.md L2/L3）——
+      fabrication_suspects_as_errors: true
+      citation_index_bounded: true
+      anchor_conservation: true
+      hedge_flip: true
+      scope_shift: true
+      semantic_drift_threshold: 0.35
+      strict_guardrails: false
+      sentence_rework: false
+
+  deep:
+    label: "Deep polish"
+    prompt_template: "polish-deep.md"
+    max_input_tokens_per_chunk: 6000
+    temperature: 0.15
+    scope:
+      - "Improve sentence flow, cohesion, and paragraph logic while preserving claims."
+      - "Sharpen academic register and reduce wordiness."
+      - "Resolve ambiguous pronoun references and awkward nominalizations."
+      - "Tone down subjective or inflated wording to match the reported evidence."
+      - "Adjust hedging strength only when the original evidence supports it."
+    forbidden:
+      - "Do not change the technical meaning, experimental facts, or numeric statements."
+      - "Do not add citations or remove existing citations."
+      - "Do not restructure section-level organization."
+    quality_gates:
+      unchanged_min_ratio: 0.5
+      length_ratio_min: 0.6
+      length_ratio_max: 1.6
+      numbers_required: true
+      citations_required: true
+      paragraph_mode: "exact"
+      hype_residue_allowed: false
+      term_error_max: 0
+      max_gate_retries: 1
+      # —— guardrails 扩展门禁（docs/hallucination-guardrails-plan.md L2/L3）——
+      fabrication_suspects_as_errors: true
+      citation_index_bounded: true
+      anchor_conservation: true
+      hedge_flip: true
+      scope_shift: true
+      semantic_drift_threshold: 0.35
+      strict_guardrails: false
+      sentence_rework: false
+
+  rewrite:
+    label: "Rewrite-grade polish"
+    prompt_template: "polish-rewrite.md"
+    max_input_tokens_per_chunk: 5000
+    temperature: 0.25
+    scope:
+      - "Rewrite sentences and paragraphs for maximal clarity, conciseness, and impact."
+      - "Reorganize within-paragraph information flow when it improves readability."
+      - "Convert implicit reasoning into explicit transitions without changing facts."
+      - "De-hype and re-anchor claims: every claim must be as strong as its evidence."
+    forbidden:
+      - "Do not invent data, numbers, citations, or conclusions."
+      - "Do not alter mathematical notation or code blocks."
+      - "Do not change the author's scientific position."
+    quality_gates:
+      unchanged_min_ratio: 0.3
+      length_ratio_min: 0.5
+      length_ratio_max: 1.8
+      numbers_required: true
+      citations_required: true
+      paragraph_mode: "flexible"
+      hype_residue_allowed: false
+      term_error_max: 0
+      max_gate_retries: 1
+      # —— guardrails 扩展门禁（docs/hallucination-guardrails-plan.md L2/L3）——
+      fabrication_suspects_as_errors: true
+      citation_index_bounded: true
+      anchor_conservation: true
+      hedge_flip: true
+      scope_shift: true
+      semantic_drift_threshold: 0.35
+      strict_guardrails: false
+      sentence_rework: false
+
+objectivity:
+  policy: "Every claim must be no stronger than the reported evidence; remove subjective or inflated wording."
+  rules:
+    - "Remove inflated wording such as unprecedented, groundbreaking, revolutionary, massive, or perfect; state the concrete advance instead."
+    - "Anchor performance claims to numbers, tables, or citations that exist in the text."
+    - "Use hedging (may, suggests, appears to) when evidence is indirect; do not soften negative results."
+    - "Do not coin pseudo-technical terms to sound novel; use established terminology from the glossary."
+  # 词库白名单：填入 claim-guard 词库条目 id（如 ["dafu"]）可豁免该词条，默认空
+  lexicon_whitelist: []
+  banned_examples:
+    - "unprecedented"
+    - "groundbreaking"
+    - "revolutionary"
+    - "massive improvement"
+    - "perfect solution"
+    - "world-first"
+  register_note: "Prefer 'the proposed method' and factual statements over emotional first-person praise."
+
+coherence:
+  rules:
+    - "Keep paragraph progression explicit: motivation, then approach, then evidence, then implication."
+    - "Use precise connectives (however, therefore, in contrast) that match the actual logical relation."
+    - "Resolve ambiguous references (it, this, they) to their concrete antecedents."
+    - "Keep one topic per paragraph; never break section-level order."
+
+conciseness:
+  rules:
+    - "Prefer the tightest academic phrasing that preserves meaning."
+    - "Replace wordy patterns: 'due to the fact that' -> 'because'; 'in order to' -> 'to'."
+    - "Remove filler intensifiers (very, really, extremely) unless a quantity is given."
+    - "Convert colloquial or informal expressions into formal academic register."
+
+domain_rules:
+  terminology:
+    consistency_mode: "enforce_canonical"
+    abbreviation_rule: "expand abbreviation at first use, then keep abbreviation consistent"
+    unknown_term_policy: "preserve_and_report"
+
+  math_notation:
+    preserve_equations: true
+    preserve_inline_math: true
+    preserve_symbol_definitions: true
+
+  citation:
+    preserve_citation_markers: true
+    allowed_styles:
+      - "APA"
+      - "IEEE"
+      - "GB/T 7714"
+
+  structure:
+    preserve_section_boundaries: true
+    preserve_paragraph_boundaries: true
+
+section_guidance:
+  title: "Keep it concise and informative; preserve technical precision."
+  abstract: "Use 150-250 words unless the venue states otherwise; state problem, method, results, and impact."
+  keywords: "Do not rewrite keywords unless a canonical term differs."
+  introduction: "Motivate clearly, position against prior work, and state contributions without overclaiming."
+  related_work: "Keep comparison fair and precise; avoid vague praise or dismissal."
+  method: "Prefer precise, reproducible wording; preserve equations, symbols, and algorithm steps."
+  experiment: "Keep numbers, metrics, and comparisons exact; do not soften negative results."
+  discussion: "Connect results to claims and limitations; avoid unsupported generality."
+  conclusion: "Summarize contribution and limits; do not introduce new claims or data."
+
+output_constraints:
+  return_only_edited_text: false
+  preserve_original_line_breaks: true
+  preserve_original_markup: true
+  report_uncertain_changes: true

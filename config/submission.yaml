@@ -1,0 +1,191 @@
+# 投稿前预审与人工签核门禁配置。
+# 本配置只定义阈值和评审规则，不包含密钥、模型端点或发布授权。
+schema_version: "1.0"
+
+positioning:
+  product: "辅助 coding harness 的论文润色、修改与投稿前预审能力层"
+  final_publication_claim_allowed: false
+  human_signoff_required: true
+  candidate_final_definition: "语言、结构、逻辑、术语、引用格式、统计表达、图表标题和投稿格式达到送审候选标准"
+
+thresholds:
+  evidence_binding_rate: 0.95
+  reference_verification_rate: 0.95
+  statistics_conflict_count: 0
+  figure_completeness_rate: 1.0
+  docx_structural_score: 4.0
+  docx_render_score: 4.0
+  unresolved_placeholder_count: 0
+  terminology_consistency_rate: 0.95
+  language_error_density_max: 0.02
+  minimum_critical_claim_count: 1
+  max_citations_per_claim: 8
+  min_evidence_quote_chars: 12
+  self_citation_rate_warning: 0.35
+
+statistics:
+  absolute_tolerance: 0.000001
+  relative_tolerance: 0.01
+  default_value_scale: 1.0
+  require_critical_verified: true
+
+figures:
+  minimum_figure_dpi: 300
+  supported_figure_formats:
+    - "png"
+    - "tif"
+    - "tiff"
+    - "eps"
+    - "pdf"
+    - "svg"
+  require_source_file: true
+  require_body_reference: true
+  require_axis_labels_for_charts: true
+  require_units_for_quantitative_axes: true
+  require_legend_for_multiseries: true
+  require_significance_for_inferential: true
+  require_error_bars_for_dispersion: true
+  require_sample_size_note: true
+  require_license: true
+
+docx:
+  require_word_or_pdf_render: true
+  require_page_images: true
+  require_nonblank_pages: true
+  require_headers_or_footers: true
+  require_heading_styles: true
+  require_page_margins: true
+  default_page_margin_cm: 2.54
+  margin_tolerance_cm: 0.25
+  render_dpi: 120
+
+placeholders:
+  patterns:
+    - "TODO"
+    - "TBD"
+    - "CITE-TBD"
+    - "待补文献"
+    - "待确认"
+    - "ZOTERO_"
+    - "CSL_BIBLIOGRAPHY"
+    - "CSL_CITATION"
+    - "XXX"
+    - "{{"
+    - "}}"
+
+quality_rubric:
+  language_accuracy:
+    score_0: "阻断性语言错误或含义不可理解"
+    score_1: "高频语法、搭配或时态错误影响阅读"
+    score_2: "存在多处可识别错误，但主体可读懂"
+    score_3: "有少量语言错误，基本达到审稿可读"
+    score_4: "语言清晰准确，仅有少量可编辑瑕疵"
+    score_5: "语言准确、自然、符合目标期刊学术语域"
+  academic_tone:
+    score_0: "口号化、营销化或宣传式表达贯穿全文"
+    score_1: "多处夸大、绝对化或无依据的比较"
+    score_2: "部分夸张措辞或口语表达"
+    score_3: "总体客观，仍有少量强度失当"
+    score_4: "语气克制，主张与证据基本匹配"
+    score_5: "客观、精确、审慎，主张强度与证据一致"
+  structure_logic:
+    score_0: "结构缺失或论证不可追踪"
+    score_1: "章节顺序混乱且关键逻辑断层未标记"
+    score_2: "结构基本完整，但多处衔接或段落功能不清"
+    score_3: "结构清楚，少量逻辑跳跃"
+    score_4: "章节完整、衔接顺畅、论证链清晰"
+    score_5: "结构严谨，研究问题、方法、结果和结论形成闭环"
+  terminology:
+    score_0: "关键术语大量冲突或概念混用"
+    score_1: "术语多处不一致，影响理解"
+    score_2: "存在若干不一致或非标准写法"
+    score_3: "术语基本一致，少量可统一项"
+    score_4: "术语一致率不低于 95%"
+    score_5: "术语、缩写和领域惯用表达完全一致"
+  argument_chain:
+    score_0: "核心论点与证据之间没有可追踪链条"
+    score_1: "多处论证跳跃、因果倒置或循环论证"
+    score_2: "论证主体存在，但关键前提或推理连接缺失"
+    score_3: "论证链基本完整，少量跳跃已标记"
+    score_4: "研究问题、方法、结果与结论形成清晰链条"
+    score_5: "论证严密，竞争解释与限定条件均得到处理"
+  evidence_traceability:
+    score_0: "关键主张无引用或证据图谱不可追踪"
+    score_1: "多数关键引用未绑定原文证据"
+    score_2: "部分关键引用已绑定，仍存在孤儿或错配"
+    score_3: "关键引用绑定基本完整，少数待核验"
+    score_4: "关键引用证据绑定率不低于 95%，风险已登记"
+    score_5: "全部关键引用可追溯且支持类型、强度、证据位置完整"
+  citation_format:
+    score_0: "正文标记与参考文献表无法对应"
+    score_1: "多种引用体系混用且无法统一"
+    score_2: "引用编号基本可追踪，但格式多处不一致"
+    score_3: "引用格式基本统一，少量细节待调整"
+    score_4: "引用标记和参考文献格式符合目标期刊"
+    score_5: "引用体系、元数据和交叉引用完整且无歧义"
+  statistics_consistency:
+    score_0: "存在未标记的数据冲突或研究结论依赖错误数字"
+    score_1: "多处统计冲突或不可重算项未登记"
+    score_2: "部分数字可追踪，交叉检查不完整"
+    score_3: "关键统计一致，少量不可核验项已登记"
+    score_4: "统计登记完整，冲突为零，不可核验项有确认清单"
+    score_5: "可重算项全部一致且通过确定性重算"
+  figure_table_integrity:
+    score_0: "关键图表缺失或正文依赖不存在的图表"
+    score_1: "多数图表缺标题、来源或正文引用"
+    score_2: "图表编号基本完整，但轴标签、单位或样本说明缺失"
+    score_3: "图表主体完整，少量补件风险已登记"
+    score_4: "图表编号、标题、正文引用、源文件和必要说明完整"
+    score_5: "图表可编辑源、许可、统计说明和正文引用全部可追溯"
+  docx_render:
+    score_0: "DOCX 无法打开或无法渲染"
+    score_1: "可生成文档但分页、版式或图表明显损坏"
+    score_2: "可渲染，但模板、页边距或标题层级存在关键偏差"
+    score_3: "可渲染，少量版式问题待人工目检"
+    score_4: "Word/PDF 渲染成功，页面图非空，结构与模板基本一致"
+    score_5: "真实页面验收和作者视觉签核全部通过"
+  journal_format:
+    score_0: "无法识别目标期刊或格式与模板根本冲突"
+    score_1: "页边距、字号、行距和标题层级多处不符"
+    score_2: "主体格式接近模板，但关键投稿要求缺失"
+    score_3: "格式基本符合，少量模板项待人工确认"
+    score_4: "目标期刊模板、页眉页脚和标题层级符合要求"
+    score_5: "出版社模板和全部投稿格式要求已人工核验"
+  submission_package:
+    score_0: "投稿包缺失正文或核心材料"
+    score_1: "投稿包结构严重不完整"
+    score_2: "正文存在，但图表源、补充材料或声明缺失"
+    score_3: "核心文件齐全，少量期刊材料待补"
+    score_4: "正文、图表、声明和作者确认项齐全"
+    score_5: "完整投稿包已通过作者/通讯作者人工签核"
+  placeholder_integrity:
+    score_0: "正文残留阻断性占位符"
+    score_1: "多处 TODO/TBD 未进入确认清单"
+    score_2: "少量占位符仍在正文或图表中"
+    score_3: "正文无占位符，确认清单仍有未决项"
+    score_4: "正文与投稿包无未解决占位符"
+    score_5: "全部确认项已由作者完成并签核"
+  fabrication_risk:
+    score_0: "存在伪造引用、未读原文却标 verified 或新增数据"
+    score_1: "存在多条无法追溯的引用或数字"
+    score_2: "若干关键引用或统计缺少证据"
+    score_3: "未发现伪造信号，但部分证据仍待核验"
+    score_4: "关键引用、统计和图表均可追溯，无伪造信号"
+    score_5: "作者确认全部事实与来源真实且已完成签核"
+  human_signoff_completeness:
+    score_0: "未生成人工签核清单"
+    score_1: "签核清单缺少关键作者确认项"
+    score_2: "清单完整但作者尚未开始签核"
+    score_3: "部分作者已确认，通讯作者未签发"
+    score_4: "作者确认完成，通讯作者签核待执行"
+    score_5: "作者/通讯作者人工签核全部完成"
+
+human_signoff_checks:
+  - "研究数据、统计结果和图表数值真实无误"
+  - "所有关键引用均已阅读原文并确认支持对应主张"
+  - "作者贡献、利益冲突、基金和致谢信息准确"
+  - "伦理审批、知情同意和临床试验注册信息真实有效"
+  - "目标期刊、文章类型、字数和格式要求已人工确认"
+  - "图表源文件、版权许可和补充材料已确认"
+  - "所有作者已审阅并批准投稿版本"
+  - "通讯作者已完成最终投稿签发"

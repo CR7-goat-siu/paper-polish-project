@@ -1,0 +1,144 @@
+{
+  "schema_version": "1.0",
+  "language": "en",
+  "kind": "informal",
+  "description": "Colloquial / wordy / informal-register lexicon for academic-register guarding.",
+  "entries": [
+    {
+      "id": "a-lot-of",
+      "pattern": "a lot of|lots of",
+      "category": "colloquial",
+      "severity": "warning",
+      "suggestion": "Use 'many', 'several', or a precise quantity.",
+      "note": ""
+    },
+    {
+      "id": "kind-of",
+      "pattern": "kind of|sort of",
+      "category": "colloquial",
+      "severity": "warning",
+      "suggestion": "Delete the hedge or state the degree precisely.",
+      "note": ""
+    },
+    {
+      "id": "we-can-see",
+      "pattern": "we can see from |we can see that |we can see,|you can see|as we can see|as can be seen",
+      "category": "colloquial",
+      "severity": "warning",
+      "suggestion": "Use 'Table 1 shows …' / 'As shown in Figure 2, …'.",
+      "note": ""
+    },
+    {
+      "id": "contractions",
+      "pattern": "can't|don't|doesn't|isn't|won't|shouldn't|couldn't|it's|they're|we're|didn't",
+      "category": "contraction",
+      "severity": "warning",
+      "suggestion": "Expand contractions (do not, does not, …).",
+      "note": ""
+    },
+    {
+      "id": "very",
+      "pattern": "very",
+      "category": "intensifier",
+      "severity": "info",
+      "suggestion": "Delete 'very' or use a precise quantifier.",
+      "note": ""
+    },
+    {
+      "id": "really",
+      "pattern": "really|quite|pretty much",
+      "category": "intensifier",
+      "severity": "info",
+      "suggestion": "Delete the filler intensifier.",
+      "note": ""
+    },
+    {
+      "id": "thing-stuff",
+      "pattern": "\\bthings\\b|\\bstuff\\b",
+      "category": "colloquial",
+      "severity": "warning",
+      "suggestion": "Name the specific objects or 'components'.",
+      "note": ""
+    },
+    {
+      "id": "nowadays",
+      "pattern": "nowadays",
+      "category": "colloquial",
+      "severity": "info",
+      "suggestion": "Use 'recently' or 'in recent years'.",
+      "note": ""
+    },
+    {
+      "id": "due-to-fact",
+      "pattern": "due to the fact that|in spite of the fact that|despite the fact that",
+      "category": "wordy",
+      "severity": "warning",
+      "suggestion": "Use 'because', 'although', or 'despite'.",
+      "note": ""
+    },
+    {
+      "id": "in-order-to",
+      "pattern": "in order to",
+      "category": "wordy",
+      "severity": "info",
+      "suggestion": "Use 'to'.",
+      "note": ""
+    },
+    {
+      "id": "large-number",
+      "pattern": "a large number of|a great deal of",
+      "category": "wordy",
+      "severity": "info",
+      "suggestion": "Use 'many' or a precise count.",
+      "note": ""
+    },
+    {
+      "id": "worth-noting",
+      "pattern": "it is worth noting that|it should be noted that",
+      "category": "wordy",
+      "severity": "info",
+      "suggestion": "Use 'Notably, …' or state the point directly.",
+      "note": ""
+    },
+    {
+      "id": "utilize",
+      "pattern": "utiliz(?:e|es|ed|ing)",
+      "category": "wordy",
+      "severity": "info",
+      "suggestion": "Use 'use'.",
+      "note": ""
+    },
+    {
+      "id": "obviously",
+      "pattern": "obviously|clearly|needless to say",
+      "category": "unjustified",
+      "severity": "warning",
+      "suggestion": "Delete; let the evidence speak, or add the justification.",
+      "note": ""
+    },
+    {
+      "id": "get-verb",
+      "pattern": "\\bgets?\\b",
+      "category": "colloquial",
+      "severity": "info",
+      "suggestion": "Use 'becomes', 'obtains', or a precise verb.",
+      "note": ""
+    },
+    {
+      "id": "big",
+      "pattern": "\\bbig\\b",
+      "category": "colloquial",
+      "severity": "info",
+      "suggestion": "Use 'large', 'substantial', or a quantity.",
+      "note": ""
+    },
+    {
+      "id": "everyone-knows",
+      "pattern": "everyone knows|everybody knows|as everyone knows",
+      "category": "unjustified",
+      "severity": "warning",
+      "suggestion": "Cite sources: 'Prior studies have shown …'.",
+      "note": ""
+    }
+  ]
+}

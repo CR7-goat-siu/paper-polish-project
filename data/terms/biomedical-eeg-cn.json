@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "language": "zh-CN",
+  "domain": "biomedical_eeg",
+  "entries": [
+    {"id": "eeg", "canonical": "脑电", "aliases": ["脑电图", "脑电信号", "EEG"], "nonstandard": ["脑电波信号"], "en": "EEG", "note": "首次出现给出全称，如“脑电（electroencephalography, EEG）”。"},
+    {"id": "erp", "canonical": "事件相关电位", "aliases": ["ERP"], "nonstandard": ["事件相关电势"], "en": "event-related potential", "note": ""},
+    {"id": "psd", "canonical": "功率谱密度", "aliases": ["PSD"], "nonstandard": ["功率谱密率"], "en": "power spectral density", "note": "“功率谱”为相关但不同的概念，不作为非规范写法。"},
+    {"id": "ica", "canonical": "独立成分分析", "aliases": ["ICA"], "nonstandard": ["独立成份分析", "独立分量分析法"], "en": "independent component analysis", "note": ""},
+    {"id": "csp", "canonical": "共空间模式", "aliases": ["CSP", "共同空间模式"], "nonstandard": [], "en": "common spatial pattern", "note": ""},
+    {"id": "artifact", "canonical": "伪迹", "aliases": ["伪差"], "nonstandard": ["假迹"], "en": "artifact", "note": ""},
+    {"id": "wavelet-transform", "canonical": "小波变换", "aliases": ["小波分析"], "nonstandard": ["小波转换"], "en": "wavelet transform", "note": ""},
+    {"id": "motor-imagery", "canonical": "运动想象", "aliases": ["MI", "运动想象范式"], "nonstandard": ["运动想像"], "en": "motor imagery", "note": ""},
+    {"id": "bci", "canonical": "脑机接口", "aliases": ["BCI"], "nonstandard": [], "en": "brain-computer interface", "note": "首次出现可写“脑机接口（brain-computer interface, BCI）”。"},
+    {"id": "sleep-staging", "canonical": "睡眠分期", "aliases": ["睡眠阶段划分"], "nonstandard": [], "en": "sleep staging", "note": ""},
+    {"id": "band-power", "canonical": "频段功率", "aliases": ["频带能量"], "nonstandard": [], "en": "band power", "note": "全文保持一种译法。"},
+    {"id": "alpha-band", "canonical": "α频段", "aliases": ["alpha频段", "α节律"], "nonstandard": [], "en": "alpha band", "note": "希腊字母与拉丁写法全文统一。"},
+    {"id": "filtering", "canonical": "滤波", "aliases": ["滤波处理"], "nonstandard": ["虑波"], "en": "filtering", "note": ""},
+    {"id": "evoked-potential", "canonical": "诱发电位", "aliases": ["视觉诱发电位", "听觉诱发电位"], "nonstandard": [], "en": "evoked potential", "note": ""}
+  ]
+}

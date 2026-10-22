@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "language": "en",
+  "domain": "generic",
+  "entries": [
+    {"id": "et-al", "canonical": "et al.", "aliases": ["et al"], "nonstandard": ["et. al", "etall"], "note": "Period after 'al', no period after 'et'."},
+    {"id": "ie", "canonical": "i.e.", "aliases": [], "nonstandard": ["ie."], "note": "Lowercase with periods, followed by a comma in US style."},
+    {"id": "eg", "canonical": "e.g.", "aliases": [], "nonstandard": ["eg."], "note": "Lowercase with periods."},
+    {"id": "etc", "canonical": "etc.", "aliases": [], "nonstandard": ["ect"], "note": "Avoid combining with 'and' before it in formal lists."},
+    {"id": "versus", "canonical": "versus", "aliases": ["vs.", "vs"], "nonstandard": [], "note": "Spell out in prose; 'vs.' acceptable in tables and parentheticals."},
+    {"id": "figure-ref", "canonical": "Figure 1", "aliases": ["Fig. 1", "figure 1"], "nonstandard": ["fig1", "fig 1", "FIG1"], "note": "Capitalized 'Figure' at sentence start or per venue style; keep one form."},
+    {"id": "table-ref", "canonical": "Table 1", "aliases": ["table 1"], "nonstandard": ["tab 1", "tab.1", "TAB1"], "note": "Keep numbering style consistent."},
+    {"id": "dataset", "canonical": "dataset", "aliases": ["data set"], "nonstandard": ["data-set"], "note": "One word in most venues; stay consistent."},
+    {"id": "baseline", "canonical": "baseline", "aliases": [], "nonstandard": ["base-line"], "note": ""},
+    {"id": "state-of-the-art", "canonical": "state-of-the-art", "aliases": ["SOTA"], "nonstandard": ["sota"], "note": "Spell out in prose; reserve for results backed by a comparison table."},
+    {"id": "ground-truth", "canonical": "ground truth", "aliases": ["ground-truth labels"], "nonstandard": ["groundtruth"], "note": "Two words as a noun; hyphenate only attributively."},
+    {"id": "reference-list", "canonical": "References", "aliases": ["Bibliography"], "nonstandard": ["Refenreces", "Refernces"], "note": ""}
+  ]
+}

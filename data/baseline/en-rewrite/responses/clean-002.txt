@@ -1,0 +1,1 @@
+The proposed method achieves an accuracy of 94.2% on the test set, which is comparable to that of recent approaches.

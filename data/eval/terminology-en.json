@@ -1,0 +1,144 @@
+{
+  "schema_version": "1.0",
+  "suite": "terminology",
+  "language": "en",
+  "description": "Degraded-term cases. Metrics: terminology recall (canonical restored) and coined-word interception (nonstandard removed).",
+  "cases": [
+    {
+      "id": "term-001",
+      "text": "We train a convolution neural network and a long-short term memory module with backprop (informal).",
+      "expect_canonical": [
+        "convolutional neural network",
+        "long short-term memory",
+        "backpropagation"
+      ],
+      "expect_removed": [
+        "convolution neural network",
+        "long-short term memory",
+        "backprop"
+      ],
+      "reference": "We train a convolutional neural network and a long short-term memory module with backpropagation."
+    },
+    {
+      "id": "term-002",
+      "text": "The deep-learning model with self attention and cross attention layers is trained end to end.",
+      "expect_canonical": [
+        "deep learning",
+        "self-attention",
+        "cross-attention"
+      ],
+      "expect_removed": [
+        "deep-learning",
+        "self attention",
+        "cross attention"
+      ],
+      "reference": "The deep learning model with self-attention and cross-attention layers is trained end to end."
+    },
+    {
+      "id": "term-003",
+      "text": "We use finetuning with a hyper-parameter search and a cost function for optimization.",
+      "expect_canonical": [
+        "fine-tuning",
+        "hyperparameter",
+        "loss function"
+      ],
+      "expect_removed": [
+        "finetuning",
+        "hyper-parameter",
+        "cost function"
+      ],
+      "reference": "We use fine-tuning with a hyperparameter search and a loss function for optimization."
+    },
+    {
+      "id": "term-004",
+      "text": "Batch normalisation stabilizes training, and over-fitting is reduced by early stopping.",
+      "expect_canonical": [
+        "batch normalization",
+        "overfitting"
+      ],
+      "expect_removed": [
+        "batch normalisation",
+        "over-fitting"
+      ],
+      "reference": "Batch normalization stabilizes training, and overfitting is reduced by early stopping."
+    },
+    {
+      "id": "term-005",
+      "text": "The relu unit follows each convolution, following the generative adversarial nets design.",
+      "expect_canonical": [
+        "rectified linear unit",
+        "generative adversarial network"
+      ],
+      "expect_removed": [
+        "relu unit",
+        "generative adversarial nets"
+      ],
+      "reference": "The rectified linear unit follows each convolution, following the generative adversarial network design."
+    },
+    {
+      "id": "term-006",
+      "text": "Data-augmentation and transfer-learning improve the neural-net classifier.",
+      "expect_canonical": [
+        "data augmentation",
+        "transfer learning",
+        "neural network"
+      ],
+      "expect_removed": [
+        "data-augmentation",
+        "transfer-learning",
+        "neural-net"
+      ],
+      "reference": "Data augmentation and transfer learning improve the neural network classifier."
+    },
+    {
+      "id": "term-007",
+      "text": "We tune the learning-rate of 0.001 and replace the MLP with a multi layered perceptron.",
+      "expect_canonical": [
+        "learning rate",
+        "multi-layer perceptron"
+      ],
+      "expect_removed": [
+        "learning-rate",
+        "multi layered perceptron"
+      ],
+      "reference": "We tune the learning rate of 0.001 and replace the MLP with a multi-layer perceptron."
+    },
+    {
+      "id": "term-008",
+      "text": "An attentional mechanism with intra-attention captures long-range context.",
+      "expect_canonical": [
+        "attention mechanism",
+        "self-attention"
+      ],
+      "expect_removed": [
+        "attentional mechanism",
+        "intra-attention"
+      ],
+      "reference": "An attention mechanism with self-attention captures long-range context."
+    },
+    {
+      "id": "term-009",
+      "text": "We pretrain a vision transformer, using back-propagation through every layer.",
+      "expect_canonical": [
+        "backpropagation"
+      ],
+      "expect_removed": [
+        "back-propagation"
+      ],
+      "reference": "We pretrain a vision transformer, using backpropagation through every layer."
+    },
+    {
+      "id": "term-010",
+      "text": "The recurrent network (ambiguous) baseline is compared against our state space model.",
+      "expect_canonical": [
+        "recurrent neural network",
+        "state-space model"
+      ],
+      "expect_removed": [
+        "recurrent network (ambiguous)",
+        "state space model"
+      ],
+      "reference": "The recurrent neural network baseline is compared against our state-space model."
+    }
+  ]
+}

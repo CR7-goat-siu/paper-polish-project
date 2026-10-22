@@ -1,0 +1,1 @@
+The 0.5 ms latency improvement may benefit edge computing performance.

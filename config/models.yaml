@@ -1,0 +1,106 @@
+# 模型路由配置（纯离线项目：本仓库不发起任何网络请求）
+# 本文件仅向coding harness 提供路由建议与成本参考：
+# - routing.by_skill 决定每个作业的 suggested_model 字段（写入 jobs.json）；
+# - pricing 供 apply 阶段在coding harness 回填 usage 后估算成本。
+schema_version: "1.1"
+
+provider:
+  name: "deepseek"
+  protocol: "responses"
+  note: "实际 API 交互由coding harness 完成；本文件仅保存协议与路由元数据，不含密钥。"
+
+models:
+  v4-pro:
+    model_id: "deepseek-v4-pro"
+    display_name: "DeepSeek V4 Pro"
+    tier: "pro"
+    capability:
+      - "deep_polish"
+      - "rewrite"
+      - "logic_review"
+      - "complex_format"
+      - "term_disambiguation"
+    context_window: 131072
+    max_output_tokens: 16384
+    temperature: 0.2
+    reasoning_effort: "high"
+    pricing:
+      input_per_1m: 2.0
+      cache_hit_per_1m: 0.2
+      output_per_1m: 8.0
+      currency: "USD"
+
+  v4-flash:
+    model_id: "deepseek-v4-flash"
+    display_name: "DeepSeek V4 Flash"
+    tier: "flash"
+    capability:
+      - "light_polish"
+      - "draft_fluency"
+      - "batch_coarse"
+      - "format_normalize"
+    context_window: 131072
+    max_output_tokens: 16384
+    temperature: 0.1
+    reasoning_effort: "low"
+    pricing:
+      input_per_1m: 0.5
+      cache_hit_per_1m: 0.05
+      output_per_1m: 2.0
+      currency: "USD"
+
+request:
+  # 离线项目已无请求行为；此节仅保留并发建议供coding harness 参考调度。
+  max_concurrent_requests: 4
+
+routing:
+  default_model: "v4-flash"
+  available_strengths:
+    - light
+    - deep
+    - rewrite
+  by_skill:
+    paper-parser:
+      local: true
+      classify: "v4-flash"
+    en-polish:
+      light: "v4-flash"
+      deep: "v4-pro"
+      rewrite: "v4-pro"
+    cn-polish:
+      light: "v4-flash"
+      deep: "v4-pro"
+      rewrite: "v4-pro"
+    term-check:
+      light: "v4-flash"
+      deep: "v4-pro"
+    format-adapter:
+      light: "v4-flash"
+      deep: "v4-pro"
+      rewrite: "v4-pro"
+    batch-processor:
+      light: "v4-flash"
+      deep: "v4-pro"
+      rewrite: "v4-pro"
+    # 文献检索不经过模型：gap / search 由本地规则 + 免密钥数据源完成；
+    # 只有 package（给coding harness 的检索作业包）才建议模型，用于改写关键词与筛候选。
+    lit-search:
+      gap: "local"
+      search: "local"
+      cards: "local"
+      package: "v4-flash"
+      light: "v4-flash"
+      deep: "v4-pro"
+    lit-verify:
+      local: "local"
+      light: "local"
+      deep: "local"
+
+  token_budget:
+    reserve_ratio: 0.15
+    max_context_ratio: 0.85
+    min_output_ratio: 0.25
+
+  pricing_policy:
+    cache_aware: true
+    warn_when_estimated_cost_over_usd: 1.0

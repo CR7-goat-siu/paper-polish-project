@@ -1,0 +1,14 @@
+# Zotero Word 域交叉引用配置。仅为本机集成参数，不包含账号、API Key 或同步凭据。
+schema_version: "1.0"
+
+local_api:
+  base_url: "http://127.0.0.1:23119"
+  timeout_seconds: 1.5
+
+word:
+  refresh_macro: "Zotero.ZoteroRefresh"
+  startup_relative_path: "Microsoft/Word/STARTUP"
+  template_name: "Zotero.dotm"
+  integration_dll_candidates:
+    - "C:/Program Files/Zotero/integration/word-for-windows/libzoteroWinWordIntegration.dll"
+    - "Microsoft/Word/STARTUP/libzoteroWinWordIntegration.dll"

@@ -1,0 +1,9 @@
+# 领域包：生物医学信号处理（EEG / 脑电）
+id: "biomedical-eeg"
+name: "Biomedical Signal Processing (EEG)"
+description: "脑电/生物医学信号处理、脑机接口与临床信号分析方向论文。"
+terms_file: "terms/biomedical-eeg-{lang}.json"
+terminology_hints: "Expand EEG/ERP/ICA/BCI at first use with full form; distinguish electrode (physical) from channel (signal); keep band names (alpha/beta/theta) and their Chinese renderings consistent."
+section_guidance:
+  method: "Keep recording parameters (sampling rate, montage, filtering) exactly as stated; preserve channel counts and preprocessing order."
+  experiment: "Report per-subject and per-dataset numbers exactly; do not round or regroup metrics."

@@ -1,0 +1,241 @@
+{
+  "schema_version": "1.0",
+  "title": "EEG 去噪与脑信号深度学习论文质量验收集",
+  "scope": "围绕 EEG 去噪、伪迹移除、生成模型、脑信号基础模型、经典信号处理和评测数据集。",
+  "selections": [
+    {
+      "id": "eegdenoisenet",
+      "category": "核心去噪",
+      "tier": "领域基准论文",
+      "summary": "提出 EEGdenoiseNet 基准数据集和深度学习去噪评测框架，为 EEG 去噪模型提供统一数据与指标基础。",
+      "project_value": "可直接用于项目的去噪模型评测、数据构造和 SNR/CC/RMSE 类指标回归。"
+    },
+    {
+      "id": "aneeg",
+      "category": "核心去噪",
+      "tier": "同行评议期刊",
+      "summary": "提出面向 EEG 自动伪迹移除的深度学习框架，并在真实 EEG 数据处理流程中评估其有效性。",
+      "project_value": "可作为端到端伪迹移除架构和工程化部署的近期对照方案。"
+    },
+    {
+      "id": "frequency-eeg-denoising",
+      "category": "核心去噪",
+      "tier": "IEEE 期刊",
+      "summary": "利用频域信息增强深度网络，实现眼电伪迹去除，强调频谱特征对 EEG 去噪的补充作用。",
+      "project_value": "支持项目引入时频联合建模、频带约束和眼电伪迹专门分支。"
+    },
+    {
+      "id": "auto-eeg-cnn",
+      "category": "核心去噪",
+      "tier": "IEEE Access",
+      "summary": "使用深度卷积神经网络实现自动 EEG 伪迹移除，并给出端到端训练与重建流程。",
+      "project_value": "可作为 CNN 基线、消融实验对象和轻量化模型设计参考。"
+    },
+    {
+      "id": "cnn-ocular-myogenic",
+      "category": "核心去噪",
+      "tier": "同行评议期刊",
+      "summary": "设计卷积神经网络同时去除 EEG 中的眼电和肌电伪迹，关注复合伪迹场景。",
+      "project_value": "适合用于项目多伪迹混合去除实验和单任务/多任务架构比较。"
+    },
+    {
+      "id": "nested-gan-eeg",
+      "category": "核心去噪",
+      "tier": "近期同行评议期刊",
+      "summary": "提出嵌套生成对抗网络实现端到端 EEG 伪迹移除，强调生成与判别模块的协同训练。",
+      "project_value": "直接支撑项目的双判别器/GAN 去噪架构设计和近期基线比较。"
+    },
+    {
+      "id": "bayesian-ica-artifact",
+      "category": "核心去噪",
+      "tier": "IEEE EMBC",
+      "summary": "将贝叶斯深度学习与独立成分分析结合，用于 EEG 伪迹识别和去除。",
+      "project_value": "为项目提供不确定性建模与经典 ICA 先验融合的思路。"
+    },
+    {
+      "id": "motion-net",
+      "category": "核心去噪",
+      "tier": "同行评议期刊",
+      "summary": "提出 Motion-Net 深度学习算法，专门处理 EEG 中的运动伪迹。",
+      "project_value": "补充项目对运动伪迹、可穿戴 EEG 和非平稳噪声场景的覆盖。"
+    },
+    {
+      "id": "faster",
+      "category": "核心去噪",
+      "tier": "经典方法",
+      "summary": "提出 FASTER 全自动统计阈值 EEG 伪迹拒绝方法，是传统伪迹检测的重要基线。",
+      "project_value": "可作为深度模型对照，并用于自动标注、阈值化伪迹检测和数据清洗。"
+    },
+    {
+      "id": "adjust",
+      "category": "核心去噪",
+      "tier": "经典方法",
+      "summary": "ADJUST 利用空间和时序联合特征自动检测 EEG 伪迹成分。",
+      "project_value": "为 ICA 成分筛选、伪迹检测器和混合式预处理流程提供经典参照。"
+    },
+    {
+      "id": "gan-emotion",
+      "category": "生成模型与数据增强",
+      "tier": "同行评议期刊",
+      "summary": "使用生成对抗网络扩充 EEG 情感识别数据，并评估合成样本对分类性能的影响。",
+      "project_value": "支持项目研究小样本 EEG 数据增强、生成质量评估和下游任务收益。"
+    },
+    {
+      "id": "vae-gan-mi",
+      "category": "生成模型与数据增强",
+      "tier": "IEEE 会议",
+      "summary": "提出残差增强 VAE-GAN，用于运动想象 EEG 数据增强和分类。",
+      "project_value": "为项目提供 VAE-GAN 混合生成架构和类别不平衡处理参考。"
+    },
+    {
+      "id": "eegnet",
+      "category": "深度架构与脑基础模型",
+      "tier": "领域经典",
+      "summary": "提出紧凑型 EEGNet 卷积网络，以深度可分离卷积处理多通道 EEG 分类任务。",
+      "project_value": "是轻量 EEG 编码器、参数量控制和 CNN 基线的核心参考。"
+    },
+    {
+      "id": "eeg-conformer",
+      "category": "深度架构与脑基础模型",
+      "tier": "IEEE 期刊",
+      "summary": "将卷积局部特征与 Transformer 自注意力结合，用于 EEG 解码和可视化。",
+      "project_value": "支撑项目在 U-Net/CNN 编码器中引入注意力或混合卷积 Transformer。"
+    },
+    {
+      "id": "biot",
+      "category": "深度架构与脑基础模型",
+      "tier": "NeurIPS 2023",
+      "summary": "提出面向多类生物信号的 Transformer，实现跨数据集和跨任务统一建模。",
+      "project_value": "为项目设计跨数据集 EEG 预训练、迁移学习和通道异构处理提供方案。"
+    },
+    {
+      "id": "eegpt",
+      "category": "深度架构与脑基础模型",
+      "tier": "NeurIPS 2024",
+      "summary": "提出通用 EEG 预训练 Transformer，学习可迁移的 EEG 表征并适配多种下游任务。",
+      "project_value": "支持项目评估自监督预训练、表征迁移和少量标注微调。"
+    },
+    {
+      "id": "arxiv:2405.18765",
+      "category": "深度架构与脑基础模型",
+      "tier": "ICLR 2024",
+      "arxiv_id": "2405.18765",
+      "summary": "LaBraM 将 EEG 切成通道 patch，通过神经码本预测进行大规模无监督预训练。",
+      "project_value": "为跨数据集 EEG 基础模型、掩码预训练和通道异构建模提供核心架构参考。"
+    },
+    {
+      "id": "arxiv:2302.14367",
+      "category": "深度架构与脑基础模型",
+      "tier": "ICLR 2023",
+      "arxiv_id": "2302.14367",
+      "venue": "The Eleventh International Conference on Learning Representations (ICLR 2023)",
+      "summary": "BrainBERT 通过掩码自监督学习颅内神经记录的通用 Transformer 表征。",
+      "project_value": "支持项目借鉴自监督掩码任务和神经信号表征学习方法。"
+    },
+    {
+      "id": "eeg-emotion-graph",
+      "category": "应用、数据集与评测",
+      "tier": "IEEE 期刊",
+      "summary": "使用动态图卷积网络建模 EEG 通道关系并完成情感识别。",
+      "project_value": "为项目引入电极空间图、动态连接和下游任务验证提供参考。"
+    },
+    {
+      "id": "sleep-attention",
+      "category": "应用、数据集与评测",
+      "tier": "IEEE 期刊",
+      "summary": "面向单通道 EEG 睡眠分期提出注意力深度学习模型，强调可解释性和时序依赖。",
+      "project_value": "可用于评估去噪后信号对睡眠分期等下游任务的可迁移收益。"
+    },
+    {
+      "id": "eeg-emotion-rgnn",
+      "category": "应用、数据集与评测",
+      "tier": "IEEE 期刊",
+      "summary": "提出正则化图神经网络建模 EEG 电极关系，用于跨被试情感识别。",
+      "project_value": "为项目处理跨被试泛化、图结构先验和下游任务稳健性提供参考。"
+    },
+    {
+      "id": "temple-eeg",
+      "category": "应用、数据集与评测",
+      "tier": "公开数据集",
+      "summary": "介绍 Temple University Hospital EEG Corpus 大规模临床 EEG 数据资源。",
+      "project_value": "可作为临床分布、跨中心泛化和真实噪声场景的数据来源。"
+    },
+    {
+      "id": "moabb",
+      "category": "应用、数据集与评测",
+      "tier": "可复现基准",
+      "summary": "MOABB 提供脑机接口算法的统一数据集接口、评测协议和可重复基准。",
+      "project_value": "支持项目建立公平比较、预处理一致性和可重复 BCI 回归测试。"
+    },
+    {
+      "id": "mitbih",
+      "category": "应用、数据集与评测",
+      "tier": "经典公开数据集",
+      "summary": "介绍 MIT-BIH Arrhythmia Database 的构成、影响和心律失常研究用途。",
+      "project_value": "对应当前论文使用的心电数据评估场景，可用于跨模态噪声和信号保真实验。"
+    },
+    {
+      "id": "ica-algorithms",
+      "category": "经典信号处理",
+      "tier": "经典奠基论文",
+      "summary": "系统阐述独立成分分析的基本模型、目标函数和经典算法。",
+      "project_value": "为 ICA 伪迹分离、源信号独立性和预处理方法提供理论基础。"
+    },
+    {
+      "id": "sobi",
+      "category": "经典信号处理",
+      "tier": "经典奠基论文",
+      "summary": "提出基于二阶统计量的 SOBI 盲源分离方法。",
+      "project_value": "支持项目比较 ICA、SOBI 和深度去噪在源分离与伪迹抑制上的差异。"
+    },
+    {
+      "id": "emd",
+      "category": "经典信号处理",
+      "tier": "经典奠基论文",
+      "summary": "提出经验模态分解和 Hilbert 谱，用于非线性和非平稳信号分析。",
+      "project_value": "为项目解释传统时频分解、非平稳伪迹处理和基线方法提供依据。"
+    },
+    {
+      "id": "deep-eeg-review",
+      "category": "综述与方法迁移",
+      "tier": "领域综述",
+      "summary": "系统回顾深度学习在 EEG 分析中的任务、模型、数据与评测方法。",
+      "project_value": "用于定位项目在 EEG 深度学习研究中的方法位置和评测缺口。"
+    },
+    {
+      "id": "motor-imagery-review",
+      "category": "综述与方法迁移",
+      "tier": "领域综述",
+      "summary": "综述 EEG 运动想象分类中的深度学习技术、数据挑战和模型选择。",
+      "project_value": "支持项目选择下游分类任务、比较编码器结构并设计迁移实验。"
+    },
+    {
+      "id": "advanced-artifact-review",
+      "category": "综述与方法迁移",
+      "tier": "近期综述",
+      "summary": "综述 EEG 伪迹移除预处理中的传统信号处理、机器学习和深度学习方法。",
+      "project_value": "可直接用于项目相关工作梳理、方法分类和基线选择。"
+    },
+    {
+      "id": "motion-artifact-review",
+      "category": "综述与方法迁移",
+      "tier": "专题综述",
+      "summary": "回顾 EEG 运动相关伪迹的检测与去除技术。",
+      "project_value": "补充项目对可穿戴、运动场景和复杂非平稳伪迹的认识。"
+    },
+    {
+      "id": "deep-image-denoising",
+      "category": "综述与方法迁移",
+      "tier": "方法综述",
+      "summary": "综述图像去噪中的深度网络架构、监督策略和评测方法。",
+      "project_value": "为项目迁移 CNN、注意力、残差学习和去噪训练策略提供方法论参考。"
+    },
+    {
+      "id": "attention-cnn-denoising",
+      "category": "综述与方法迁移",
+      "tier": "方法论文",
+      "summary": "提出注意力引导的 CNN 图像去噪方法，利用注意力机制选择关键特征。",
+      "project_value": "为项目设计通道/空间注意力和残差去噪模块提供直接参考。"
+    }
+  ]
+}

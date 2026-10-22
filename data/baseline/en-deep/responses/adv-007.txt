@@ -1,0 +1,1 @@
+Training is fast and convergence is stable across all runs of 20 epochs.

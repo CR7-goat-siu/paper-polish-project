@@ -1,0 +1,1 @@
+With a dataset of 50,000 images, the proposed model achieves an mAP of 88.5% for pedestrian detection.

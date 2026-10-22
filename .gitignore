@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 运行时产物（不进入版本库）
+logs/
+output/
+runs/
+*.log
+
+# 未发表手稿（防泄露，一律不入库）
+*.docx
+*.pdf
+/*_交付索引.md
+
+# 密钥与本地覆盖
+.env
+*.local.yaml
+config/models.local.yaml
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Agent 工作区记忆（本地，不入库）
+.workbuddy/

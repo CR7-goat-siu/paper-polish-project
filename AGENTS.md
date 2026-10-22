@@ -1,0 +1,107 @@
+# AGENTS.md — paper-polish-project 主 Agent 定义
+
+> 本文件面向进入该仓库的 Agent，描述项目角色、标准 SOP 与 Skill 调度方式。
+
+## 1. 项目角色
+
+**项目定位：辅助 coding harness 的论文润色、修改与预审能力层。**
+
+本项目不自行启动模型、不内置模型执行器，也不负责代替 coding harness 做任务编排。
+coding harness 是执行主体，负责读取 `AGENTS.md` / `SKILL.md`、规划修改、调用模型、使用工具和回填响应；
+本项目负责提供领域规则、Prompt、确定性变换、门禁、文档读写与审计结果。
+
+本项目不得宣称、也不得被描述为“无需人工签核的最终发表系统”；
+发布前作者/通讯作者人工签核是硬门禁，不是失败，也不得被自动化绕过。“可投稿候选终稿”
+仅表示语言、结构、逻辑、术语、引用格式、统计表达、图表标题与投稿格式达到送审候选标准，
+不保证录用，不替代作者签核。
+
+本项目是一个**零 API Key、零模型执行器**的学术论文预处理、后处理与投稿前预审能力层，负责：
+
+1. 通过 `paper-parser` 解析 LaTeX / Markdown / DOCX 论文，得到可独立加工的章节块（docx 无损读写）。
+2. 通过 `en-polish` / `cn-polish` 的 **build 阶段**切分 chunk、渲染结构化 Prompt，产出润色作业包（jobs）。
+3. **coding harness 负责实际的 LLM 交互**：读取作业包中的 prompt 调用模型，把响应回填到 `response` 字段或 `responses/<job_id>.txt`；本项目不调用任何模型。
+4. 通过 `en-polish` / `cn-polish` 的 **apply 阶段**清洗响应、执行 `review-gate` 门禁、生成带反馈的重试作业、装配全文与 diff 报告，并回写 docx。
+5. 通过 `claim-guard` / `term-check` / `format-adapter` 做客观性守卫、术语校验与格式归一（全部本地确定性规则）。
+6. 通过 `evaluator` 用结构化测试集量化润色质量（对抗性客观性 / 术语召回 / GLEU / 保真度）。
+
+## 2. 不可违背的工程约束
+
+- **零 API Key、零第三方依赖、零内置模型执行器**：本仓库不读取任何 Key / Token，不启动 Codex CLI、Ollama 或其它模型命令；代码只用 Python 标准库。文献检索允许访问**公开免密钥**学术数据源（Crossref / OpenAlex / Semantic Scholar / arXiv / Europe PMC / PubMed），但必须走 `utils/web_fetch`（超时重试 + 每源限速 + 磁盘缓存 + 离线模式），不得使用需要密钥的服务，也不得抓取 Google Scholar 等条款不允许的页面。模型交互只通过“作业包出、响应回填进”的文件契约，由 coding harness 完成。
+- 中英文润色管线相互独立：语言差异只体现在 `prompts/cn/`、`prompts/en/`、`config/cn-rules.yaml`、`config/en-rules.yaml` 与对应数据中。
+- 所有业务能力以 `skills/<skill-name>/` 形式实现，每个 Skill 必须有 `SKILL.md` 与可独立调用的 `run(args) -> dict` 入口。
+- Prompt 一律模板化：正文只允许出现在 `prompts/**`，Skill 内禁止硬编码提示词正文；代码只通过 `utils.prompt_renderer.render_template()` 渲染。
+- 配置化驱动：模型路由建议、价格、规则强度、术语库、领域包、词库均来自 `config/` 与 `data/`，不允许散落在业务代码中。
+- 变更任何 Skill 时保持其输入 / 输出契约不变；变更契约时必须同步更新 `SKILL.md`、调用方与测试。
+- 润色结果必须经 `utils/guardrails` 十条规则审查：fail 且重试耗尽强制 Fail-Closed 回退原文；
+  疑似杜撰（新增数值/引用/单位）默认判 error（`fabrication_suspects_as_errors`）。
+- 如无明确用户授权，不得用润色结果覆盖原始手稿：默认写 `output/`。
+- 用户交付偏好：每轮最终候选 DOCX、渲染 PDF 与交付索引除写入 `output/` 外，
+  必须同时复制到项目根目录，便于直接打开；根目录只放最终交付文件，
+  完整审计、逐页图像、日志和中间产物仍保留在 `output/`。
+
+## 3. 标准润色 SOP（离线双阶段）
+
+1. **解析（paper-parser）**：识别 LaTeX / Markdown / DOCX，抽取标题、章节、参考文献，chunk 无损可重建；docx 同时记录段落索引与批注（`read_comments`）供回写与注入。
+2. **领域识别**：按术语命中自动选择 `config/domains/` 领域包（generic / deep-learning / biomedical-eeg，可扩展）。
+3. **作业构建（*-polish build）**：逐 chunk 渲染 Prompt（规则 JSON + 术语对照 + 修正对照表 + 章节类型 + 上一块尾部上下文 + 复核反馈 + 按锚定段落挂到本 chunk 的导师批注 `{{comments}}`（最高优先级）+ 文档级简报 `{{brief}}`，均随 job 落盘供 retry 还原），写出 `jobs.json` 与 `prompts/`。
+4. **coding harness 执行**：按作业调用模型；响应可保留原始 JSON（自动抽取文本与截断状态）。
+5. **响应应用（*-polish apply）**：清洗 → review-gate 门禁（数字 / 引用 / 公式 / 段落 / 长度 / 相似度 / 浮夸残留 / 术语残留）→ 失败自动生成带反馈的重试作业 → 装配全文。
+6. **质量提升循环（由 harness 调度）**：对当前最佳 chunk 生成改进候选 → 调用 `evaluator` 的 `pair` 模式计算硬门禁、数字保真、客观性、术语、长度与相似度综合分 → 只有硬门禁通过且分数增益达到阈值的版本才写回，否则保留上一最佳版本。
+7. **守卫与归一（claim-guard / term-check / format-adapter / cite-manager / zotero-crossref）**：客观性 findings、术语 findings、references chunk 的 DOI / 页码归一；引用编号重排 / 合并 / 收敛 / 待补标记走 cite-manager（含 docx_plan）；需要动态文献管理时由 zotero-crossref 保留或重建 Zotero Word 域。
+8. **文献支撑（lit-search / lit-verify / cite-manager）**：检测缺少文献支撑的论断（信号词 + 无引用标记，另覆盖陈旧引用与参考文献信息不全）→ 把论点转成英文关键词与布尔检索式（同义词扩展），按多轮策略（宽式 / 精确 / 近五年高引）向公开免密钥数据源检索候选 → 确定性核验（DOI/标题/作者/年份/期刊/卷期页；无证据一律不通过，可选按 DOI/标题联网二次核验）→ 仅把 verified 条目用 `cite-manager` 的 insert 模式写入正文与参考文献表。
+9. **产出**：润色全文、逐 chunk diff 报告、质量循环报告、docx 回写（段落对齐整段替换，或 token_replacements 外科式替换 + 写后强制回读比对）、result.json（pending/needs_review 状态供人工复核）。
+
+## 4. Skill 调度表
+
+| Skill | 职责 | harness 契约 | 主要依赖 |
+| --- | --- | --- | --- |
+| paper-parser | LaTeX / Markdown / DOCX 解析、章节拆分、docx 段落索引 | `run(args)` | 无模型依赖 |
+| en-polish | 英文润色 build/apply 两阶段 | `run(args)` | rules, domain pack, terms, lexicon |
+| cn-polish | 中文润色 build/apply 两阶段 | `run(args)` | 同上（cn 侧） |
+| claim-guard | 客观性 / 语域守卫（hype + informal 词库） | `run(args)` | data/lexicon/* |
+| term-check | 术语一致性校验 | `run(args)` | data/terms/* |
+| format-adapter | references chunk 的 DOI / 页码归一 | `run(args)` | 本地规则 |
+| cite-manager | 引用编号管理：audit / apply 映射重排 / renumber 收敛 / pending 待补标记；传 paragraphs 时产出 docx_plan 外科式回写计划 | `run(args)` | 本地规则 |
+| zotero-crossref | Zotero/Word 域审计、清单提取、纯文本引用重绑定、Word 刷新 | `run(args)` | `utils/zotero_crossref`, Word COM, Zotero 本地 API |
+| lit-search | 文献缺口检测（缺引/陈旧/信息不全）+ 免密钥六源多轮检索 + 候选文献卡片 | `run(args)` | config/literature.yaml, utils/web_fetch, utils/citation_check |
+| lit-verify | 候选文献真实性核验门禁（无证据不通过；可在线二次核验） | `run(args)` | utils/citation_check |
+| review-gate | 润色结果复核门禁（内部切换 utils/guardrails 十条确定性规则） | `run(args)` | utils/guardrails, rules.quality_gates |
+| evaluator | 润色质量评测（objectivity / terminology / grammar / fidelity） | `run(args)` | data/eval/* |
+| issue-registry | 问题登记：归一各审计 findings 为 P0-P3 清单（PRD §5 阶段二） | `run(args)` | utils/issue_model, claim-guard, term-check |
+| quality-score | 多维度质量评分卡 0-4 分 + 科学真实性硬门槛（PRD §4） | `run(args)` | utils/issue_model, config/issue-rules.yaml |
+| revision-planner | 修改规划：问题清单 → 可执行任务（PRD §5 阶段三） | `run(args)` | utils/issue_model, config/issue-rules.yaml |
+| optimizer-loop | 由 harness 调用的审计→规划→修改→独立复核工具集，不主动调用模型 | `run(args)` | 上述 Skill 的 `run()` 契约 |
+| batch-processor | 批量 build / apply 调度 | `run(args)` | 上述 Skill 的 `run()` 契约 |
+| submission-audit | 投稿前预审：证据图谱 / 统计 / 图表 / DOCX 渲染 / 人工签核 | `run(args)` | config/submission.yaml |
+
+## 5. 质量评估体系（对应四大核心特点）
+
+| 特点 | 落地机制 | 评测方法 |
+| --- | --- | --- |
+| 客观中立 | hype/informal 词库 + claim-guard + prompt 去浮夸指令 + 门禁 hype_residue | 对抗性测试集（data/eval/objectivity-*.json），指标 dehype_rate |
+| 术语精准一致 | 领域包术语库 + prompt 修正对照表 + term-check | 退化术语测试集，指标 terminology_recall / coined_word_interception |
+| 逻辑连贯 | section_guidance 按章节注入 + coherence 规则 + chunk 上下文 | 人工盲评（evaluator 的 prepare_ab 生成匿名 A/B） |
+| 精炼规范 | conciseness 规则 + informal 词库 + 过度修正门禁 | GEC 测试集，指标 GLEU / fix_rate / overcorrection_rate |
+| 信息保真（底线） | review-gate 数字/引用/公式/段落保真 + 失败重试 | 全套件 number_preservation_rate = 1.0 为硬要求 |
+
+评测基线（archived 归档重放，2026-09-26，覆盖 light/deep/rewrite × en/cn 六档，
+响应与报告存 data/baseline/，可用当前代码离线重算）：
+dehype 全档 1.0；terminology_recall 0.958–1.0；coined_word_interception 0.958–1.0；
+fix_rate 全档 1.0；overcorrection 全档 0；number_preservation 全档 1.0；
+GLEU（近似实现）en 0.64–0.73、cn 0.31–0.70，仅作同档相对比较。
+
+## 6. 开发与变更守则
+
+- 新增三档强度或调整规则时只改 `config/*-rules.yaml`，并同步更新受影响模板与测试。
+- 新增领域：在 `config/domains/<id>.yaml` + `data/terms/<id>-{lang}.json` 各加一个文件即可，无需改代码。
+- 新增 Skill：先写 `SKILL.md` 与输入输出契约，再实现 `run(args) -> dict`，最后补齐 `tests/` 并加入 batch-processor 步骤映射。
+- 每个 Skill 只暴露 `run(args) -> dict` 编程契约，不提供面向用户的 CLI；禁止跨 Skill import 内部实现，只能走 `run()` 契约或公共 `utils/`。
+- 跑测试：`py -m unittest discover -s tests -v`（Windows 下 `python` 可能是商店占位符）；
+  真实公网基准用 `$env:RUN_LIVE_LITERATURE='1'; py -m unittest discover -s tests -p 'test_live_literature.py' -v`。
+- `cite-manager` 的 insert 模式只接受显式 `verdict=verified`，不存在人工绕过入口。
+
+## 7. Skill 使用规则
+
+- 执行业务任务前先读取对应 `skills/<name>/SKILL.md`，按其输入 / 输出 / 质量约束执行。
+- Skill 只处理其职责边界内内容；术语修正建议、门禁违规、重试作业都记录到结果 JSON，便于人工复核。
+- coding harness 回填响应时优先保留模型原始 JSON（含 usage 与截断信息），纯文本亦可；本项目不负责模型执行或凭据管理。

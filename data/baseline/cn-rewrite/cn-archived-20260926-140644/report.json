@@ -1,0 +1,375 @@
+{
+  "skill": "evaluator",
+  "language": "cn",
+  "mode": "archived",
+  "strength": "rewrite",
+  "domain": "auto",
+  "suites": {
+    "objectivity": {
+      "cases": [
+        {
+          "id": "cadv-001",
+          "success": true,
+          "hype_residual": [],
+          "guard_error_findings": 0,
+          "numbers_missing": 0,
+          "polish_error": "",
+          "numbers_added": [],
+          "change_ratio": 0.5636,
+          "guard_detected_in_source": true,
+          "output_preview": "本文提出的方法相较于现有方法表现出性能优势。"
+        },
+        {
+          "id": "cadv-002",
+          "success": true,
+          "hype_residual": [],
+          "guard_error_findings": 0,
+          "numbers_missing": 0,
+          "polish_error": "",
+          "numbers_added": [],
+          "change_ratio": 0.4412,
+          "guard_detected_in_source": true,
+          "output_preview": "实验结果表明，该模型在脑电分类任务中的准确率为 98.6%。"
+        },
+        {
+          "id": "cadv-003",
+          "success": true,
+          "hype_residual": [],
+          "guard_error_findings": 0,
+          "numbers_missing": 0,
+          "polish_error": "",
+          "numbers_added": [],
+          "change_ratio": 0.5909,
+          "guard_detected_in_source": true,
+          "output_preview": "本文算法在性能上较同类方法表现出一定优势。"
+        },
+        {
+          "id": "cadv-004",
+          "success": true,
+          "hype_residual": [],
+          "guard_error_findings": 0,
+          "numbers_missing": 0,
+          "polish_error": "",
+          "numbers_added": [],
+          "change_ratio": 0.5833,
+          "guard_detected_in_source": true,
+          "output_preview": "这一改进在一定程度上表明本文方法具有相对优势。"
+        },
+        {
+          "id": "cadv-005",
+          "success": true,
+          "hype_residual": [],
+          "guard_error_findings": 0,
+          "numbers_missing": 0,
+          "polish_error": "",
+          "numbers_added": [],
+          "change_ratio": 0.4667,
+          "guard_detected_in_source": true,
+          "output_preview": "该方法能够抑制伪迹干扰。"
+        },
+        {
+          "id": "cadv-006",
+          "success": true,
+          "hype_residual": [],
+          "guard_error_findings": 0,
+          "numbers_missing": 0,
+          "polish_error": "",
+          "numbers_added": [],
+          "change_ratio": 0.5439,
+          "guard_detected_in_source": true,
+          "output_preview": "本文所提分割网络的IoU为0.912。"
+        },
+        {
+          "id": "cadv-007",
+          "success": true,
+          "hype_residual": [],
+          "guard_error_findings": 0,
+          "numbers_missing": 0,
+          "polish_error": "",
+          "numbers_added": [],
+          "change_ratio": 0.3158,
+          "guard_detected_in_source": true,
+          "output_preview": "该模块带来了15.3%的提升。"
+        },
+        {
+          "id": "cadv-008",
+          "success": true,
+          "hype_residual": [],
+          "guard_error_findings": 0,
+          "numbers_missing": 0,
+          "polish_error": "",
+          "numbers_added": [],
+          "change_ratio": 0.72,
+          "guard_detected_in_source": true,
+          "output_preview": "结果表明，本方法在所考察指标上相较于基线方法有所改善。"
+        }
+      ],
+      "dehype_rate": 1.0,
+      "guard_detection_rate": 1.0,
+      "case_count": 8
+    },
+    "terminology": {
+      "cases": [
+        {
+          "id": "cterm-001",
+          "canonical_found": [
+            "卷积",
+            "学习率"
+          ],
+          "canonical_missing": [],
+          "recall": 1.0,
+          "nonstandard_leaked": [],
+          "interception": 1.0,
+          "polish_error": "",
+          "output_preview": "该模型采用卷积网络提取特征，学习率设为 0.001。"
+        },
+        {
+          "id": "cterm-002",
+          "canonical_found": [
+            "批量归一化",
+            "过拟合"
+          ],
+          "canonical_missing": [],
+          "recall": 1.0,
+          "nonstandard_leaked": [],
+          "interception": 1.0,
+          "polish_error": "",
+          "output_preview": "采用批量归一化缓解过拟合。"
+        },
+        {
+          "id": "cterm-003",
+          "canonical_found": [
+            "反向传播",
+            "数据增强",
+            "泛化"
+          ],
+          "canonical_missing": [],
+          "recall": 1.0,
+          "nonstandard_leaked": [],
+          "interception": 1.0,
+          "polish_error": "",
+          "output_preview": "通过反向传播与数据增强提升泛化能力。"
+        },
+        {
+          "id": "cterm-004",
+          "canonical_found": [
+            "注意力机制",
+            "神经网络"
+          ],
+          "canonical_missing": [],
+          "recall": 1.0,
+          "nonstandard_leaked": [],
+          "interception": 1.0,
+          "polish_error": "",
+          "output_preview": "网络采用注意力机制与神经网络结构。"
+        },
+        {
+          "id": "cterm-005",
+          "canonical_found": [
+            "损失函数"
+          ],
+          "canonical_missing": [],
+          "recall": 1.0,
+          "nonstandard_leaked": [],
+          "interception": 1.0,
+          "polish_error": "",
+          "output_preview": "损失函数基于误差项设计。"
+        },
+        {
+          "id": "cterm-006",
+          "canonical_found": [
+            "微调",
+            "泛化"
+          ],
+          "canonical_missing": [],
+          "recall": 1.0,
+          "nonstandard_leaked": [],
+          "interception": 1.0,
+          "polish_error": "",
+          "output_preview": "对预训练模型进行微调，并评估其泛化能力。"
+        },
+        {
+          "id": "cterm-007",
+          "canonical_found": [
+            "基准",
+            "深度学习"
+          ],
+          "canonical_missing": [],
+          "recall": 1.0,
+          "nonstandard_leaked": [],
+          "interception": 1.0,
+          "polish_error": "",
+          "output_preview": "验证了深度学习模型在基准上的有效性。"
+        },
+        {
+          "id": "cterm-008",
+          "canonical_found": [
+            "小波变换",
+            "独立成分分析",
+            "伪迹"
+          ],
+          "canonical_missing": [],
+          "recall": 1.0,
+          "nonstandard_leaked": [],
+          "interception": 1.0,
+          "polish_error": "",
+          "output_preview": "编码器利用小波变换提取时域特征，并采用独立成分分析去除伪迹。"
+        }
+      ],
+      "terminology_recall": 1.0,
+      "coined_word_interception": 1.0,
+      "case_count": 8
+    },
+    "grammar": {
+      "cases": [
+        {
+          "id": "cgram-001",
+          "fixed": [
+            "有效的提高"
+          ],
+          "remained": [],
+          "fix_rate": 1.0,
+          "gleu": 0.1,
+          "numbers_missing": [],
+          "polish_error": "",
+          "output_preview": "本文提出一种提高信噪比的方法。"
+        },
+        {
+          "id": "cgram-002",
+          "fixed": [
+            "通过实验结果表明"
+          ],
+          "remained": [],
+          "fix_rate": 1.0,
+          "gleu": 1.0,
+          "numbers_missing": [],
+          "polish_error": "",
+          "output_preview": "实验结果表明，所提方法在两个数据集上均优于基线。"
+        },
+        {
+          "id": "cgram-003",
+          "fixed": [
+            "提高和改善"
+          ],
+          "remained": [],
+          "fix_rate": 1.0,
+          "gleu": 0.3333,
+          "numbers_missing": [],
+          "polish_error": "",
+          "output_preview": "该模型的去噪性能有所提升。"
+        },
+        {
+          "id": "cgram-004",
+          "fixed": [
+            "训练和评估它"
+          ],
+          "remained": [],
+          "fix_rate": 1.0,
+          "gleu": 0.1,
+          "numbers_missing": [],
+          "polish_error": "",
+          "output_preview": "实验采用4514个脑电片段对模型进行训练与评估。"
+        },
+        {
+          "id": "cgram-005",
+          "fixed": [
+            "提出基于噪声建模"
+          ],
+          "remained": [],
+          "fix_rate": 1.0,
+          "gleu": 0.2,
+          "numbers_missing": [],
+          "polish_error": "",
+          "output_preview": "本文提出一种基于噪声建模的去噪方法，并在两个公开数据集上验证了该方法。"
+        },
+        {
+          "id": "cgram-006",
+          "fixed": [
+            "收敛的比",
+            "下降的更加"
+          ],
+          "remained": [],
+          "fix_rate": 1.0,
+          "gleu": 0.2,
+          "numbers_missing": [],
+          "polish_error": "",
+          "output_preview": "模型收敛速度快于基线，且损失下降过程更为平稳。"
+        },
+        {
+          "id": "cgram-007",
+          "fixed": [
+            "约束导致的"
+          ],
+          "remained": [],
+          "fix_rate": 1.0,
+          "gleu": 0.3333,
+          "numbers_missing": [],
+          "polish_error": "",
+          "output_preview": "性能提升源于双重对抗约束。"
+        },
+        {
+          "id": "cgram-008",
+          "fixed": [
+            "方法在"
+          ],
+          "remained": [],
+          "fix_rate": 1.0,
+          "gleu": 0.2273,
+          "numbers_missing": [],
+          "polish_error": "",
+          "output_preview": "本文方法在采样率为 256 Hz 的条件下完成验证，所得结果稳定。"
+        }
+      ],
+      "clean_cases": [
+        {
+          "id": "cclean-001",
+          "change_ratio": 0.0549,
+          "preserved": true
+        },
+        {
+          "id": "cclean-002",
+          "change_ratio": 0.1186,
+          "preserved": true
+        },
+        {
+          "id": "cclean-003",
+          "change_ratio": 0.125,
+          "preserved": true
+        },
+        {
+          "id": "cclean-004",
+          "change_ratio": 0.1556,
+          "preserved": false
+        }
+      ],
+      "gleu_avg": 0.3117,
+      "fix_rate_avg": 1.0,
+      "overcorrection_rate": 0.25,
+      "overcorrection_threshold": 0.15,
+      "case_count": 8,
+      "clean_case_count": 4
+    }
+  },
+  "fidelity": {
+    "cases_with_numbers": 16,
+    "number_violations": 0,
+    "number_preservation_rate": 1.0
+  },
+  "overall": {
+    "dehype_rate": 1.0,
+    "guard_detection_rate": 1.0,
+    "terminology_recall": 1.0,
+    "coined_word_interception": 1.0,
+    "gleu_avg": 0.3117,
+    "fix_rate_avg": 1.0,
+    "overcorrection_rate": 0.25,
+    "number_preservation_rate": 1.0
+  },
+  "meta": {
+    "model": "deepseek-v4-pro",
+    "date": "2026-09-26",
+    "protocol": "responses",
+    "suite": "objectivity+terminology+grammar"
+  },
+  "elapsed_seconds": 0.008
+}

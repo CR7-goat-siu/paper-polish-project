@@ -1,0 +1,184 @@
+{
+  "schema_version": "1.0",
+  "language": "cn",
+  "kind": "guardrails-positive",
+  "description": "guardrails 评测集（docs/hallucination-guardrails-plan.md L4）：负样本 expect_severity=error 必须 100% 拦截；正样本不得产生 error（FPR=0）。",
+  "case_count": 25,
+  "cases": [
+    {
+      "id": "pos-cn-001",
+      "source": "该模型在测试集上的准确率达到 91.2%，优于基线方法 [1]。",
+      "polished": "该模型在测试集上取得了 91.2% 的准确率，表现优于基线方法 [1]。",
+      "note": "同义改写",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-002",
+      "source": "早期研究依托信号分解与统计分离方法 [3]。",
+      "polished": "早期研究以信号分解和统计分离方法为基础 [3]。",
+      "note": "同义替换",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-003",
+      "source": "编码器由三个下采样模块堆叠而成。",
+      "polished": "编码器路径由三个下采样模块逐级堆叠构成。",
+      "note": "句式微调",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-004",
+      "source": "数据按 8:1:1 划分为训练集、验证集与测试集。",
+      "polished": "数据按照 8:1:1 的比例划分为训练集、验证集和测试集。",
+      "note": "等价改写",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-005",
+      "source": "实验在三种噪声强度下完成。",
+      "polished": "实验在三种不同的噪声强度下开展。",
+      "note": "轻度扩写",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-006",
+      "source": "如文献 [1]、[2] 所述，EEG 信号幅值微弱。",
+      "polished": "如文献 [1, 2] 所述，EEG 信号幅值微弱。",
+      "note": "引用标记合并（合法）",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-007",
+      "source": "模型参数量为 0.8 MB。",
+      "polished": "模型参数量为 0.8MB。",
+      "note": "单位空格差异",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-008",
+      "source": "学习率设为 0.00001。",
+      "polished": "学习率设为 1e-5。",
+      "note": "科学计数法等价",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-009",
+      "source": "样本量为 1,000 例。",
+      "polished": "样本量为 1000 例。",
+      "note": "千分位格式等价",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-010",
+      "source": "SNR 提升了 18.90%。",
+      "polished": "SNR 提升了 18.9%。",
+      "note": "小数精度书写等价",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-011",
+      "source": "生成器基于 U-Net 结构进行改进。",
+      "polished": "生成器以 U-Net 结构为基础加以改进。",
+      "note": "同义改写",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-012",
+      "source": "伪影判别器约束生成噪声服从真实分布。",
+      "polished": "噪声判别器对生成噪声施加约束，使其贴合真实分布。",
+      "note": "句式重组",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-013",
+      "source": "本文提出一种基于噪声学习的生成对抗网络。",
+      "polished": "本文提出一种基于噪声学习机制的生成对抗网络（NLGAN）。",
+      "note": "首次出现补全缩写",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-014",
+      "source": "如表 1 所示，所提方法在两项任务上均取得提升。",
+      "polished": "表 1 的结果表明，所提方法在两项任务上均实现性能提升。",
+      "note": "图表引用保留的改写",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-015",
+      "source": "训练使用 Adam 优化器，批大小为 32。",
+      "polished": "训练过程采用 Adam 优化器，批大小设置为 32。",
+      "note": "语序调整",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-016",
+      "source": "消融实验验证了各模块的有效性。",
+      "polished": "为验证各模块的有效性，本文开展了消融实验。",
+      "note": "语态转换",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-017",
+      "source": "小波变换属于时频分析方法 [8]。",
+      "polished": "小波变换是一类时频分析方法 [8]。",
+      "note": "同义改写",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-018",
+      "source": "独立分量分析在 EEG 伪影去除中应用广泛 [11]。",
+      "polished": "在 EEG 伪影去除领域，独立分量分析得到了广泛应用 [11]。",
+      "note": "状语前置",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-019",
+      "source": "该条件在实际采集中往往难以满足。",
+      "polished": "这一条件在实际的信号采集过程中通常难以满足。",
+      "note": "轻度扩写",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-020",
+      "source": "模型在 -5 dB 至 5 dB 范围内进行了测试。",
+      "polished": "模型在 -5 dB 到 5 dB 的噪声范围内完成测试。",
+      "note": "范围表述改写",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-021",
+      "source": "双判别器分别约束噪声分布与信号分布。",
+      "polished": "两个判别器分别对噪声分布和信号分布施加约束。",
+      "note": "同义改写",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-022",
+      "source": "解码器融合多尺度特征完成信号重构。",
+      "polished": "解码器通过融合多尺度特征来实现信号重构。",
+      "note": "句式微调",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-023",
+      "source": "本文方法无需获取参考信号。",
+      "polished": "所提方法不需要获取参考信号。",
+      "note": "同义替换",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-024",
+      "source": "实验结果验证了 NLGAN 的有效性。",
+      "polished": "实验结果表明 NLGAN 是有效的。",
+      "note": "同义改写",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-cn-025",
+      "source": "在瓶颈层嵌入多分支融合模块。",
+      "polished": "在网络的瓶颈层嵌入多分支融合模块（MFM）。",
+      "note": "补全缩写（首次出现）",
+      "expect_severity": "none"
+    }
+  ]
+}

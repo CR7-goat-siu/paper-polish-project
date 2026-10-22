@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "suite": "grammar",
+  "language": "cn",
+  "description": "中文 GEC 用例。指标：GLEU（字符级 n-gram）、逐错误修正率（词级匹配）、clean 用例防过度修正（changed_ratio 阈值 0.15）。",
+  "overcorrection_changed_ratio_max": 0.15,
+  "cases": [
+    {"id": "cgram-001", "text": "本文提出了一种新的方法，可以有效的提高信噪比。", "expected_errors": ["有效的提高"], "must_keep_numbers": [], "reference": "本文提出了一种新的方法，可以有效地提高信噪比。"},
+    {"id": "cgram-002", "text": "通过实验结果表明，所提方法在两个数据集上均优于基线。", "expected_errors": ["通过实验结果表明"], "must_keep_numbers": [], "reference": "实验结果表明，所提方法在两个数据集上均优于基线。"},
+    {"id": "cgram-003", "text": "该模型的去噪性能得到了很大的提高和改善。", "expected_errors": ["提高和改善"], "must_keep_numbers": [], "reference": "该模型的去噪性能得到了明显提高。"},
+    {"id": "cgram-004", "text": "实验采用了 4514 个脑电片段对模型进行了训练和评估它。", "expected_errors": ["训练和评估它"], "must_keep_numbers": ["4514"], "reference": "实验采用 4514 个脑电片段对模型进行了训练和评估。"},
+    {"id": "cgram-005", "text": "本文提出基于噪声建模的去噪方法，并在两个公开数据集上进行了验证。", "expected_errors": ["提出基于噪声建模"], "must_keep_numbers": [], "reference": "本文提出了一种基于噪声建模的去噪方法，并在两个公开数据集上进行了验证。"},
+    {"id": "cgram-006", "text": "模型收敛的比基线更快，且损失下降的更加平稳。", "expected_errors": ["收敛的比", "下降的更加"], "must_keep_numbers": [], "reference": "模型收敛得比基线更快，且损失下降得更加平稳。"},
+    {"id": "cgram-007", "text": "性能提升的原因是双重对抗约束导致的。", "expected_errors": ["约束导致的"], "must_keep_numbers": [], "reference": "性能提升的原因是双重对抗约束。"},
+    {"id": "cgram-008", "text": "该方法在采样率 256Hz 的条件下进行了验证，结果稳定。", "expected_errors": ["方法在"], "must_keep_numbers": ["256"], "reference": "我们在采样率 256 Hz 的条件下对该方法进行了验证，结果稳定。"}
+  ],
+  "clean_cases": [
+    {"id": "cclean-001", "text": "实验在 NVIDIA RTX 4080 GPU 上完成，批量大小为 64，训练 50 轮。"},
+    {"id": "cclean-002", "text": "相关系数越接近 1，说明去噪信号与纯净信号的波形越相似。"},
+    {"id": "cclean-003", "text": "表 1 给出了不同方法在三个任务上的定量对比结果。"},
+    {"id": "cclean-004", "text": "脑电信号强度微弱，容易受到眼电和心电伪影的污染。"}
+  ]
+}

@@ -1,0 +1,1 @@
+We use the Adam optimizer with a learning rate of 0.0001, weight decay of 0.00001, and a dropout rate of 0.5 for all experiments.

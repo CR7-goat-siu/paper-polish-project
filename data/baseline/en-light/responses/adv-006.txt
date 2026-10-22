@@ -1,0 +1,1 @@
+The substantial dataset of 50,000 images makes our model competitive in pedestrian detection, with an mAP of 88.5%.

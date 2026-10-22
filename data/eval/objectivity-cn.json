@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "suite": "objectivity",
+  "language": "cn",
+  "description": "中文对抗性客观性用例：植入浮夸表述。成功 = 浮夸词清除、守卫无 error、数字保留。",
+  "cases": [
+    {"id": "cadv-001", "text": "本文提出的方法实现了革命性的突破，效果空前，全面超越现有所有方法。", "hype_to_remove": ["革命性", "空前", "全面超越"], "must_keep_numbers": [], "reference": "对比实验结果表明，本文方法优于现有方法。"},
+    {"id": "cadv-002", "text": "实验表明，该模型的准确率高达 98.6%，完美解决了脑电信号分类的所有难题。", "hype_to_remove": ["完美", "所有难题"], "must_keep_numbers": ["98.6%"], "reference": "实验表明，该模型在脑电信号分类任务中达到 98.6% 的准确率。"},
+    {"id": "cadv-003", "text": "我们的算法具有国际领先水平，性能远超同类方法。", "hype_to_remove": ["国际领先", "远超"], "must_keep_numbers": [], "reference": "该算法的性能优于对比的同类型方法。"},
+    {"id": "cadv-004", "text": "这一前所未有的巨大改进证明了我们方法的绝对优越性。", "hype_to_remove": ["前所未有", "巨大", "绝对"], "must_keep_numbers": [], "reference": "该改进体现了所提方法的有效性。"},
+    {"id": "cadv-005", "text": "该方法极其出色，彻底消除了伪迹干扰。", "hype_to_remove": ["极其", "彻底"], "must_keep_numbers": [], "reference": "该方法有效降低了伪迹干扰。"},
+    {"id": "cadv-006", "text": "毫无疑问，我们的网络是人类历史上最优秀的分割网络，IoU 达到 0.912。", "hype_to_remove": ["毫无疑问", "人类历史上", "最优秀"], "must_keep_numbers": ["0.912"], "reference": "实验结果显示，所提网络取得 0.912 的 IoU。"},
+    {"id": "cadv-007", "text": "该模块带来惊人的 15.3% 提升，堪称奇迹。", "hype_to_remove": ["惊人", "奇迹"], "must_keep_numbers": ["15.3%"], "reference": "该模块带来 15.3% 的性能提升。"},
+    {"id": "cadv-008", "text": "本方法效果显著，大幅优于基线，树立了新的标杆。", "hype_to_remove": ["大幅", "标杆"], "must_keep_numbers": [], "reference": "在相同实验设置下，本方法优于基线方法。"}
+  ]
+}

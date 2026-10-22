@@ -1,0 +1,144 @@
+{
+  "schema_version": "1.0",
+  "suite": "grammar",
+  "language": "en",
+  "description": "GEC-style cases. Metrics: GLEU vs reference, per-error fix rate (token-level), and over-correction rate on clean cases (changed_ratio threshold 0.15).",
+  "overcorrection_changed_ratio_max": 0.15,
+  "cases": [
+    {
+      "id": "gram-001",
+      "text": "He don't uses a learning rate of 0.001 to train the model and it overfitting quickly.",
+      "expected_errors": [
+        "don't",
+        "uses a learning",
+        "it overfitting"
+      ],
+      "must_keep_numbers": [
+        "0.001"
+      ],
+      "reference": "He does not use a learning rate of 0.001 to train the model, and it overfits quickly."
+    },
+    {
+      "id": "gram-002",
+      "text": "We compares three models on ImageNet dataset and shows our methods achieves 76.5% top-1 accuracy.",
+      "expected_errors": [
+        "We compares",
+        "and shows",
+        "methods achieves"
+      ],
+      "must_keep_numbers": [
+        "76.5%"
+      ],
+      "reference": "We compare three models on the ImageNet dataset and show that our method achieves 76.5% top-1 accuracy."
+    },
+    {
+      "id": "gram-003",
+      "text": "The model is trained for 100 epoch on 8 GPU with batch size of 256.",
+      "expected_errors": [
+        "100 epoch",
+        "on 8 GPU",
+        "with batch size of"
+      ],
+      "must_keep_numbers": [
+        "100",
+        "8",
+        "256"
+      ],
+      "reference": "The model is trained for 100 epochs on 8 GPUs with a batch size of 256."
+    },
+    {
+      "id": "gram-004",
+      "text": "In this paper, we propose a novel attention based methods which can captures long range dependencies.",
+      "expected_errors": [
+        "attention based methods",
+        "can captures"
+      ],
+      "must_keep_numbers": [],
+      "reference": "In this paper, we propose a novel attention-based method that captures long-range dependencies."
+    },
+    {
+      "id": "gram-005",
+      "text": "The results was better than baseline and the improvements is obvious.",
+      "expected_errors": [
+        "results was",
+        "improvements is"
+      ],
+      "must_keep_numbers": [],
+      "reference": "The results were better than the baseline, and the improvement is clear."
+    },
+    {
+      "id": "gram-006",
+      "text": "We evaluate our approach on three datasets, include CIFAR-10, CIFAR-100 and Tiny-ImageNet.",
+      "expected_errors": [
+        ", include CIFAR-10"
+      ],
+      "must_keep_numbers": [
+        "10",
+        "100"
+      ],
+      "reference": "We evaluate our approach on three datasets, including CIFAR-10, CIFAR-100 and Tiny-ImageNet."
+    },
+    {
+      "id": "gram-007",
+      "text": "It is worth to note that dropout can prevents overfitting effectively.",
+      "expected_errors": [
+        "worth to note",
+        "can prevents"
+      ],
+      "must_keep_numbers": [],
+      "reference": "Notably, dropout can prevent overfitting effectively."
+    },
+    {
+      "id": "gram-008",
+      "text": "Table 1 show the comparisons between our method and previous methods on 5 benchmarks.",
+      "expected_errors": [
+        "Table 1 show"
+      ],
+      "must_keep_numbers": [
+        "1",
+        "5"
+      ],
+      "reference": "Table 1 shows the comparison between our method and previous methods on 5 benchmarks."
+    },
+    {
+      "id": "gram-009",
+      "text": "The training loss decrease rapidly in first 10 epochs and then convergence to a stable value of 0.032.",
+      "expected_errors": [
+        "loss decrease",
+        "then convergence",
+        "in first"
+      ],
+      "must_keep_numbers": [
+        "10",
+        "0.032"
+      ],
+      "reference": "The training loss decreases rapidly in the first 10 epochs and then converges to a stable value of 0.032."
+    }
+  ],
+  "clean_cases": [
+    {
+      "id": "clean-001",
+      "text": "We use the Adam optimizer with a learning rate of 0.0001, weight decay of 0.00001, and a dropout rate of 0.5 for all experiments."
+    },
+    {
+      "id": "clean-002",
+      "text": "The proposed method achieves an accuracy of 94.2% on the test set, which is comparable to recent approaches."
+    },
+    {
+      "id": "clean-003",
+      "text": "As shown in Table 2, the ablation study confirms that both modules contribute to the final performance."
+    },
+    {
+      "id": "clean-004",
+      "text": "Figure 3 illustrates the architecture of the proposed network, which consists of an encoder and a decoder."
+    },
+    {
+      "id": "clean-005",
+      "text": "All experiments were repeated five times, and we report the mean and standard deviation of the results."
+    },
+    {
+      "id": "clean-006",
+      "text": "The dataset contains 12,000 labeled samples collected from 15 hospitals between 2018 and 2022."
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+The training loss decreases rapidly in the first 10 epochs and then converges to a stable value of 0.032.

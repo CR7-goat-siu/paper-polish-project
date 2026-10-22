@@ -1,0 +1,981 @@
+{
+  "schema_version": "1.0",
+  "language": "cn",
+  "kind": "guardrails-negative",
+  "description": "guardrails 评测集（docs/hallucination-guardrails-plan.md L4）：负样本 expect_severity=error 必须 100% 拦截；正样本不得产生 error（FPR=0）。",
+  "case_count": 108,
+  "cases": [
+    {
+      "id": "neg-cn-001",
+      "rule": "numeric.conservation",
+      "kind": "tamper",
+      "expect_severity": "error",
+      "source": "该方法在 EEGDenoiseNet 上将 SNR 提升了 18.90%。",
+      "polished": "该方法在 EEGDenoiseNet 上将 SNR 提升了 19.80%。",
+      "note": "篡改数值 18.90→19.80"
+    },
+    {
+      "id": "neg-cn-002",
+      "rule": "numeric.conservation",
+      "kind": "tamper",
+      "expect_severity": "error",
+      "source": "模型的准确率达到 91.2%，较基线提高 3.4 个百分点。",
+      "polished": "模型的准确率达到 91.2%，较基线提高 4.1 个百分点。",
+      "note": "篡改次要数值"
+    },
+    {
+      "id": "neg-cn-003",
+      "rule": "numeric.conservation",
+      "kind": "round",
+      "expect_severity": "error",
+      "source": "组间差异具有统计学意义（p = 0.047）。",
+      "polished": "组间差异具有统计学意义（p < 0.05）。",
+      "note": "p 值四舍五入漂移"
+    },
+    {
+      "id": "neg-cn-004",
+      "rule": "numeric.conservation",
+      "kind": "round",
+      "expect_severity": "error",
+      "source": "效应量为 0.31（95% CI 0.12 至 0.50）。",
+      "polished": "效应量约为 0.3（95% CI 0.1 至 0.5）。",
+      "note": "区间端点精度丢失"
+    },
+    {
+      "id": "neg-cn-005",
+      "rule": "numeric.conservation",
+      "kind": "invent",
+      "expect_severity": "error",
+      "source": "实验在三种噪声强度下完成。",
+      "polished": "实验在五种噪声强度下完成，覆盖 12 个受试者。",
+      "note": "捏造数量与样本数"
+    },
+    {
+      "id": "neg-cn-006",
+      "rule": "numeric.conservation",
+      "kind": "unit_loss",
+      "expect_severity": "error",
+      "source": "单通道采样率为 250 Hz。",
+      "polished": "单通道采样率为 250。",
+      "note": "单位 Hz 脱钩"
+    },
+    {
+      "id": "neg-cn-007",
+      "rule": "numeric.conservation",
+      "kind": "unit_loss",
+      "expect_severity": "error",
+      "source": "模型参数量为 0.8 MB，推理延迟为 12 ms。",
+      "polished": "模型参数量为 0.8 MB，推理延迟为 12。",
+      "note": "延迟单位 ms 脱钩"
+    },
+    {
+      "id": "neg-cn-008",
+      "rule": "numeric.conservation",
+      "kind": "missing",
+      "expect_severity": "error",
+      "source": "在 -5 dB 至 5 dB 范围内测试。",
+      "polished": "在典型噪声范围内测试。",
+      "note": "区间数值整体丢失"
+    },
+    {
+      "id": "neg-cn-009",
+      "rule": "numeric.conservation",
+      "kind": "invent",
+      "expect_severity": "error",
+      "source": "训练 100 个 epoch 后收敛。",
+      "polished": "训练 100 个 epoch、耗时 3 小时后收敛。",
+      "note": "捏造耗时数据"
+    },
+    {
+      "id": "neg-cn-010",
+      "rule": "numeric.conservation",
+      "kind": "invent",
+      "expect_severity": "error",
+      "source": "该数据集包含 2710 段纯净脑电信号。",
+      "polished": "该数据集包含 2710 段信号，标注准确率达 99.2%。",
+      "note": "捏造标注准确率"
+    },
+    {
+      "id": "neg-cn-011",
+      "rule": "numeric.conservation",
+      "kind": "tamper",
+      "expect_severity": "error",
+      "source": "学习率设为 1e-5。",
+      "polished": "学习率设为 5e-5。",
+      "note": "科学计数法数值篡改"
+    },
+    {
+      "id": "neg-cn-012",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "所提方法将 RRMSE 降低了 35.33%。",
+      "polished": "所提方法将 RRMSE 提升了 35.33%。",
+      "note": "降低→提升"
+    },
+    {
+      "id": "neg-cn-013",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "NLGAN 的 SNR 高于对比方法。",
+      "polished": "NLGAN 的 SNR 低于对比方法。",
+      "note": "高于→低于"
+    },
+    {
+      "id": "neg-cn-014",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "该方法在 CC 指标上优于基线。",
+      "polished": "该方法在 CC 指标上劣于基线。",
+      "note": "优于→劣于"
+    },
+    {
+      "id": "neg-cn-015",
+      "rule": "numeric.polarity",
+      "kind": "swap",
+      "expect_severity": "error",
+      "source": "如表 1 所示，NLGAN 优于 SimpleCNN。",
+      "polished": "如表 1 所示，SimpleCNN 优于 NLGAN。",
+      "note": "主客体互换"
+    },
+    {
+      "id": "neg-cn-016",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "参数量减少了 40%，训练时间缩短为原来的三分之一。",
+      "polished": "参数量增加了 40%，训练时间缩短为原来的三分之一。",
+      "note": "句中一处极性翻转"
+    },
+    {
+      "id": "neg-cn-017",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "伪影成分的能量被有效抑制。",
+      "polished": "伪影成分的能量被有效增强。",
+      "note": "抑制→增强"
+    },
+    {
+      "id": "neg-cn-018",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "随着噪声强度增加，性能下降。",
+      "polished": "随着噪声强度增加，性能上升。",
+      "note": "下降→上升"
+    },
+    {
+      "id": "neg-cn-019",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "该模块扩大了感受野范围。",
+      "polished": "该模块缩小了感受野范围。",
+      "note": "扩大→缩小"
+    },
+    {
+      "id": "neg-cn-020",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "基线方法的误差显著高于本文方法。",
+      "polished": "基线方法的误差显著低于本文方法。",
+      "note": "显著高于→显著低于"
+    },
+    {
+      "id": "neg-cn-021",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "引入注意力机制后，计算开销略有上升。",
+      "polished": "引入注意力机制后，计算开销略有下降。",
+      "note": "上升→下降"
+    },
+    {
+      "id": "neg-cn-022",
+      "rule": "numeric.polarity",
+      "kind": "flip",
+      "expect_severity": "error",
+      "source": "去噪后的信号与纯净信号的波形更为接近。",
+      "polished": "去噪后的信号与纯净信号的波形更为远离。",
+      "note": "接近→远离"
+    },
+    {
+      "id": "neg-cn-023",
+      "rule": "citation.conservation",
+      "kind": "drop",
+      "expect_severity": "error",
+      "source": "已有研究 [1] [2] 验证了该问题的难度。",
+      "polished": "已有研究 [1] 验证了该问题的难度。",
+      "note": "丢弃引用 [2]"
+    },
+    {
+      "id": "neg-cn-024",
+      "rule": "citation.conservation",
+      "kind": "drop",
+      "expect_severity": "error",
+      "source": "如文献 [3]、[7] 所述，ICA 应用广泛。",
+      "polished": "如文献 [3] 所述，ICA 应用广泛。",
+      "note": "丢弃引用 [7]"
+    },
+    {
+      "id": "neg-cn-025",
+      "rule": "citation.conservation",
+      "kind": "invent",
+      "expect_severity": "error",
+      "source": "深度学习方法已取得显著成功 [4]。",
+      "polished": "深度学习方法已取得显著成功 [4] [23]。",
+      "note": "新增越界引用 [23]（文献表仅 22 条）"
+    },
+    {
+      "id": "neg-cn-026",
+      "rule": "citation.conservation",
+      "kind": "invent",
+      "expect_severity": "error",
+      "source": "生成对抗网络被引入去噪任务 [18]。",
+      "polished": "生成对抗网络被引入去噪任务 [18] [31]。",
+      "note": "新增不存在编号 [31]"
+    },
+    {
+      "id": "neg-cn-027",
+      "rule": "citation.conservation",
+      "kind": "weaken",
+      "expect_severity": "error",
+      "source": "如 [5] [6] 所证，模态混叠会影响分解效果。",
+      "polished": "如上所述，模态混叠会影响分解效果。",
+      "note": "整句引用被抹掉"
+    },
+    {
+      "id": "neg-cn-028",
+      "rule": "citation.conservation",
+      "kind": "invent",
+      "expect_severity": "error",
+      "source": "Zhang 等人构建了基准数据集 [13]。",
+      "polished": "Zhang 等人在 2021 年的研究 [13] [14] 中构建了基准数据集。",
+      "note": "顺带新增引用编号"
+    },
+    {
+      "id": "neg-cn-029",
+      "rule": "citation.conservation",
+      "kind": "drop",
+      "expect_severity": "error",
+      "source": "（Devlin et al., 2019）提出了预训练范式。",
+      "polished": "预训练范式已被广泛采用。",
+      "note": "作者-年引用丢失"
+    },
+    {
+      "id": "neg-cn-030",
+      "rule": "citation.conservation",
+      "kind": "invent",
+      "expect_severity": "error",
+      "source": "如 [8] 所述，小波变换属于时频分析方法。",
+      "polished": "如 [8] [9] [10] 所述，小波变换属于时频分析方法。",
+      "note": "一次新增两个编号"
+    },
+    {
+      "id": "neg-cn-031",
+      "rule": "citation.conservation",
+      "kind": "drop",
+      "expect_severity": "error",
+      "source": "见式 (2) 与文献 [11]。",
+      "polished": "见式 (2)。",
+      "note": "引用标记被删"
+    },
+    {
+      "id": "neg-cn-032",
+      "rule": "citation.conservation",
+      "kind": "invent",
+      "expect_severity": "error",
+      "source": "本文方法在两项任务上验证 [20] [21]。",
+      "polished": "本文方法在两项任务上验证 [20] [21] [25]。",
+      "note": "新增 [25] 越界"
+    },
+    {
+      "id": "neg-cn-033",
+      "rule": "citation.conservation",
+      "kind": "swap",
+      "expect_severity": "error",
+      "source": "Huang 等人 [4] 提出 EMD。",
+      "polished": "Huang 等人 [12] 提出 EMD。",
+      "note": "引用编号被改"
+    },
+    {
+      "id": "neg-cn-034",
+      "rule": "anchor.conservation",
+      "kind": "figure",
+      "expect_severity": "error",
+      "source": "整体架构如图 3 所示。",
+      "polished": "整体架构如图所示。",
+      "note": "图 3 编号丢失"
+    },
+    {
+      "id": "neg-cn-035",
+      "rule": "anchor.conservation",
+      "kind": "figure",
+      "expect_severity": "error",
+      "source": "各方法在表 1 中对比。",
+      "polished": "各方法在表中对比。",
+      "note": "表 1 编号丢失"
+    },
+    {
+      "id": "neg-cn-036",
+      "rule": "anchor.conservation",
+      "kind": "figure",
+      "expect_severity": "error",
+      "source": "由式 (2) 定义损失函数。",
+      "polished": "由下述公式定义损失函数。",
+      "note": "式 (2) 编号丢失"
+    },
+    {
+      "id": "neg-cn-037",
+      "rule": "anchor.conservation",
+      "kind": "figure",
+      "expect_severity": "error",
+      "source": "结果如图 9(a) 所示。",
+      "polished": "结果如图所示。",
+      "note": "子图编号丢失"
+    },
+    {
+      "id": "neg-cn-038",
+      "rule": "anchor.conservation",
+      "kind": "figure",
+      "expect_severity": "error",
+      "source": "如图 3、图 4 所示。",
+      "polished": "如图 3 所示。",
+      "note": "图 4 编号丢失"
+    },
+    {
+      "id": "neg-cn-039",
+      "rule": "anchor.conservation",
+      "kind": "entity",
+      "expect_severity": "error",
+      "source": "NLGAN 采用 NLGAN 架构，NLGAN 见第 3 节。",
+      "polished": "该模型采用双判别器架构，详见第 3 节。",
+      "note": "实体 NLGAN（3 次）整体消失"
+    },
+    {
+      "id": "neg-cn-040",
+      "rule": "anchor.conservation",
+      "kind": "entity",
+      "expect_severity": "error",
+      "source": "在 EEGDenoiseNet 与 MIT-BIH 上验证 EEGDenoiseNet。",
+      "polished": "在两个公开数据集上验证该方法。",
+      "note": "数据集名整体消失"
+    },
+    {
+      "id": "neg-cn-041",
+      "rule": "anchor.conservation",
+      "kind": "entity",
+      "expect_severity": "error",
+      "source": "MFM 模块与 CAS 结构是核心设计，MFM 见 3.1.2 节。",
+      "polished": "两个创新模块是核心设计，详见后文。",
+      "note": "缩写 MFM/CAS 消失"
+    },
+    {
+      "id": "neg-cn-042",
+      "rule": "anchor.conservation",
+      "kind": "entity",
+      "expect_severity": "error",
+      "source": "EEGDenoiseNet 数据集由 Zhang 整理。",
+      "polished": "EEGDenoseNet 数据集由 Zhang 整理。",
+      "note": "数据集名被拼错"
+    },
+    {
+      "id": "neg-cn-043",
+      "rule": "anchor.conservation",
+      "kind": "figure",
+      "expect_severity": "error",
+      "source": "Table 2 给出了消融结果。",
+      "polished": "消融结果如下。",
+      "note": "英文表编号丢失"
+    },
+    {
+      "id": "neg-cn-044",
+      "rule": "anchor.conservation",
+      "kind": "entity",
+      "expect_severity": "error",
+      "source": "SNR、CC 与 RRMSE 三项指标中，SNR 最关键。",
+      "polished": "三项评价指标中，第一项最关键。",
+      "note": "缩写 SNR 消失"
+    },
+    {
+      "id": "neg-cn-045",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "该方法可能适用于实时场景。",
+      "polished": "该方法证明适用于实时场景。",
+      "note": "可能→证明"
+    },
+    {
+      "id": "neg-cn-046",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "结果或许表明存在通道差异。",
+      "polished": "结果必然表明存在通道差异。",
+      "note": "或许→必然"
+    },
+    {
+      "id": "neg-cn-047",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "注意力机制在一定程度上改善了特征选择。",
+      "polished": "注意力机制完全改善了特征选择。",
+      "note": "在一定程度上→完全"
+    },
+    {
+      "id": "neg-cn-048",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "初步实验显示该方法具有鲁棒性。",
+      "polished": "充分实验显示该方法具有鲁棒性。",
+      "note": "初步→充分"
+    },
+    {
+      "id": "neg-cn-049",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "该效应似乎与伪影形态相关。",
+      "polished": "该效应显然与伪影形态相关。",
+      "note": "似乎→显然"
+    },
+    {
+      "id": "neg-cn-050",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "本方法有望用于临床场景。",
+      "polished": "本方法必将用于临床场景。",
+      "note": "有望→必将"
+    },
+    {
+      "id": "neg-cn-051",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "结果提示双判别器约束有助于稳定训练。",
+      "polished": "结果证实双判别器约束有助于稳定训练。",
+      "note": "提示→证实"
+    },
+    {
+      "id": "neg-cn-052",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "部分样本上出现了波形失真。",
+      "polished": "全部样本上出现了波形失真。",
+      "note": "部分→全部"
+    },
+    {
+      "id": "neg-cn-053",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "该模型在受控条件下表现稳定。",
+      "polished": "该模型在任意条件下表现稳定。",
+      "note": "受控条件→任意条件"
+    },
+    {
+      "id": "neg-cn-054",
+      "rule": "hedge.flip",
+      "kind": "harden",
+      "expect_severity": "error",
+      "source": "数据可能隐含个体差异。",
+      "polished": "数据必然隐含个体差异。",
+      "note": "可能→必然"
+    },
+    {
+      "id": "neg-cn-055",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "在本研究中，所提方法优于基线。",
+      "polished": "所提方法优于基线。",
+      "note": "“在本研究中”限定丢失"
+    },
+    {
+      "id": "neg-cn-056",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "在本文构建的数据集上，模型达到 91.2%。",
+      "polished": "模型达到 91.2%。",
+      "note": "“在本文构建的数据集上”限定丢失"
+    },
+    {
+      "id": "neg-cn-057",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "在本实验的噪声条件下，去噪效果稳定。",
+      "polished": "去噪效果稳定。",
+      "note": "实验条件限定丢失"
+    },
+    {
+      "id": "neg-cn-058",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "该样本中，老年受试者的改善更明显。",
+      "polished": "老年受试者的改善更明显。",
+      "note": "“该样本中”限定丢失"
+    },
+    {
+      "id": "neg-cn-059",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "在受控采集环境下，伪影干扰显著降低。",
+      "polished": "伪影干扰显著降低。",
+      "note": "采集环境限定丢失"
+    },
+    {
+      "id": "neg-cn-060",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "本文仅讨论 ECG 与 EOG 两类伪影。",
+      "polished": "本文讨论所有类型伪影。",
+      "note": "范围被扩大"
+    },
+    {
+      "id": "neg-cn-061",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "在上述三种指标上，方法均取得提升。",
+      "polished": "在所有指标上，方法均取得提升。",
+      "note": "“上述三种”范围扩大"
+    },
+    {
+      "id": "neg-cn-062",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "在轻噪声场景下，所提架构优势明显。",
+      "polished": "所提架构优势明显。",
+      "note": "场景限定丢失"
+    },
+    {
+      "id": "neg-cn-063",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "针对 8:1:1 的划分方式，本文做了消融。",
+      "polished": "针对该划分方式，本文做了消融。",
+      "note": "具体比例限定丢失"
+    },
+    {
+      "id": "neg-cn-064",
+      "rule": "scope.shift",
+      "kind": "scope",
+      "expect_severity": "warning",
+      "source": "在合成数据上，方法的泛化性待验证。",
+      "polished": "方法的泛化性待验证。",
+      "note": "“在合成数据上”限定丢失"
+    },
+    {
+      "id": "neg-cn-065",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "所提方法有效。",
+      "polished": "所提方法是一次空前成功的突破。",
+      "note": "“空前”残留"
+    },
+    {
+      "id": "neg-cn-066",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "方法优于基线。",
+      "polished": "该方法具有革命性意义。",
+      "note": "“革命性”残留"
+    },
+    {
+      "id": "neg-cn-067",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "性能有所提升。",
+      "polished": "该方法达到了国际领先水平。",
+      "note": "“国际领先”残留"
+    },
+    {
+      "id": "neg-cn-068",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "方法解决了去噪问题。",
+      "polished": "该方法完美解决了去噪难题。",
+      "note": "“完美”残留"
+    },
+    {
+      "id": "neg-cn-069",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "提出了新结构。",
+      "polished": "提出了史无前例的新结构。",
+      "note": "“史无前例”残留"
+    },
+    {
+      "id": "neg-cn-070",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "性能提升明显。",
+      "polished": "性能提升巨大，远超所有现有方法。",
+      "note": "“巨大/远超”残留"
+    },
+    {
+      "id": "neg-cn-071",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "结构设计合理。",
+      "polished": "该设计是毋庸置疑的最优方案。",
+      "note": "“毋庸置疑/最优”残留"
+    },
+    {
+      "id": "neg-cn-072",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "模型表现良好。",
+      "polished": "该模型的表现令人惊叹。",
+      "note": "主观惊叹表述"
+    },
+    {
+      "id": "neg-cn-073",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "训练过程稳定。",
+      "polished": "训练过程极其顺利，毫无瑕疵。",
+      "note": "“毫无瑕疵”绝对化"
+    },
+    {
+      "id": "neg-cn-074",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "方法在两项任务上有效。",
+      "polished": "该方法树立了领域新标杆。",
+      "note": "“树立标杆”残留"
+    },
+    {
+      "id": "neg-cn-075",
+      "rule": "hype.lexicon",
+      "kind": "hype",
+      "expect_severity": "error",
+      "source": "去噪效果较好。",
+      "polished": "去噪效果出类拔萃。",
+      "note": "“出类拔萃”残留"
+    },
+    {
+      "id": "neg-cn-076",
+      "rule": "aiflavor.lexicon",
+      "kind": "generic_ending",
+      "expect_severity": "error",
+      "source": "本文提出 NLGAN。",
+      "polished": "本文提出 NLGAN，具有重要的理论意义与现实意义。",
+      "note": "泛化结尾“重要意义”"
+    },
+    {
+      "id": "neg-cn-077",
+      "rule": "aiflavor.lexicon",
+      "kind": "generic_ending",
+      "expect_severity": "error",
+      "source": "本文分析了三类方法。",
+      "polished": "本文分析了三类方法，该领域前景广阔。",
+      "note": "“前景广阔”泛化结尾"
+    },
+    {
+      "id": "neg-cn-078",
+      "rule": "aiflavor.lexicon",
+      "kind": "generic_ending",
+      "expect_severity": "error",
+      "source": "实验验证了有效性。",
+      "polished": "实验验证了有效性，为后续研究奠定了坚实基础。",
+      "note": "“奠定基础”泛化结尾"
+    },
+    {
+      "id": "neg-cn-079",
+      "rule": "aiflavor.lexicon",
+      "kind": "vague",
+      "expect_severity": "error",
+      "source": "方法有效。",
+      "polished": "研究表明该方法效果显著。",
+      "note": "模糊归因“研究表明”无出处"
+    },
+    {
+      "id": "neg-cn-080",
+      "rule": "aiflavor.lexicon",
+      "kind": "vague",
+      "expect_severity": "error",
+      "source": "去噪是必要步骤。",
+      "polished": "众所周知，去噪是必要步骤。",
+      "note": "“众所周知”模糊归因"
+    },
+    {
+      "id": "neg-cn-081",
+      "rule": "aiflavor.lexicon",
+      "kind": "vague",
+      "expect_severity": "error",
+      "source": "伪影影响信号质量。",
+      "polished": "专家认为伪影会严重影响信号质量。",
+      "note": "“专家认为”模糊归因"
+    },
+    {
+      "id": "neg-cn-082",
+      "rule": "aiflavor.lexicon",
+      "kind": "density",
+      "expect_severity": "error",
+      "source": "本文提出方法并分析结构。",
+      "polished": "本文深刻揭示了方法原理，充分说明了结构的合理性，该方法不可或缺。",
+      "note": "AI 高频词一段 3 个（超上限 2）"
+    },
+    {
+      "id": "neg-cn-083",
+      "rule": "aiflavor.lexicon",
+      "kind": "density",
+      "expect_severity": "error",
+      "source": "方法结合了两种技术。",
+      "polished": "方法综合运用了卷积与注意力机制，并深度融合了多分支结构，不可或缺。",
+      "note": "AI 高频词 3 个超标"
+    },
+    {
+      "id": "neg-cn-084",
+      "rule": "aiflavor.lexicon",
+      "kind": "closer",
+      "expect_severity": "error",
+      "source": "实验完成了。",
+      "polished": "综上所述，实验顺利完成了。由此可见，方法是有效的。",
+      "note": "段末套句 2 处超限"
+    },
+    {
+      "id": "neg-cn-085",
+      "rule": "aiflavor.lexicon",
+      "kind": "closer",
+      "expect_severity": "error",
+      "source": "结果符合预期。",
+      "polished": "总而言之，结果符合预期。由此可见方法是有效的。",
+      "note": "段末套句 2 处超限"
+    },
+    {
+      "id": "neg-cn-086",
+      "rule": "aiflavor.lexicon",
+      "kind": "triple",
+      "expect_severity": "error",
+      "source": "方法有三步。",
+      "polished": "首先提取特征，其次融合多尺度信息，最后重建信号。",
+      "note": "整齐三元并列"
+    },
+    {
+      "id": "neg-cn-087",
+      "rule": "aiflavor.lexicon",
+      "kind": "filler",
+      "expect_severity": "error",
+      "source": "注意力机制有选择作用。",
+      "polished": "值得注意的是，注意力机制综合运用了通道与空间信息，具有不可或缺的选择作用。",
+      "note": "填充语+高频词 3 个超标"
+    },
+    {
+      "id": "neg-cn-088",
+      "rule": "aiflavor.lexicon",
+      "kind": "theory_opener",
+      "expect_severity": "error",
+      "source": "GAN 常用于生成任务。",
+      "polished": "依据生成对抗理论，GAN 常用于生成任务，随着技术的不断发展，综合运用日益广泛。",
+      "note": "理论起笔+铺垫+高频词超标"
+    },
+    {
+      "id": "neg-cn-089",
+      "rule": "structure.inflation",
+      "kind": "inflation",
+      "expect_severity": "error",
+      "source": "本文提出一种方法。",
+      "polished": "本文提出一种方法，该方法在设计层面充分考虑了多方面的因素，综合运用了多种先进的技术手段，在理论上具有重要的指导意义。",
+      "note": "长度严重膨胀"
+    },
+    {
+      "id": "neg-cn-090",
+      "rule": "structure.inflation",
+      "kind": "paragraphs",
+      "expect_severity": "error",
+      "source": "第一段内容。\n\n第二段内容。",
+      "polished": "第一段内容。",
+      "note": "段落被删除"
+    },
+    {
+      "id": "neg-cn-091",
+      "rule": "structure.inflation",
+      "kind": "orphan",
+      "expect_severity": "error",
+      "source": "方法在两项任务上验证。",
+      "polished": "方法在两项任务上验证。据估计，该技术市场规模将在三年内翻倍。",
+      "note": "凭空新增市场预测句"
+    },
+    {
+      "id": "neg-cn-092",
+      "rule": "structure.inflation",
+      "kind": "orphan",
+      "expect_severity": "error",
+      "source": "模型由生成器与判别器组成。",
+      "polished": "模型由生成器与判别器组成。此外，该团队已与多家医院达成合作意向。",
+      "note": "凭空新增合作信息"
+    },
+    {
+      "id": "neg-cn-093",
+      "rule": "structure.inflation",
+      "kind": "orphan",
+      "expect_severity": "error",
+      "source": "训练使用 Adam 优化器。",
+      "polished": "训练使用 Adam 优化器。相关专利已于 2024 年提交申请。",
+      "note": "凭空新增专利信息"
+    },
+    {
+      "id": "neg-cn-094",
+      "rule": "structure.inflation",
+      "kind": "markup",
+      "expect_severity": "error",
+      "source": "损失函数为 $$L = L_1 + L_2$$。",
+      "polished": "损失函数为上述两项之和。",
+      "note": "公式标记被删"
+    },
+    {
+      "id": "neg-cn-095",
+      "rule": "structure.inflation",
+      "kind": "orphan",
+      "expect_severity": "error",
+      "source": "实验在公开数据集上完成。",
+      "polished": "实验在公开数据集上完成。作者曾在国际会议上报告过初步结果。",
+      "note": "凭空新增作者经历"
+    },
+    {
+      "id": "neg-cn-096",
+      "rule": "structure.inflation",
+      "kind": "inflation",
+      "expect_severity": "error",
+      "source": "基线为 SimpleCNN。",
+      "polished": "基线方法为 SimpleCNN，该方法是当前广泛应用于脑电信号处理领域的经典卷积神经网络架构。",
+      "note": "同义扩展过度"
+    },
+    {
+      "id": "neg-cn-097",
+      "rule": "structure.inflation",
+      "kind": "paragraphs",
+      "expect_severity": "error",
+      "source": "内容一。\n\n内容二。\n\n内容三。",
+      "polished": "内容一。内容二。内容三。",
+      "note": "三段合并为一段"
+    },
+    {
+      "id": "neg-cn-098",
+      "rule": "structure.inflation",
+      "kind": "orphan",
+      "expect_severity": "error",
+      "source": "伪影包含 EOG 与 ECG。",
+      "polished": "伪影包含 EOG 与 ECG。据统计，全球脑电设备市场持续扩大。",
+      "note": "凭空新增市场统计"
+    },
+    {
+      "id": "drift-cn-01",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "生成器接收含噪信号并生成伪影估计分量。",
+      "polished": "生成器对输入信号进行处理并输出估计结果。",
+      "note": "核心动作被泛化"
+    },
+    {
+      "id": "drift-cn-02",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "跳跃连接将编码器的多尺度特征传递给解码器。",
+      "polished": "跳跃连接在编码器与解码器之间传递特征表示。",
+      "note": "关键机制描述被弱化"
+    },
+    {
+      "id": "drift-cn-03",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "实验采用 8:1:1 的比例划分数据。",
+      "polished": "实验按照一定比例对数据进行了划分。",
+      "note": "具体比例被抹掉"
+    },
+    {
+      "id": "drift-cn-04",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "双判别器分别约束噪声分布与信号分布。",
+      "polished": "两个判别器对不同的分布施加约束。",
+      "note": "机制细节被抹掉"
+    },
+    {
+      "id": "drift-cn-05",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "消融实验验证了各模块的贡献。",
+      "polished": "实验对各模块的作用进行了分析。",
+      "note": "具体发现被泛化"
+    },
+    {
+      "id": "drift-cn-06",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "模型在 -5 dB 噪声下仍保持稳定。",
+      "polished": "模型在较低噪声条件下表现稳定。",
+      "note": "条件与程度被改变"
+    },
+    {
+      "id": "drift-cn-07",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "编码器逐层压缩时间维度。",
+      "polished": "编码器分阶段处理输入信号。",
+      "note": "机制描述被替换"
+    },
+    {
+      "id": "drift-cn-08",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "该方法无需获取参考信号。",
+      "polished": "该方法不依赖额外的输入信息。",
+      "note": "核心属性被模糊化"
+    },
+    {
+      "id": "drift-cn-09",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "训练使用 Adam 优化器与余弦退火策略。",
+      "polished": "训练采用了常见的优化设置。",
+      "note": "具体配置被抹掉"
+    },
+    {
+      "id": "drift-cn-10",
+      "rule": "semantic.drift",
+      "kind": "drift",
+      "expect_severity": "warning",
+      "source": "伪影判别器评估生成伪影的真实性。",
+      "polished": "该判别器对生成内容进行判断。",
+      "note": "评估对象被模糊化"
+    }
+  ]
+}

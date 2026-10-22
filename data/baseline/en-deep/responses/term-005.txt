@@ -1,0 +1,1 @@
+A rectified linear unit follows each convolution, as in the generative adversarial network design.

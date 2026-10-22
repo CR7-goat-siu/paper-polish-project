@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "language": "en",
+  "domain": "biomedical_eeg",
+  "entries": [
+    {"id": "eeg", "canonical": "EEG", "aliases": ["electroencephalography", "electroencephalogram", "electroencephalographic"], "nonstandard": ["E.E.G.", "EEG singal"], "note": "Expand at first use: electroencephalography (EEG); then use EEG consistently."},
+    {"id": "erp", "canonical": "event-related potential", "aliases": ["ERP", "event-related potentials"], "nonstandard": ["event-relevant potential"], "note": ""},
+    {"id": "ica", "canonical": "independent component analysis", "aliases": ["ICA"], "nonstandard": ["independent componet analysis"], "note": ""},
+    {"id": "csp", "canonical": "common spatial pattern", "aliases": ["CSP"], "nonstandard": ["common space pattern"], "note": ""},
+    {"id": "artifact", "canonical": "artifact", "aliases": ["artefact"], "nonstandard": [], "note": "Keep one spelling throughout (artifact preferred in US venues)."},
+    {"id": "wavelet-transform", "canonical": "wavelet transform", "aliases": [], "nonstandard": ["wavelet transformation"], "note": ""},
+    {"id": "motor-imagery", "canonical": "motor imagery", "aliases": ["MI"], "nonstandard": ["motor imagination"], "note": ""},
+    {"id": "bci", "canonical": "brain-computer interface", "aliases": ["BCI", "brain-computer interfaces"], "nonstandard": [], "note": "Hyphenate consistently; keep one form."},
+    {"id": "ssvep", "canonical": "steady-state visual evoked potential", "aliases": ["SSVEP"], "nonstandard": ["steady state visual evoked potential"], "note": "Hyphenate 'steady-state' attributively."},
+    {"id": "band-power", "canonical": "band power", "aliases": ["bandpower", "spectral power"], "nonstandard": [], "note": ""},
+    {"id": "sleep-staging", "canonical": "sleep staging", "aliases": ["sleep stage scoring"], "nonstandard": ["sleep stageing"], "note": ""},
+    {"id": "evoked-potential", "canonical": "evoked potential", "aliases": ["evoked potentials"], "nonstandard": ["evoked potiential"], "note": ""},
+    {"id": "power-spectral-density", "canonical": "power spectral density", "aliases": ["PSD", "power spectrum density"], "nonstandard": [], "note": "Prefer 'power spectral density'; 'power spectrum' is a related but distinct concept."},
+    {"id": "channel", "canonical": "channel", "aliases": ["electrode"], "nonstandard": ["electrode channel"], "note": "Distinguish electrode (physical) from channel (recorded signal); stay consistent."}
+  ]
+}

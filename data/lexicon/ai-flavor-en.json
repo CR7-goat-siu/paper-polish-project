@@ -1,0 +1,135 @@
+{
+  "schema_version": "1.0",
+  "language": "en",
+  "kind": "ai-flavor",
+  "description": "AI-flavor / AI-slop lexicon for academic neutrality. Density hard limits by category: ai_highfreq ≤2 per paragraph; generic_ending and vague_attribution = 0 (zero tolerance); paragraph_closer ≤1 per document; triple_enumeration ≤1 per paragraph. Exceeding a limit is an error.",
+  "density_limits": {
+    "ai_highfreq_per_paragraph": 2,
+    "generic_ending_total": 0,
+    "vague_attribution_total": 0,
+    "paragraph_closer_total": 1,
+    "triple_enumeration_per_paragraph": 1
+  },
+  "entries": [
+    {
+      "id": "delve",
+      "pattern": "delv(e|es|ing) into",
+      "category": "ai_highfreq",
+      "severity": "error",
+      "suggestion": "Use 'analyze', 'examine', or 'investigate'.",
+      "note": "classic LLM tell"
+    },
+    {
+      "id": "tapestry",
+      "pattern": "(rich )?tapestry|intricate (web|landscape)|multifaceted",
+      "category": "ai_highfreq",
+      "severity": "error",
+      "suggestion": "Describe the specifics plainly.",
+      "note": "LLM ornamental phrasing"
+    },
+    {
+      "id": "crucial_role",
+      "pattern": "plays? (a|an) (crucial|vital|pivotal|key|essential) role",
+      "category": "ai_highfreq",
+      "severity": "error",
+      "suggestion": "State what the component does and why it matters.",
+      "note": "万能评价"
+    },
+    {
+      "id": "shed_light",
+      "pattern": "shed(s|ding)? light on|provide(s|ing)? (valuable )?insights? into",
+      "category": "ai_highfreq",
+      "severity": "error",
+      "suggestion": "State the finding directly.",
+      "note": "LLM高频短语"
+    },
+    {
+      "id": "landscape_realm",
+      "pattern": "in the (field|realm|landscape|domain) of|ever-evolving|rapidly evolving",
+      "category": "ai_highfreq",
+      "severity": "error",
+      "suggestion": "Name the specific area or omit.",
+      "note": "场景铺垫套路"
+    },
+    {
+      "id": "it_is_noteworthy",
+      "pattern": "it is (worth|important to) not(e|ing) that|it should be noted that|notably,",
+      "category": "ai_highfreq",
+      "severity": "error",
+      "suggestion": "Delete the filler clause and state the point.",
+      "note": "填充引导语"
+    },
+    {
+      "id": "holistic_seamless",
+      "pattern": "holistic|seamless(ly)? integration|comprehensive (framework|approach|analysis)",
+      "category": "ai_highfreq",
+      "severity": "error",
+      "suggestion": "Describe what is actually integrated or analyzed.",
+      "note": "空洞形容词"
+    },
+    {
+      "id": "bright_future",
+      "pattern": "holds? (great|immense|tremendous) promise|bright future|exciting (future|prospects)|opens? up new (avenues|possibilities)",
+      "category": "generic_ending",
+      "severity": "error",
+      "suggestion": "Replace with a specific research direction.",
+      "note": "泛化结尾，0 容忍"
+    },
+    {
+      "id": "vague_attribution",
+      "pattern": "(experts|researchers|scholars|scientists) (believe|argue|suggest|claim)|it is (widely|generally) (believed|acknowledged|recognized) that|studies have shown|research has shown",
+      "category": "vague_attribution",
+      "severity": "error",
+      "suggestion": "Cite the specific source or remove the claim.",
+      "note": "无出处模糊归因，0 容忍"
+    },
+    {
+      "id": "conclusion_formula",
+      "pattern": "in conclusion|to sum up|in summary|overall,",
+      "category": "paragraph_closer",
+      "severity": "error",
+      "suggestion": "State the conclusion directly.",
+      "note": "段末套句，全文≤1"
+    },
+    {
+      "id": "triple_enumeration",
+      "pattern": "firstly,.{0,80}secondly,.{0,80}(thirdly|finally),|on the one hand.{0,80}on the other hand",
+      "category": "triple_enumeration",
+      "severity": "error",
+      "suggestion": "Order by importance; two or four items are fine.",
+      "note": "整齐三元，每段≤1"
+    },
+    {
+      "id": "moreover_stacking",
+      "pattern": "furthermore,|moreover,|additionally,",
+      "category": "ai_highfreq",
+      "severity": "error",
+      "suggestion": "Use at most one explicit connector per paragraph; let the logic show.",
+      "note": "AI 高频转折堆叠"
+    },
+    {
+      "id": "underscore_highlight",
+      "pattern": "underscore(s|d)? the (importance|significance)|highlight(s|ing)? the (importance|need|potential)",
+      "category": "ai_highfreq",
+      "severity": "error",
+      "suggestion": "State the importance with evidence.",
+      "note": "AI 高频短语"
+    },
+    {
+      "id": "profound_significance",
+      "pattern": "(significant|profound|far-reaching|important)[^.]{0,40}(implications|significance)|of great (importance|significance)|paves? the way for",
+      "category": "generic_ending",
+      "severity": "error",
+      "suggestion": "End with a concrete, testable conclusion or next step.",
+      "note": "泛化结尾，0 容忍"
+    },
+    {
+      "id": "comprehensive_seamless",
+      "pattern": "comprehensive(ly)? (consider|integrat|address)|seamless(ly)? (integrat|combin)|holistic(ally)? (approach|consider)",
+      "category": "ai_highfreq",
+      "severity": "error",
+      "suggestion": "Describe what is actually considered or integrated.",
+      "note": "AI 高频套话"
+    }
+  ]
+}

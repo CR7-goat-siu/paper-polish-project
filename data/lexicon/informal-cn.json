@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "language": "cn",
+  "kind": "informal",
+  "description": "中文口语化/冗余/套话词库，用于学术语域守卫。",
+  "entries": [
+    {"id": "zanmen", "pattern": "咱们", "category": "colloquial", "severity": "warning", "suggestion": "改为“我们”或无主句。", "note": ""},
+    {"id": "zhongsuozhouzhi", "pattern": "众所周知|大家都知道|不难发现", "category": "cliche", "severity": "warning", "suggestion": "删去套话，直接给出文献依据或事实。", "note": ""},
+    {"id": "wommenkeyi", "pattern": "我们可以看出|我们可以发现|很容易看出", "category": "colloquial", "severity": "warning", "suggestion": "改为“如表1所示”“结果显示”。", "note": ""},
+    {"id": "haowuyizhi", "pattern": "毋庸置疑|毫无疑问", "category": "cliche", "severity": "warning", "suggestion": "删去断言性套话。", "note": ""},
+    {"id": "feichang", "pattern": "非常|十分|特别", "category": "intensifier", "severity": "info", "suggestion": "删去程度副词或改为量化表述。", "note": ""},
+    {"id": "henduo", "pattern": "好多|很多很多|特别多", "category": "colloquial", "severity": "warning", "suggestion": "改为具体数量或“大量”。", "note": ""},
+    {"id": "gaonong", "pattern": "搞|弄好|弄出来", "category": "colloquial", "severity": "error", "suggestion": "改为规范学术动词，如“实现”“完成”。", "note": ""},
+    {"id": "jinhangle", "pattern": "进行了|进行了.", "category": "wordy", "severity": "info", "suggestion": "“进行了分析”可精简为“分析”。", "note": ""},
+    {"id": "jieguoshishuo", "pattern": "结果就是说|所以说", "category": "colloquial", "severity": "warning", "suggestion": "改为“因此”“结果表明”。", "note": ""},
+    {"id": "ranhou", "pattern": "然后", "category": "colloquial", "severity": "info", "suggestion": "改为“随后”“其次”或直接衔接。", "note": ""},
+    {"id": "xiajielai", "pattern": "接下来", "category": "colloquial", "severity": "info", "suggestion": "改为“下文”“后文”或直接陈述。", "note": ""},
+    {"id": "bijiao", "pattern": "比较(好|差|多|少)", "category": "colloquial", "severity": "info", "suggestion": "改为“相对较好”“明显多于”等规范比较表述。", "note": ""},
+    {"id": "yuepeng", "pattern": "越来越多", "category": "cliche", "severity": "info", "suggestion": "给出具体趋势数据或文献支撑。", "note": ""},
+    {"id": "laoshao", "pattern": "老话说的好|俗话说", "category": "colloquial", "severity": "error", "suggestion": "删除俗语，改为正式陈述。", "note": ""}
+  ]
+}

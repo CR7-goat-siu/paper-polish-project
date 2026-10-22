@@ -1,0 +1,1 @@
+Figure 3 illustrates the architecture of the proposed network, which consists of an encoder and a decoder.

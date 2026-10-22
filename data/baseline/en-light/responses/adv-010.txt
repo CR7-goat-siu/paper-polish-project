@@ -1,0 +1,1 @@
+Prior studies have shown that the proposed preprocessing is strong and removes all noise artifacts.

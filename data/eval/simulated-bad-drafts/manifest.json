@@ -1,0 +1,85 @@
+{
+  "schema_version": "1.0",
+  "dataset_kind": "simulated_bad_draft",
+  "not_for_real_performance_claim": true,
+  "target_count": 10,
+  "collected_count": 10,
+  "splits": {
+    "dev": [
+      "sim-01-structure-chaos",
+      "sim-02-logic-gap",
+      "sim-03-terminology-drift",
+      "sim-04-missing-citations",
+      "sim-05-citation-claim-mismatch",
+      "sim-06-statistics-conflict",
+      "sim-07-missing-figures"
+    ],
+    "test": [
+      "sim-08-language-errors",
+      "sim-09-format-errors",
+      "sim-10-conclusion-evidence-mismatch"
+    ]
+  },
+  "entries": [
+    {
+      "id": "sim-01-structure-chaos",
+      "path": "01-structure-chaos.md",
+      "split": "dev",
+      "expected_findings": ["section_order_invalid", "methods_missing", "logic_gap_unmarked"]
+    },
+    {
+      "id": "sim-02-logic-gap",
+      "path": "02-logic-gap.md",
+      "split": "dev",
+      "expected_findings": ["missing_premise", "unsupported_causal_claim", "logic_gap_unmarked"]
+    },
+    {
+      "id": "sim-03-terminology-drift",
+      "path": "03-terminology-drift.md",
+      "split": "dev",
+      "expected_findings": ["terminology_inconsistent", "abbreviation_first_use_missing"]
+    },
+    {
+      "id": "sim-04-missing-citations",
+      "path": "04-missing-citations.md",
+      "split": "dev",
+      "expected_findings": ["citation_gap", "claim_unbound"]
+    },
+    {
+      "id": "sim-05-citation-claim-mismatch",
+      "path": "05-citation-claim-mismatch.md",
+      "split": "dev",
+      "expected_findings": ["citation_claim_mismatch", "verified_without_evidence"]
+    },
+    {
+      "id": "sim-06-statistics-conflict",
+      "path": "06-statistics-conflict.md",
+      "split": "dev",
+      "expected_findings": ["sample_size_conflict", "percent_conflict", "p_value_conflict"]
+    },
+    {
+      "id": "sim-07-missing-figures",
+      "path": "07-missing-figures.md",
+      "split": "dev",
+      "expected_findings": ["referenced_item_missing", "caption_missing", "axis_units_missing"]
+    },
+    {
+      "id": "sim-08-language-errors",
+      "path": "08-language-errors.md",
+      "split": "test",
+      "expected_findings": ["grammar_density_high", "tense_inconsistent", "register_informal"]
+    },
+    {
+      "id": "sim-09-format-errors",
+      "path": "09-format-errors.md",
+      "split": "test",
+      "expected_findings": ["reference_style_mixed", "heading_level_jump", "citation_format_inconsistent"]
+    },
+    {
+      "id": "sim-10-conclusion-evidence-mismatch",
+      "path": "10-conclusion-evidence-mismatch.md",
+      "split": "test",
+      "expected_findings": ["conclusion_overclaim", "scope_shift", "statistics_claim_mismatch"]
+    }
+  ]
+}

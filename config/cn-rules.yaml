@@ -1,0 +1,195 @@
+# 中文学术润色规则（领域中立；领域细节来自 config/domains/*.yaml）
+# 三档强度：light / deep / rewrite；Prompt 正文统一存放在 prompts/cn/。
+schema_version: "2.0"
+language: "zh-CN"
+
+agent:
+  role: "你是一名面向理工科与医学科研论文的资深中文学术编辑。"
+  language_note: "输出必须为简体中文学术书面语，禁止口语化、网络化表达。"
+  boundaries:
+    - "不新增实验数据、结果或作者未给出的结论。"
+    - "不改写公式、代码或参考文献条目的实质内容。"
+    - "术语统一以加载的领域术语库为准，不擅自替换。"
+    - "不得将结论强度提升到原文证据之上。"
+
+default_strength: "deep"
+
+strengths:
+  light:
+    label: "轻度润色"
+    prompt_template: "polish-light.md"
+    max_input_tokens_per_chunk: 4000
+    temperature: 0.1
+    scope:
+      - "修正错别字、标点、明显语病与搭配错误。"
+      - "纠正“的 / 地 / 得”、量词与常见虚词误用。"
+      - "统一全半角标点与数字、空格等格式问题。"
+      - "把浮夸或主观的用词替换为客观、与证据匹配的表述。"
+    forbidden:
+      - "不得重排句子或段落结构。"
+      - "不得擅自替换专业术语或调整专业表达。"
+      - "不得新增或删除语义性内容。"
+    quality_gates:
+      unchanged_min_ratio: 0.85
+      length_ratio_min: 0.8
+      length_ratio_max: 1.25
+      numbers_required: true
+      citations_required: true
+      paragraph_mode: "exact"
+      hype_residue_allowed: false
+      term_error_max: 0
+      max_gate_retries: 1
+      # —— guardrails 扩展门禁（docs/hallucination-guardrails-plan.md L2/L3）——
+      fabrication_suspects_as_errors: true
+      citation_index_bounded: true
+      anchor_conservation: true
+      hedge_flip: true
+      scope_shift: true
+      semantic_drift_threshold: 0.35
+      strict_guardrails: false
+      sentence_rework: false
+
+  deep:
+    label: "深度润色"
+    prompt_template: "polish-deep.md"
+    max_input_tokens_per_chunk: 6000
+    temperature: 0.15
+    scope:
+      - "优化句式、衔接词与段落逻辑，提升学术表达质量。"
+      - "消除指代歧义、欧化长句与冗余表达。"
+      - "修正学术腔不足或用词重复，保持术语一致。"
+      - "压低浮夸与主观表述，使语气与文中证据强度一致。"
+      - "调整语气与限定词强度，使其与原文献证据相匹配。"
+    forbidden:
+      - "不得改变技术含义、实验事实或数值结论。"
+      - "不得新增或删除参考文献。"
+      - "不得调整章节级结构。"
+    quality_gates:
+      unchanged_min_ratio: 0.5
+      length_ratio_min: 0.6
+      length_ratio_max: 1.6
+      numbers_required: true
+      citations_required: true
+      paragraph_mode: "exact"
+      hype_residue_allowed: false
+      term_error_max: 0
+      max_gate_retries: 1
+      # —— guardrails 扩展门禁（docs/hallucination-guardrails-plan.md L2/L3）——
+      fabrication_suspects_as_errors: true
+      citation_index_bounded: true
+      anchor_conservation: true
+      hedge_flip: true
+      scope_shift: true
+      semantic_drift_threshold: 0.35
+      strict_guardrails: false
+      sentence_rework: false
+
+  rewrite:
+    label: "改写级润色"
+    prompt_template: "polish-rewrite.md"
+    max_input_tokens_per_chunk: 5000
+    temperature: 0.25
+    scope:
+      - "对句子与段落做高强度重写，使表达清晰、凝练、有力。"
+      - "在段落内部重组信息顺序，优化论证节奏。"
+      - "将隐含逻辑显性化，减少读者推断负担。"
+      - "去浮夸并把结论锚定到数据：每个论断的强度不超过其证据。"
+    forbidden:
+      - "不得虚构数据、数值、引用或结论。"
+      - "不得改动公式、数学符号与代码块。"
+      - "不得改变作者的科学立场。"
+    quality_gates:
+      unchanged_min_ratio: 0.3
+      length_ratio_min: 0.5
+      length_ratio_max: 1.8
+      numbers_required: true
+      citations_required: true
+      paragraph_mode: "flexible"
+      hype_residue_allowed: false
+      term_error_max: 0
+      max_gate_retries: 1
+      # —— guardrails 扩展门禁（docs/hallucination-guardrails-plan.md L2/L3）——
+      fabrication_suspects_as_errors: true
+      citation_index_bounded: true
+      anchor_conservation: true
+      hedge_flip: true
+      scope_shift: true
+      semantic_drift_threshold: 0.35
+      strict_guardrails: false
+      sentence_rework: false
+
+objectivity:
+  policy: "每个论断的强度不得超过其证据强度；清除主观与浮夸表述。"
+  rules:
+    - "删除“空前”“革命性”“国际领先”“完美”等浮夸用词，改为对具体改进的陈述。"
+    - "性能论断必须锚定到文中已有的数字、表格或引用。"
+    - "证据不充分时使用限定语气（“在一定程度上”“结果表明”）；不得弱化负面结果。"
+    - "不得为显得新颖而自造术语；术语以领域术语库为准。"
+  # 词库白名单：填入 claim-guard 词库条目 id（如 ["dafu"]）可豁免该词条，默认空
+  lexicon_whitelist: []
+  banned_examples:
+    - "空前"
+    - "革命性"
+    - "国际领先"
+    - "完美解决"
+    - "大幅提升（无数字）"
+  register_note: "以“本文方法”与事实陈述为主，避免情绪化的第一人称评价。"
+
+coherence:
+  rules:
+    - "保持段落论证链条显性：动机、方法、证据、含义依次推进。"
+    - "使用与逻辑关系匹配的连接词（然而、因此、相比之下），避免机械套用。"
+    - "把“其、该、这些”等指代落实为具体对象。"
+    - "一段一个主题；不得打乱章节级顺序。"
+
+conciseness:
+  rules:
+    - "在不改变含义的前提下使用最凝练的学术表达。"
+    - "压缩冗余句式，如“进行了分析”→“分析”。"
+    - "删除未量化的程度副词（非常、极其、大大）。"
+    - "把口语与网络化表达转换为规范学术语域。"
+
+domain_rules:
+  terminology:
+    consistency_mode: "enforce_canonical"
+    abbreviation_rule: "首次出现给出中文全称与英文缩写，后续保持一致"
+    unknown_term_policy: "preserve_and_report"
+
+  writing_style:
+    register: "academic"
+    voice_guidance: "适度使用被动语态与无主句，避免过度口语化"
+    sentence_length_guidance: "单句尽量不超过 60 字，必要时拆分"
+    connector_guidance: "避免机械使用“此外 / 同时 / 而且”，优先依据语义选择"
+
+  math_notation:
+    preserve_equations: true
+    preserve_inline_math: true
+    preserve_symbol_definitions: true
+
+  citation:
+    preserve_citation_markers: true
+    allowed_styles:
+      - "GB/T 7714"
+      - "APA"
+      - "IEEE"
+
+  structure:
+    preserve_section_boundaries: true
+    preserve_paragraph_boundaries: true
+
+section_guidance:
+  title: "保持精炼、信息准确，不改动专有名词。"
+  abstract: "摘要按“问题-方法-结果-影响”组织，避免自我评价式套话。"
+  keywords: "关键词只在术语库要求统一时调整。"
+  introduction: "明确动机、定位相关工作并客观陈述贡献，避免夸大。"
+  related_work: "对比表述公允精确，避免空泛褒贬。"
+  method: "优先使用可复现的精确表述；公式、符号与算法步骤保持不变。"
+  experiment: "数据、指标与对比结果必须保持原样，不得弱化负面结果。"
+  discussion: "将结果与结论、局限性联系起来，不做无依据的泛化。"
+  conclusion: "总结贡献与局限，不引入新结论或新数据。"
+
+output_constraints:
+  return_only_edited_text: false
+  preserve_original_line_breaks: true
+  preserve_original_markup: true
+  report_uncertain_changes: true

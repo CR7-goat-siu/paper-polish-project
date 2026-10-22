@@ -1,0 +1,459 @@
+{
+  "skill": "evaluator",
+  "language": "en",
+  "mode": "archived",
+  "strength": "light",
+  "domain": "auto",
+  "suites": {
+    "objectivity": {
+      "cases": [
+        {
+          "id": "adv-001",
+          "success": true,
+          "hype_residual": [],
+          "guard_error_findings": 0,
+          "numbers_missing": 0,
+          "polish_error": "",
+          "numbers_added": [],
+          "change_ratio": 0.1915,
+          "guard_detected_in_source": true,
+          "output_preview": "The proposed dynamic gating mechanism achieves a new and substantial visual enhancement in underwater images."
+        },
+        {
+          "id": "adv-002",
+          "success": true,
+          "hype_residual": [],
+          "guard_error_findings": 0,
+          "numbers_missing": 0,
+          "polish_error": "",
+          "numbers_added": [],
+          "change_ratio": 0.2268,
+          "guard_detected_in_source": true,
+          "output_preview": "This notable framework delivers performance gains of 12.7% and advances the field."
+        },
+        {
+          "id": "adv-003",
+          "success": true,
+          "hype_residual": [],
+          "guard_error_findings": 0,
+          "numbers_missing": 0,
+          "polish_error": "",
+          "numbers_added": [],
+          "change_ratio": 0.3333,
+          "guard_detected_in_source": true,
+          "output_preview": "The substantial 3.1 dB improvement indicates that our network is effective for image denoising."
+        },
+        {
+          "id": "adv-004",
+          "success": true,
+          "hype_residual": [],
+          "guard_error_findings": 0,
+          "numbers_missing": 0,
+          "polish_error": "",
+          "numbers_added": [],
+          "change_ratio": 0.3333,
+          "guard_detected_in_source": true,
+          "output_preview": "Our loss function is effective and outperforms alternative methods."
+        },
+        {
+          "id": "adv-005",
+          "success": true,
+          "hype_residual": [],
+          "guard_error_findings": 0,
+          "numbers_missing": 0,
+          "polish_error": "",
+          "numbers_added": [],
+          "change_ratio": 0.1173,
+          "guard_detected_in_source": true,
+          "output_preview": "We are the first to apply transformers to sleep staging, and the results are notable."
+        },
+        {
+          "id": "adv-006",
+          "success": true,
+          "hype_residual": [],
+          "guard_error_findings": 0,
+          "numbers_missing": 0,
+          "polish_error": "",
+          "numbers_added": [],
+          "change_ratio": 0.1705,
+          "guard_detected_in_source": true,
+          "output_preview": "The substantial dataset of 50,000 images makes our model competitive in pedestrian detection, with an mAP of 88.5%."
+        },
+        {
+          "id": "adv-007",
+          "success": true,
+          "hype_residual": [],
+          "guard_error_findings": 0,
+          "numbers_missing": 0,
+          "polish_error": "",
+          "numbers_added": [],
+          "change_ratio": 0.1059,
+          "guard_detected_in_source": true,
+          "output_preview": "Training is fast and the convergence is stable across all runs of 20 epochs."
+        },
+        {
+          "id": "adv-008",
+          "success": true,
+          "hype_residual": [],
+          "guard_error_findings": 0,
+          "numbers_missing": 0,
+          "polish_error": "",
+          "numbers_added": [],
+          "change_ratio": 0.2391,
+          "guard_detected_in_source": true,
+          "output_preview": "Our ablation study shows that every module is important and the design is effective."
+        },
+        {
+          "id": "adv-009",
+          "success": true,
+          "hype_residual": [],
+          "guard_error_findings": 0,
+          "numbers_missing": 0,
+          "polish_error": "",
+          "numbers_added": [],
+          "change_ratio": 0.25,
+          "guard_detected_in_source": true,
+          "output_preview": "This substantial improvement of 0.5 ms in latency may affect the field of edge computing."
+        },
+        {
+          "id": "adv-010",
+          "success": true,
+          "hype_residual": [],
+          "guard_error_findings": 0,
+          "numbers_missing": 0,
+          "polish_error": "",
+          "numbers_added": [],
+          "change_ratio": 0.3229,
+          "guard_detected_in_source": true,
+          "output_preview": "Prior studies have shown that the proposed preprocessing is strong and removes all noise artifacts."
+        }
+      ],
+      "dehype_rate": 1.0,
+      "guard_detection_rate": 1.0,
+      "case_count": 10
+    },
+    "terminology": {
+      "cases": [
+        {
+          "id": "term-001",
+          "canonical_found": [
+            "convolutional neural network",
+            "long short-term memory",
+            "backpropagation"
+          ],
+          "canonical_missing": [],
+          "recall": 1.0,
+          "nonstandard_leaked": [],
+          "interception": 1.0,
+          "polish_error": "",
+          "output_preview": "We train a convolutional neural network and a long short-term memory module with backpropagation."
+        },
+        {
+          "id": "term-002",
+          "canonical_found": [
+            "deep learning",
+            "self-attention",
+            "cross-attention"
+          ],
+          "canonical_missing": [],
+          "recall": 1.0,
+          "nonstandard_leaked": [],
+          "interception": 1.0,
+          "polish_error": "",
+          "output_preview": "The deep learning model with self-attention and cross-attention layers is trained end-to-end."
+        },
+        {
+          "id": "term-003",
+          "canonical_found": [
+            "fine-tuning",
+            "hyperparameter",
+            "loss function"
+          ],
+          "canonical_missing": [],
+          "recall": 1.0,
+          "nonstandard_leaked": [],
+          "interception": 1.0,
+          "polish_error": "",
+          "output_preview": "We use fine-tuning with a hyperparameter search and a loss function for optimization."
+        },
+        {
+          "id": "term-004",
+          "canonical_found": [
+            "batch normalization",
+            "overfitting"
+          ],
+          "canonical_missing": [],
+          "recall": 1.0,
+          "nonstandard_leaked": [],
+          "interception": 1.0,
+          "polish_error": "",
+          "output_preview": "Batch normalization stabilizes training, and overfitting is reduced by early stopping."
+        },
+        {
+          "id": "term-005",
+          "canonical_found": [
+            "rectified linear unit",
+            "generative adversarial network"
+          ],
+          "canonical_missing": [],
+          "recall": 1.0,
+          "nonstandard_leaked": [],
+          "interception": 1.0,
+          "polish_error": "",
+          "output_preview": "The rectified linear unit follows each convolution, following the generative adversarial network design."
+        },
+        {
+          "id": "term-006",
+          "canonical_found": [
+            "data augmentation",
+            "transfer learning",
+            "neural network"
+          ],
+          "canonical_missing": [],
+          "recall": 1.0,
+          "nonstandard_leaked": [],
+          "interception": 1.0,
+          "polish_error": "",
+          "output_preview": "Data augmentation and transfer learning improve the neural network classifier."
+        },
+        {
+          "id": "term-007",
+          "canonical_found": [
+            "learning rate",
+            "multi-layer perceptron"
+          ],
+          "canonical_missing": [],
+          "recall": 1.0,
+          "nonstandard_leaked": [],
+          "interception": 1.0,
+          "polish_error": "",
+          "output_preview": "We tune the learning rate to 0.001 and replace the multi-layer perceptron (MLP) with an MLP."
+        },
+        {
+          "id": "term-008",
+          "canonical_found": [
+            "attention mechanism",
+            "self-attention"
+          ],
+          "canonical_missing": [],
+          "recall": 1.0,
+          "nonstandard_leaked": [],
+          "interception": 1.0,
+          "polish_error": "",
+          "output_preview": "An attention mechanism with self-attention captures long-range context."
+        },
+        {
+          "id": "term-009",
+          "canonical_found": [
+            "backpropagation"
+          ],
+          "canonical_missing": [],
+          "recall": 1.0,
+          "nonstandard_leaked": [],
+          "interception": 1.0,
+          "polish_error": "",
+          "output_preview": "We pretrain a vision transformer using backpropagation through every layer."
+        },
+        {
+          "id": "term-010",
+          "canonical_found": [
+            "recurrent neural network",
+            "state-space model"
+          ],
+          "canonical_missing": [],
+          "recall": 1.0,
+          "nonstandard_leaked": [],
+          "interception": 1.0,
+          "polish_error": "",
+          "output_preview": "The recurrent neural network baseline is compared against our state-space model."
+        }
+      ],
+      "terminology_recall": 1.0,
+      "coined_word_interception": 1.0,
+      "case_count": 10
+    },
+    "grammar": {
+      "cases": [
+        {
+          "id": "gram-001",
+          "fixed": [
+            "don't",
+            "uses a learning",
+            "it overfitting"
+          ],
+          "remained": [],
+          "fix_rate": 1.0,
+          "gleu": 1.0,
+          "numbers_missing": [],
+          "polish_error": "",
+          "output_preview": "He does not use a learning rate of 0.001 to train the model, and it overfits quickly."
+        },
+        {
+          "id": "gram-002",
+          "fixed": [
+            "We compares",
+            "and shows",
+            "methods achieves"
+          ],
+          "remained": [],
+          "fix_rate": 1.0,
+          "gleu": 0.814,
+          "numbers_missing": [],
+          "polish_error": "",
+          "output_preview": "We compare three models on the ImageNet dataset and show that our methods achieve 76.5% top-1 accuracy."
+        },
+        {
+          "id": "gram-003",
+          "fixed": [
+            "100 epoch",
+            "on 8 GPU",
+            "with batch size of"
+          ],
+          "remained": [],
+          "fix_rate": 1.0,
+          "gleu": 1.0,
+          "numbers_missing": [],
+          "polish_error": "",
+          "output_preview": "The model is trained for 100 epochs on 8 GPUs with a batch size of 256."
+        },
+        {
+          "id": "gram-004",
+          "fixed": [
+            "attention based methods",
+            "can captures"
+          ],
+          "remained": [],
+          "fix_rate": 1.0,
+          "gleu": 0.4714,
+          "numbers_missing": [],
+          "polish_error": "",
+          "output_preview": "In this paper, we propose novel attention-based methods which can capture long-range dependencies."
+        },
+        {
+          "id": "gram-005",
+          "fixed": [
+            "results was",
+            "improvements is"
+          ],
+          "remained": [],
+          "fix_rate": 1.0,
+          "gleu": 0.64,
+          "numbers_missing": [],
+          "polish_error": "",
+          "output_preview": "The results were better than the baseline, and the improvements are notable."
+        },
+        {
+          "id": "gram-006",
+          "fixed": [
+            ", include CIFAR-10"
+          ],
+          "remained": [],
+          "fix_rate": 1.0,
+          "gleu": 0.7564,
+          "numbers_missing": [],
+          "polish_error": "",
+          "output_preview": "We evaluate our approach on three datasets: CIFAR-10, CIFAR-100, and Tiny-ImageNet."
+        },
+        {
+          "id": "gram-007",
+          "fixed": [
+            "worth to note",
+            "can prevents"
+          ],
+          "remained": [],
+          "fix_rate": 1.0,
+          "gleu": 0.2368,
+          "numbers_missing": [],
+          "polish_error": "",
+          "output_preview": "It is worth noting that dropout can prevent overfitting effectively."
+        },
+        {
+          "id": "gram-008",
+          "fixed": [
+            "Table 1 show"
+          ],
+          "remained": [],
+          "fix_rate": 1.0,
+          "gleu": 0.6852,
+          "numbers_missing": [],
+          "polish_error": "",
+          "output_preview": "Table 1 shows the comparisons between our method and previous methods on 5 benchmarks."
+        },
+        {
+          "id": "gram-009",
+          "fixed": [
+            "loss decrease",
+            "then convergence",
+            "in first"
+          ],
+          "remained": [],
+          "fix_rate": 1.0,
+          "gleu": 1.0,
+          "numbers_missing": [],
+          "polish_error": "",
+          "output_preview": "The training loss decreases rapidly in the first 10 epochs and then converges to a stable value of 0.032."
+        }
+      ],
+      "clean_cases": [
+        {
+          "id": "clean-001",
+          "change_ratio": 0.0,
+          "preserved": true
+        },
+        {
+          "id": "clean-002",
+          "change_ratio": 0.0,
+          "preserved": true
+        },
+        {
+          "id": "clean-003",
+          "change_ratio": 0.0443,
+          "preserved": true
+        },
+        {
+          "id": "clean-004",
+          "change_ratio": 0.0,
+          "preserved": true
+        },
+        {
+          "id": "clean-005",
+          "change_ratio": 0.0,
+          "preserved": true
+        },
+        {
+          "id": "clean-006",
+          "change_ratio": 0.0,
+          "preserved": true
+        }
+      ],
+      "gleu_avg": 0.7338,
+      "fix_rate_avg": 1.0,
+      "overcorrection_rate": 0.0,
+      "overcorrection_threshold": 0.15,
+      "case_count": 9,
+      "clean_case_count": 6
+    }
+  },
+  "fidelity": {
+    "cases_with_numbers": 19,
+    "number_violations": 0,
+    "number_preservation_rate": 1.0
+  },
+  "overall": {
+    "dehype_rate": 1.0,
+    "guard_detection_rate": 1.0,
+    "terminology_recall": 1.0,
+    "coined_word_interception": 1.0,
+    "gleu_avg": 0.7338,
+    "fix_rate_avg": 1.0,
+    "overcorrection_rate": 0.0,
+    "number_preservation_rate": 1.0
+  },
+  "meta": {
+    "model": "deepseek-v4-flash",
+    "date": "2026-09-26",
+    "protocol": "responses",
+    "suite": "objectivity+terminology+grammar"
+  },
+  "elapsed_seconds": 0.06
+}

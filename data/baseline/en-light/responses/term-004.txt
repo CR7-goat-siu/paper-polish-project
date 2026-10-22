@@ -1,0 +1,1 @@
+Batch normalization stabilizes training, and overfitting is reduced by early stopping.

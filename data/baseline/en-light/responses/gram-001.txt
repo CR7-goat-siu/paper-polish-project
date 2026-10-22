@@ -1,0 +1,1 @@
+He does not use a learning rate of 0.001 to train the model, and it overfits quickly.

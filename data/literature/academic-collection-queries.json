@@ -1,0 +1,310 @@
+{
+  "schema_version": "1.0",
+  "queries": [
+    {
+      "id": "eegdenoisenet",
+      "theme": "benchmark",
+      "title": "EEGdenoiseNet: A benchmark dataset for deep learning solutions of EEG denoising"
+    },
+    {
+      "id": "ocular-review",
+      "theme": "classic-artifact",
+      "title": "Removal of ocular artifacts from EEG signals: a review"
+    },
+    {
+      "id": "faster",
+      "theme": "classic-artifact",
+      "title": "FASTER: Fully Automated Statistical Thresholding for EEG artifact Rejection"
+    },
+    {
+      "id": "adjust",
+      "theme": "classic-artifact",
+      "title": "ADJUST: An automatic EEG artifact detector based on the joint use of spatial and temporal features"
+    },
+    {
+      "id": "ica-algorithms",
+      "theme": "classic-signal",
+      "title": "Independent component analysis: algorithms and applications"
+    },
+    {
+      "id": "ica-eeg",
+      "theme": "classic-signal",
+      "title": "Independent component analysis of electroencephalographic data"
+    },
+    {
+      "id": "sobi",
+      "theme": "classic-signal",
+      "title": "A blind source separation technique using second-order statistics"
+    },
+    {
+      "id": "emd",
+      "theme": "classic-signal",
+      "title": "The empirical mode decomposition and the Hilbert spectrum for nonlinear and non-stationary time series analysis"
+    },
+    {
+      "id": "deep-eeg-review",
+      "theme": "review",
+      "title": "Deep learning-based electroencephalography analysis: a systematic review"
+    },
+    {
+      "id": "eegnet",
+      "theme": "deep-eeg",
+      "title": "EEGNet: A Compact Convolutional Neural Network for EEG-based Brain-Computer Interfaces"
+    },
+    {
+      "id": "eeg-conformer",
+      "theme": "transformer",
+      "title": "EEG Conformer: Convolutional Transformer for EEG Decoding and Visualization"
+    },
+    {
+      "id": "biot",
+      "theme": "foundation-model",
+      "title": "BIOT: Biosignal Transformer for Cross-data Learning in the Wild"
+    },
+    {
+      "id": "labram",
+      "theme": "foundation-model",
+      "title": "LaBraM: Large Brain Model for Learning Generic Representations with Tremendous EEG Data in BCI"
+    },
+    {
+      "id": "eegpt",
+      "theme": "foundation-model",
+      "title": "EEGPT: Pretrained Transformer for Universal and Reliable Representation of EEG Signals"
+    },
+    {
+      "id": "brainbert",
+      "theme": "foundation-model",
+      "title": "BrainBERT: Self-supervised representation learning for intracranial recordings"
+    },
+    {
+      "id": "deep-bci-review",
+      "theme": "review",
+      "title": "Deep learning for EEG-based Brain-Computer Interfaces: A review"
+    },
+    {
+      "id": "eeg-artifact-review",
+      "theme": "review",
+      "title": "Automatic artifact removal from EEG: A review"
+    },
+    {
+      "id": "eeg-artifact-review-2",
+      "theme": "review",
+      "title": "A review on EEG artifact removal techniques"
+    },
+    {
+      "id": "ocular-deep",
+      "theme": "core-denoising",
+      "title": "Removal of EOG artifacts from EEG signals using deep learning"
+    },
+    {
+      "id": "ocular-cnn",
+      "theme": "core-denoising",
+      "title": "Deep convolutional neural network for removal of ocular artifacts from EEG signals"
+    },
+    {
+      "id": "eeg-cnn-denoising",
+      "theme": "core-denoising",
+      "title": "EEG artifact removal using convolutional neural networks"
+    },
+    {
+      "id": "eeg-deep-artifact",
+      "theme": "core-denoising",
+      "title": "A novel deep learning approach for EEG artifact removal"
+    },
+    {
+      "id": "eeg-denoising-deep",
+      "theme": "core-denoising",
+      "title": "Denoising EEG signals using deep learning"
+    },
+    {
+      "id": "eeg-autoencoder-artifact",
+      "theme": "core-denoising",
+      "title": "A deep convolutional autoencoder for EEG artifact removal"
+    },
+    {
+      "id": "eeg-gan-artifact",
+      "theme": "generative",
+      "title": "EEG artifact removal using generative adversarial networks"
+    },
+    {
+      "id": "gan-eeg-review",
+      "theme": "generative",
+      "title": "Generative adversarial networks for EEG data augmentation: A review"
+    },
+    {
+      "id": "gan-emotion",
+      "theme": "generative",
+      "title": "Data augmentation for EEG-based emotion recognition using generative adversarial networks"
+    },
+    {
+      "id": "gan-motor-imagery",
+      "theme": "generative",
+      "title": "GAN-based data augmentation for motor imagery EEG classification"
+    },
+    {
+      "id": "gan-biomedical-review",
+      "theme": "generative",
+      "title": "A survey on generative adversarial networks for biomedical signal processing"
+    },
+    {
+      "id": "biomedical-denoising-review",
+      "theme": "review",
+      "title": "Deep learning for denoising in biomedical signals: A review"
+    },
+    {
+      "id": "ica-deep-artifact",
+      "theme": "core-denoising",
+      "title": "Automatic EEG artifact removal based on independent component analysis and deep learning"
+    },
+    {
+      "id": "ica-wavelet",
+      "theme": "classic-artifact",
+      "title": "Ocular artifact removal from EEG using independent component analysis and wavelet transform"
+    },
+    {
+      "id": "wavelet-artifact-review",
+      "theme": "classic-artifact",
+      "title": "A review of wavelet transform applications in EEG"
+    },
+    {
+      "id": "wavelet-denoising",
+      "theme": "classic-signal",
+      "title": "EEG signal denoising using wavelet transform"
+    },
+    {
+      "id": "temple-eeg",
+      "theme": "dataset",
+      "title": "The Temple University Hospital EEG Data Corpus"
+    },
+    {
+      "id": "physionet",
+      "theme": "dataset",
+      "title": "PhysioNet: A new research resource for complex physiologic signals"
+    },
+    {
+      "id": "mitbih",
+      "theme": "dataset",
+      "title": "The impact of the MIT-BIH Arrhythmia Database"
+    },
+    {
+      "id": "moabb",
+      "theme": "benchmark",
+      "title": "MOABB: trustworthy algorithm benchmarking for BCIs"
+    },
+    {
+      "id": "motor-imagery-review",
+      "theme": "review",
+      "title": "Deep learning techniques for classification of electroencephalogram (EEG) motor imagery (MI) signals: a review"
+    },
+    {
+      "id": "eeg-emotion-graph",
+      "theme": "deep-eeg",
+      "title": "EEG Emotion Recognition Using Dynamical Graph Convolutional Neural Networks"
+    },
+    {
+      "id": "sleep-attention",
+      "theme": "deep-eeg",
+      "title": "An Attention-Based Deep Learning Approach for Sleep Stage Classification With Single-Channel EEG"
+    },
+    {
+      "id": "eeg-emotion-rgnn",
+      "theme": "deep-eeg",
+      "title": "EEG-Based Emotion Recognition Using Regularized Graph Neural Networks"
+    },
+    {
+      "id": "eeg-clinical-terminology",
+      "theme": "standard",
+      "title": "American Clinical Neurophysiology Society's Standardized Critical Care EEG Terminology: 2021 Version"
+    },
+    {
+      "id": "deep-image-denoising",
+      "theme": "method-transfer",
+      "title": "Deep learning on image denoising: An overview"
+    },
+    {
+      "id": "attention-cnn-denoising",
+      "theme": "method-transfer",
+      "title": "Attention-guided CNN for image denoising"
+    },
+    {
+      "id": "motion-artifact-review",
+      "theme": "review",
+      "title": "A review of motion related EEG artifact removal techniques"
+    },
+    {
+      "id": "remove-eog-deep",
+      "theme": "core-denoising",
+      "title": "Removing EOG Artifacts from EEG Recordings using Deep Learning"
+    },
+    {
+      "id": "cnn-ocular-myogenic",
+      "theme": "core-denoising",
+      "title": "A Convolutional Neural Network for the Removal of Simultaneous Ocular and Myogenic Artifacts from EEG Signals"
+    },
+    {
+      "id": "auto-eeg-cnn",
+      "theme": "core-denoising",
+      "title": "Automatic Electroencephalogram Artifact Removal Using Deep Convolutional Neural Networks"
+    },
+    {
+      "id": "nested-gan-eeg",
+      "theme": "generative",
+      "title": "End-to-end EEG artifact removal method via nested generative adversarial network"
+    },
+    {
+      "id": "vae-gan-mi",
+      "theme": "generative",
+      "title": "Residual-Enhanced VAE-GAN for EEG Data Augmentation in Motor Imagery Classification"
+    },
+    {
+      "id": "ica-outlier",
+      "theme": "classic-artifact",
+      "title": "EEG Artifact Removal Based on Independent Component Analysis and Outlier Detection"
+    },
+    {
+      "id": "eye-blink-ica",
+      "theme": "classic-artifact",
+      "title": "Eye Blink Artifact Removal from Cognitive EEG Data using ICA (Independent Component Analysis)"
+    },
+    {
+      "id": "physionet-correct",
+      "theme": "dataset",
+      "title": "PhysioNet: an NIH research resource for complex signals"
+    },
+    {
+      "id": "acns-terminology",
+      "theme": "standard",
+      "title": "ACNS standardized critical care EEG terminology 2021 condensed version"
+    },
+    {
+      "id": "labram-crossref",
+      "theme": "foundation-model",
+      "title": "LaBraM: A General Large Model for EEG Representation Learning"
+    },
+    {
+      "id": "aneeg",
+      "theme": "core-denoising",
+      "title": "AnEEG: leveraging deep learning for effective artifact removal in EEG data"
+    },
+    {
+      "id": "frequency-eeg-denoising",
+      "theme": "core-denoising",
+      "title": "Frequency Information Enhanced Deep EEG Denoising Network for Ocular Artifact Removal"
+    },
+    {
+      "id": "advanced-artifact-review",
+      "theme": "review",
+      "title": "Advanced Signal Processing and Machine/Deep Learning Approaches on a Preprocessing Block for EEG Artifact Removal: A Comprehensive Review"
+    },
+    {
+      "id": "bayesian-ica-artifact",
+      "theme": "core-denoising",
+      "title": "EEG Artifact Removal by Bayesian Deep Learning and ICA"
+    },
+    {
+      "id": "motion-net",
+      "theme": "core-denoising",
+      "title": "Motion Artifact Removal from EEG Signals Using the Motion-Net Deep Learning Algorithm"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+The observed improvement of 3.1 dB indicates that the proposed network is effective for image denoising.

@@ -1,0 +1,9 @@
+# 领域包：深度学习 / 机器学习
+id: "deep-learning"
+name: "Deep Learning"
+description: "深度学习、机器学习与模式识别方向论文。"
+terms_file: "terms/deep-learning-{lang}.json"
+terminology_hints: "Distinguish ablation study from comparative experiment; expand model abbreviations (CNN, LSTM, ...) at first use; keep hyphenation of compounds like state-of-the-art and self-attention consistent."
+section_guidance:
+  method: "Name the architecture precisely; keep tensor shapes, loss equations, and training hyperparameters intact."
+  experiment: "Report metrics with datasets and splits; never restate a number differently from the source."

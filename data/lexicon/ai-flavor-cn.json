@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "language": "cn",
+  "kind": "ai-flavor",
+  "description": "AI 腔/AI 套话词库（学术中立与反 AI 味守卫）。按 category 执行密度硬上限：ai_highfreq 每段≤2；generic_ending 与 vague_attribution 全文 0 容忍；paragraph_closer 全文≤1；triple_enumeration 每段≤1。超限即 error。",
+  "density_limits": {
+    "ai_highfreq_per_paragraph": 2,
+    "generic_ending_total": 0,
+    "vague_attribution_total": 0,
+    "paragraph_closer_total": 1,
+    "triple_enumeration_per_paragraph": 1
+  },
+  "entries": [
+    {"id": "shenke_jieshi", "pattern": "深刻(揭示|说明|反映|体现|阐释)", "category": "ai_highfreq", "severity": "error", "suggestion": "改为“表明/说明”并给出具体依据。", "note": "AI 高频套话"},
+    {"id": "zhongyao_yiyi", "pattern": "具有(重要|重大|深远)?的?(现实|理论)?意义|意义(深远|重大)|兼具.{0,6}意义", "category": "generic_ending", "severity": "error", "suggestion": "直接陈述具体贡献或可检验的推论。", "note": "泛化结尾，0 容忍"},
+    {"id": "qianjing_guangkuo", "pattern": "前景广阔|发展前景|未来可期|广阔的发展空间|激动人心", "category": "generic_ending", "severity": "error", "suggestion": "改为具体的后续研究方向或可验证命题。", "note": "泛化结尾，0 容忍"},
+    {"id": "dianji_jichu", "pattern": "奠定了.{0,8}基础|开辟了?(新方向|新纪元)|提供了?新思路|里程碑|崭新范式", "category": "generic_ending", "severity": "error", "suggestion": "用可检验的结论替代空洞展望。", "note": "泛化结尾，0 容忍"},
+    {"id": "buke_huoque", "pattern": "不可或缺|必不可少|至关重要|不容忽视", "category": "ai_highfreq", "severity": "error", "suggestion": "说明为什么必要，或删除该评价。", "note": "万能形容词"},
+    {"id": "zonghe_yunyong", "pattern": "综合运用|有机结合|深度融合|系统性(地)?(梳理|整合)", "category": "ai_highfreq", "severity": "error", "suggestion": "直接写“结合/同时使用”及具体对象。", "note": "AI 高频套话"},
+    {"id": "youxiao_jiejue", "pattern": "有效(解决|回应)|充分(说明|证明|验证)|极大(提升|提高)", "category": "ai_highfreq", "severity": "error", "suggestion": "用具体幅度替代程度副词，如“提升了 12.5%”。", "note": "AI 高频套话"},
+    {"id": "zhide_zhuyi", "pattern": "值得一提(的)?是|需要指出(的)?是|值得注意(的)?是|纵观|纵观上述", "category": "ai_highfreq", "severity": "error", "suggestion": "删除填充短语，直接陈述。", "note": "填充引导语"},
+    {"id": "mohu_guiyu", "pattern": "专家(认为|指出)|学者(们)?(普遍)?认为|研究表明|众所周知|人们(普遍)?发现|据报道", "category": "vague_attribution", "severity": "error", "suggestion": "补具体引用，或改为限定语气的事实陈述。", "note": "无出处模糊归因，0 容忍"},
+    {"id": "zongshangsuoshu", "pattern": "综上所述|总而言之|由此可见|综上|此案例(印证|表明)了", "category": "paragraph_closer", "severity": "error", "suggestion": "直接给出结论句。", "note": "段末总结套句，全文≤1"},
+    {"id": "sanlieju", "pattern": "首先.{0,40}其次.{0,40}(再次|最后)|一方面.{0,40}另一方面", "category": "triple_enumeration", "severity": "error", "suggestion": "按重要性重排，打破等重并列。", "note": "整齐三元，每段≤1"},
+    {"id": "lilun_qidian", "pattern": "依据.{0,12}理论|基于.{0,12}理论(框架)?[，,]", "category": "ai_highfreq", "severity": "error", "suggestion": "理论仅在与论证相关处出现，避免每段以理论起笔。", "note": "理论起笔套路"},
+    {"id": "xushu_funong", "pattern": "随着(科技|时代|社会)?的?(不断)?(进步|发展|深入研究)|在当今.{0,12}背景下|在.{0,10}的大背景下", "category": "ai_highfreq", "severity": "error", "suggestion": "删除场景铺垫，直接进入问题陈述。", "note": "AI 惯用起笔"},
+    {"id": "kongdong_pingjia", "pattern": "表现(出色|优异)|效果(显著|良好)|性能(强大|卓越)|极大地?", "category": "ai_highfreq", "severity": "error", "suggestion": "用具体指标数据替代空洞评价。", "note": "空洞形容词"}
+  ]
+}

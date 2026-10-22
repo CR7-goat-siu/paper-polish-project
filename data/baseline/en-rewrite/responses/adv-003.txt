@@ -1,0 +1,1 @@
+The reported 3.1 dB improvement demonstrates that our network improves image denoising performance.

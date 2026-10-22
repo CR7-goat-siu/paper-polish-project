@@ -1,0 +1,1 @@
+We tune the learning rate to 0.001 and replace the MLP with a multi-layer perceptron.

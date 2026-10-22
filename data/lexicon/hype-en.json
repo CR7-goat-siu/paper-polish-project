@@ -1,0 +1,292 @@
+{
+  "schema_version": "1.0",
+  "language": "en",
+  "kind": "hype",
+  "description": "Floating/exaggerated/subjective wording lexicon for objectivity guarding. requires_data_anchor=true means: when no digit/percent appears near the match, escalate to unanchored_severity.",
+  "entries": [
+    {
+      "id": "unprecedented",
+      "pattern": "unprecedented",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "State the specific advance instead of claiming it is unprecedented.",
+      "note": ""
+    },
+    {
+      "id": "groundbreaking",
+      "pattern": "groundbreaking",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "Describe the concrete contribution; let readers judge novelty.",
+      "note": ""
+    },
+    {
+      "id": "revolutionary",
+      "pattern": "revolutionary",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "Replace with a factual description of the change.",
+      "note": ""
+    },
+    {
+      "id": "miracle",
+      "pattern": "miracle|magical|magic",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "Remove metaphor; describe the mechanism and measured effect.",
+      "note": ""
+    },
+    {
+      "id": "massive",
+      "pattern": "massive(?:ly)?",
+      "category": "intensifier",
+      "severity": "error",
+      "suggestion": "Quantify the effect (e.g., a 3.2% gain) instead of using 'massive'.",
+      "note": ""
+    },
+    {
+      "id": "enormous",
+      "pattern": "enormous(?:ly)?",
+      "category": "intensifier",
+      "severity": "error",
+      "suggestion": "Quantify the effect instead of using 'enormous'.",
+      "note": ""
+    },
+    {
+      "id": "huge",
+      "pattern": "hugely|huge",
+      "category": "intensifier",
+      "severity": "error",
+      "suggestion": "Quantify the effect instead of using 'huge'.",
+      "note": ""
+    },
+    {
+      "id": "tremendous",
+      "pattern": "tremendous(?:ly)?",
+      "category": "intensifier",
+      "severity": "error",
+      "suggestion": "Quantify the effect instead of using 'tremendous'.",
+      "note": ""
+    },
+    {
+      "id": "vast",
+      "pattern": "vast(?:ly)?",
+      "category": "intensifier",
+      "severity": "warning",
+      "suggestion": "Quantify or delete the intensifier.",
+      "note": ""
+    },
+    {
+      "id": "dramatic",
+      "pattern": "dramatic(?:ally)?",
+      "category": "intensifier",
+      "severity": "warning",
+      "requires_data_anchor": true,
+      "unanchored_severity": "error",
+      "suggestion": "Keep only when a measured change is cited; otherwise state the number.",
+      "note": ""
+    },
+    {
+      "id": "extreme",
+      "pattern": "extreme(?:ly)?",
+      "category": "intensifier",
+      "severity": "warning",
+      "requires_data_anchor": true,
+      "unanchored_severity": "error",
+      "suggestion": "Delete or replace with the measured degree.",
+      "note": ""
+    },
+    {
+      "id": "remarkable",
+      "pattern": "remarkabl(?:e|y)",
+      "category": "intensifier",
+      "severity": "info",
+      "suggestion": "Prefer factual wording; keep only with clear evidence.",
+      "note": ""
+    },
+    {
+      "id": "astonishing",
+      "pattern": "astonish(?:ing|ingly)|astound(?:ing|ingly)",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "Replace with the measured result.",
+      "note": ""
+    },
+    {
+      "id": "perfect",
+      "pattern": "perfect(?:ly)?",
+      "category": "absolute",
+      "severity": "error",
+      "suggestion": "Avoid perfection claims; state what was achieved.",
+      "note": ""
+    },
+    {
+      "id": "absolute",
+      "pattern": "absolute(?:ly)?",
+      "category": "absolute",
+      "severity": "warning",
+      "suggestion": "Delete or justify the absolute statement.",
+      "note": ""
+    },
+    {
+      "id": "complete",
+      "pattern": "complete(?:ly)?",
+      "category": "absolute",
+      "severity": "warning",
+      "requires_data_anchor": true,
+      "unanchored_severity": "error",
+      "suggestion": "Use 'fully' only with evidence; prefer precise scope.",
+      "note": ""
+    },
+    {
+      "id": "totally",
+      "pattern": "total(?:ly)?",
+      "category": "absolute",
+      "severity": "warning",
+      "suggestion": "Delete or replace with precise scope.",
+      "note": ""
+    },
+    {
+      "id": "conclusively",
+      "pattern": "conclusive(?:ly)?",
+      "category": "absolute",
+      "severity": "warning",
+      "suggestion": "Use 'indicates/suggests' unless formal proof is given.",
+      "note": ""
+    },
+    {
+      "id": "unparalleled",
+      "pattern": "unparalleled|unrivaled|unmatched",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "Compare against specific baselines with numbers instead.",
+      "note": ""
+    },
+    {
+      "id": "world-first",
+      "pattern": "world.?first|first.?ever|the first ever",
+      "category": "unverifiable",
+      "severity": "warning",
+      "suggestion": "Use 'to our knowledge, among the first …' and cite prior work.",
+      "note": ""
+    },
+    {
+      "id": "state-of-the-art",
+      "pattern": "state.of.the.art",
+      "category": "unverifiable",
+      "severity": "warning",
+      "requires_data_anchor": true,
+      "unanchored_severity": "error",
+      "suggestion": "Anchor to a benchmark table or citation; otherwise drop the claim.",
+      "note": ""
+    },
+    {
+      "id": "superior",
+      "pattern": "superior(?:ity)?",
+      "category": "unverifiable",
+      "severity": "info",
+      "requires_data_anchor": true,
+      "unanchored_severity": "warning",
+      "suggestion": "Support with comparative numbers; avoid standalone superiority claims.",
+      "note": ""
+    },
+    {
+      "id": "significant",
+      "pattern": "significan(?:t|tly)",
+      "category": "unverifiable",
+      "severity": "info",
+      "requires_data_anchor": true,
+      "unanchored_severity": "error",
+      "suggestion": "Reserve 'significant' for statistically tested results or attach the number.",
+      "note": ""
+    },
+    {
+      "id": "optimal",
+      "pattern": "optimal(?:ly)?",
+      "category": "unverifiable",
+      "severity": "info",
+      "suggestion": "Use only with an optimality argument; otherwise 'effective' or 'suitable'.",
+      "note": ""
+    },
+    {
+      "id": "best",
+      "pattern": "the best",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "Name the comparison and numbers instead of 'the best'.",
+      "note": ""
+    },
+    {
+      "id": "indispensable",
+      "pattern": "indispensable",
+      "category": "absolute",
+      "severity": "warning",
+      "suggestion": "State the measured contribution of the module instead.",
+      "note": ""
+    },
+    {
+      "id": "outperform-everything",
+      "pattern": "outperforms? everything|outperforms any existing|beats? everything",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "List the compared baselines explicitly.",
+      "note": ""
+    },
+    {
+      "id": "exceptional",
+      "pattern": "exceptional|superb|stellar",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "State the specific result instead of an evaluation.",
+      "note": ""
+    },
+    {
+      "id": "amazing",
+      "pattern": "\\bamazing\\b",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "Replace the evaluative adjective with the measured result.",
+      "note": ""
+    },
+    {
+      "id": "truly",
+      "pattern": "truly (remarkable|exceptional|impressive)",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "Remove the intensifier and state the fact.",
+      "note": ""
+    },
+    {
+      "id": "world_class",
+      "pattern": "world-class|state of the art|best-in-class|class-leading",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "Cite the specific comparison and numbers instead.",
+      "note": ""
+    },
+    {
+      "id": "undoubtedly",
+      "pattern": "undoubtedly|without a doubt|the optimal|the best (possible )?(solution|approach|method)",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "Remove absolutes; state what the evidence supports.",
+      "note": ""
+    },
+    {
+      "id": "flawless",
+      "pattern": "flawless|perfect(ly)? (solve|address|handle)|seamless(ly)? superior",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "Report results, not perfection.",
+      "note": ""
+    },
+    {
+      "id": "new_benchmark",
+      "pattern": "sets? a new (benchmark|standard|bar)|raises? the bar|new benchmark for",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "Describe the concrete gain over the specific baseline.",
+      "note": ""
+    }
+  ]
+}

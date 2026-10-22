@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "dataset_kind": "real_or_desensitized",
+  "target_count": 30,
+  "distinct_real_papers_collected": 1,
+  "development_count": 1,
+  "held_out_test_count": 0,
+  "public_metadata_candidate_count": 37,
+  "public_metadata_development_count": 31,
+  "public_metadata_test_count": 6,
+  "real_evaluation_ready": false,
+  "public_metadata_candidate_file": "public-arxiv-candidates.json",
+  "privacy_policy": "仅登记作者授权、公开许可或脱敏后的真实论文；模拟坏稿不得计入真实论文数量。",
+  "required_fields": [
+    "id",
+    "source_type",
+    "discipline",
+    "journal_or_server",
+    "language",
+    "quality_tier",
+    "privacy_status",
+    "split",
+    "manuscript_path_or_glob",
+    "rubric",
+    "gold_standard"
+  ],
+  "entries": [
+    {
+      "id": "local-eeg-001",
+      "source_type": "local_authorized_docx",
+      "discipline": "biomedical-eeg",
+      "journal_or_server": "unknown",
+      "language": "zh",
+      "quality_tier": "working_draft",
+      "privacy_status": "local_authorized",
+      "split": "dev",
+      "manuscript_path_or_glob": "*v6.docx",
+      "rubric": "config/submission.yaml#quality_rubric",
+      "gold_standard": "pending_author_review",
+      "versions_share_one_paper_family": true
+    }
+  ],
+  "gaps": [
+    "当前仅登记 1 个真实论文家族，未达到 30 篇目标。",
+    "已采集 37 条 arXiv 公开元数据候选，但尚未下载全文、生成 DOCX 或完成 rubric 复核。",
+    "尚无 held-out 真实测试集，禁止报告真实测试集通过率。",
+    "尚未收集多学科、多期刊、多质量等级样本。",
+    "尚无作者确认的黄金标准或盲评 rubric。"
+  ]
+}

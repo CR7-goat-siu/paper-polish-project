@@ -1,0 +1,176 @@
+# 文献检索 / 核验 / 引用格式化配置（零 API Key：全部端点均为公开免密钥接口）
+# 说明：本文件不含任何密钥字段；代码侧禁止读取 *_API_KEY / *_TOKEN 环境变量。
+schema_version: "1.1"
+
+sources:
+  crossref:
+    enabled: true
+    kind: "crossref"
+    endpoint: "https://api.crossref.org/works"
+    rows: 8
+    weight: 1.0
+    min_interval_seconds: 0.5
+  openalex:
+    enabled: true
+    kind: "openalex"
+    endpoint: "https://api.openalex.org/works"
+    rows: 8
+    weight: 1.0
+    min_interval_seconds: 0.5
+  semantic-scholar:
+    enabled: true
+    kind: "semanticscholar"
+    endpoint: "https://api.semanticscholar.org/graph/v1/paper/search"
+    # Graph search 在共享出口 IP 上经常返回 429；公开 bulk 端点作为同源兜底
+    bulk_endpoint: "https://api.semanticscholar.org/graph/v1/paper/search/bulk"
+    rows: 6
+    weight: 0.9
+    min_interval_seconds: 1.5
+  arxiv:
+    enabled: true
+    kind: "arxiv"
+    endpoint: "https://export.arxiv.org/api/query"
+    rows: 6
+    weight: 0.8
+    min_interval_seconds: 3.0
+  europepmc:
+    enabled: true
+    kind: "europepmc"
+    endpoint: "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
+    rows: 6
+    weight: 0.8
+    min_interval_seconds: 0.5
+  pubmed:
+    enabled: true
+    kind: "pubmed"
+    endpoint: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+    summary_endpoint: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
+    rows: 6
+    weight: 0.85
+    min_interval_seconds: 1.0
+
+network:
+  enabled: true
+  timeout_seconds: 20
+  max_retries: 2
+  backoff_seconds: 1.5
+  user_agent: "paper-polish-project/1.0 (academic writing toolkit; contact: local-user)"
+  cache_dir: "output/.litcache"
+  cache_ttl_days: 30
+  offline: false
+
+gap_detection:
+  min_sentence_chars: 24
+  max_gaps: 40
+  max_quote_chars: 160
+  signals:
+    absolute_claim:
+      - "首次"
+      - "首个"
+      - "前所未有"
+      - "最新"
+      - "state-of-the-art"
+      - "first"
+      - "novel"
+    comparative:
+      - "优于"
+      - "显著高于"
+      - "远超"
+      - "outperform"
+      - "superior to"
+      - "better than"
+    empirical:
+      - "已被证明"
+      - "研究表明"
+      - "已有研究"
+      - "it has been shown"
+      - "studies have shown"
+      - "has been reported"
+    trend:
+      - "近年来"
+      - "近期研究"
+      - "in recent years"
+      - "recently"
+  no_citation_needed:
+    - "本文"
+    - "本节"
+    - "本研究"
+    - "如图"
+    - "如表"
+    - "如式"
+    - "公式"
+    - "this paper"
+    - "this study"
+  # 趋势论断只引用了窗口期之前的旧文献 → 建议补充前沿研究背景（stale_citation）
+  stale_citation:
+    enabled: true
+    recency_window_years: 5
+    min_citations: 1
+  # 参考文献条目本身缺少关键元数据 → incomplete_entry（需补全而非新引）。
+  # 注意：DOI 缺失属常见正常情况，默认不纳入必填；如需更严可自行加入。
+  incomplete_entry:
+    enabled: true
+    required_fields:
+      - "year"
+      - "venue"
+      - "pages"
+
+keywords:
+  domain_suffix:
+    - "EEG denoising"
+    - "artifact removal"
+  max_terms_per_query: 6
+  min_term_chars: 2
+  recency_filter_years: 5
+  # >0 时作为硬过滤（数据源支持 from-pub-date 的均生效）
+  min_cited_by: 0
+  # 高引轮次的软阈值：低于该值的条目在高引轮不进候选（0 = 关闭）
+  highly_cited_min: 0
+
+multi_round:
+  enabled: true
+  max_rounds: 3
+  # 轮次策略名（与 lit-search SEARCH 实现对应）：
+  #   broad  = 关键词宽式（默认相关性）；precise = 布尔 AND 精确式；
+  #   fresh_cited = 近五年 + 按源排序（被引/提交日期）
+  round_broad: "broad"
+  round_precise: "precise"
+  round_ranked: "fresh_cited"
+  # 高引/新近排序轮各源的 sort 参数（不支持的源自动跳过该轮）
+  ranked_sort:
+    crossref: "is-referenced-by-count"
+    openalex: "cited_by:desc"
+    arxiv: "submittedDate"
+    europepmc: "CITED desc"
+    pubmed: "relevance"
+  synonyms_file: "data/literature/synonyms.json"
+  max_expanded_terms: 8
+
+verification:
+  min_title_similarity: 0.92
+  min_venue_similarity: 0.75
+  max_year_delta: 1
+  min_author_overlap: 0.5
+  require_evidence: true
+  reject_doi_prefixes:
+    - "10.9999"
+  # 在线二次核验：按 DOI 直抓 Crossref works/{doi}，或按标题 bibliographic 检索取 top-1
+  online_reverify: true
+  crossref_works_endpoint: "https://api.crossref.org/works"
+  title_search_rows: 3
+
+ranking:
+  weights:
+    source_weight: 1.0
+    title_match: 1.5
+    recency: 0.8
+    cited_by: 0.3
+  recency_window_years: 5
+
+styles:
+  default: "ieee"
+  supported:
+    - "ieee"
+    - "apa"
+    - "gbt7714"
+    - "bibtex"

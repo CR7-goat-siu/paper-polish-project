@@ -1,0 +1,1 @@
+This substantial improvement of 0.5 ms in latency may affect the field of edge computing.

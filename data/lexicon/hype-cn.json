@@ -1,0 +1,232 @@
+{
+  "schema_version": "1.0",
+  "language": "cn",
+  "kind": "hype",
+  "description": "中文浮夸/主观用词词库，用于客观性守卫。requires_data_anchor=true 表示：匹配附近无数字/百分号时升级为 unanchored_severity。",
+  "entries": [
+    {
+      "id": "kongqian",
+      "pattern": "空前",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "删除或改为具体陈述，如“在对比实验中优于现有方法”。",
+      "note": ""
+    },
+    {
+      "id": "shiwuqianli",
+      "pattern": "史无前例|前所未有|闻所未闻",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "改为对具体改进点的客观描述。",
+      "note": ""
+    },
+    {
+      "id": "geming",
+      "pattern": "革命性|划时代|颠覆性",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "删除浮夸定语，直接说明改进内容与幅度。",
+      "note": ""
+    },
+    {
+      "id": "qiji",
+      "pattern": "奇迹|神奇|神话",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "删除比喻，描述机制与实测效果。",
+      "note": ""
+    },
+    {
+      "id": "juda",
+      "pattern": "巨大",
+      "category": "intensifier",
+      "severity": "warning",
+      "requires_data_anchor": true,
+      "unanchored_severity": "error",
+      "suggestion": "给出具体数字替代“巨大”。",
+      "note": ""
+    },
+    {
+      "id": "jida",
+      "pattern": "极大|极大地|极大提升",
+      "category": "intensifier",
+      "severity": "error",
+      "suggestion": "以量化结果替代“极大”。",
+      "note": ""
+    },
+    {
+      "id": "jingren",
+      "pattern": "惊人",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "改为实测数值表述。",
+      "note": ""
+    },
+    {
+      "id": "xianzhu",
+      "pattern": "显著",
+      "category": "unverifiable",
+      "severity": "info",
+      "requires_data_anchor": true,
+      "unanchored_severity": "warning",
+      "suggestion": "仅在有统计检验或具体数据时使用“显著”，否则给出数字。",
+      "note": ""
+    },
+    {
+      "id": "dafu",
+      "pattern": "大幅|大为|大大",
+      "category": "intensifier",
+      "severity": "warning",
+      "requires_data_anchor": true,
+      "unanchored_severity": "error",
+      "suggestion": "以具体提升幅度替代“大幅”。",
+      "note": ""
+    },
+    {
+      "id": "jiaodalogo",
+      "pattern": "国际领先|世界领先|国内外领先",
+      "category": "unverifiable",
+      "severity": "error",
+      "suggestion": "删除领先性断言，改为与具体方法的对比结果。",
+      "note": ""
+    },
+    {
+      "id": "shouchuang",
+      "pattern": "首创|开创性|首次提出",
+      "category": "unverifiable",
+      "severity": "warning",
+      "suggestion": "改为“据我们所知，是较早……的工作之一”，并引用相关工作。",
+      "note": ""
+    },
+    {
+      "id": "wanmei",
+      "pattern": "完美",
+      "category": "absolute",
+      "severity": "error",
+      "suggestion": "避免“完美”式断言，说明实际达到的指标。",
+      "note": ""
+    },
+    {
+      "id": "chedi",
+      "pattern": "彻底",
+      "category": "absolute",
+      "severity": "warning",
+      "requires_data_anchor": true,
+      "unanchored_severity": "error",
+      "suggestion": "改为“有效降低/消除”，并给出量化证据。",
+      "note": ""
+    },
+    {
+      "id": "wanchuan",
+      "pattern": "完全解决|完全消除|完全避免",
+      "category": "absolute",
+      "severity": "error",
+      "suggestion": "改为“在一定程度上解决/缓解”，并给出适用范围。",
+      "note": ""
+    },
+    {
+      "id": "yuanhao",
+      "pattern": "远超|远优于|全面超越",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "列出对比对象与具体差距。",
+      "note": ""
+    },
+    {
+      "id": "wuyulunbi",
+      "pattern": "无与伦比|独一无二|无可匹敌",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "删除，改为具体对比。",
+      "note": ""
+    },
+    {
+      "id": "haowuyizhi",
+      "pattern": "毫无疑问|毋庸置疑|不言而喻",
+      "category": "hype",
+      "severity": "warning",
+      "suggestion": "删除断言性套话，直接给出论据。",
+      "note": ""
+    },
+    {
+      "id": "zuiyou",
+      "pattern": "最优秀|最佳|最优的|最好的",
+      "category": "absolute",
+      "severity": "error",
+      "suggestion": "以具体对比结果替代最高级断言。",
+      "note": ""
+    },
+    {
+      "id": "biaogan",
+      "pattern": "树立.{0,6}标杆|树立.{0,6}新标准|里程碑",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "删除评价性表述，让数据说话。",
+      "note": ""
+    },
+    {
+      "id": "renleilishi",
+      "pattern": "人类历史上|有史以来",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "删除夸张范围限定。",
+      "note": ""
+    },
+    {
+      "id": "suoyou",
+      "pattern": "所有难题|所有问题|全部解决",
+      "category": "absolute",
+      "severity": "error",
+      "suggestion": "改为限定范围表述，如“有效缓解了该类问题”，并给出适用边界。",
+      "note": ""
+    },
+    {
+      "id": "jingtan",
+      "pattern": "令人惊叹|惊叹|叹为观止",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "用具体指标替代主观惊叹。",
+      "note": ""
+    },
+    {
+      "id": "chuleicui",
+      "pattern": "出类拔萃|首屈一指|独一无二|无与伦比|绝佳",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "改为有数据支撑的相对表述。",
+      "note": ""
+    },
+    {
+      "id": "kanchng",
+      "pattern": "堪称|令人瞩目|脱颖而出",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "直接陈述事实与幅度。",
+      "note": ""
+    },
+    {
+      "id": "wuyi",
+      "pattern": "毋庸置疑|毫无疑问|毫无争议",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "删除绝对化表述，用证据陈述。",
+      "note": ""
+    },
+    {
+      "id": "haowuxiaci",
+      "pattern": "毫无瑕疵|毫无缺陷|完美无缺",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "报告具体结果而非完美性。",
+      "note": ""
+    },
+    {
+      "id": "jqi",
+      "pattern": "极其(顺利|完美|出色)|无比|超乎想象",
+      "category": "hype",
+      "severity": "error",
+      "suggestion": "用具体数据替代程度副词。",
+      "note": ""
+    }
+  ]
+}

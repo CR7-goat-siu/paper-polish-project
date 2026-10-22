@@ -1,0 +1,146 @@
+# 问题登记与优先级规则（PRD §5 阶段二 / §4 维度体系）
+#
+# 所有审计 Skill 的 findings 结构各不相同，issue-registry 负责把它们归一成
+# 统一的问题对象，并按本配置判定优先级（P0-P3）与所属质量维度。
+# 改判级只改本文件，不动代码。
+
+schema_version: 1
+
+# 严重度 → 优先级 的默认映射（按 source + check 覆写时优先）
+default_severity_to_priority:
+  error: P1
+  warning: P2
+  info: P3
+
+# 一级质量维度（PRD §4.1）与权重；scientific_truth 为硬门槛，不参与加权
+# 注意：本项目用极简 YAML 解析器（utils/config_loader），不支持行内 flow map
+# （写成 {label: x, weight: 1.0} 会原样解析成字符串），必须用缩进块样式。
+dimensions:
+  scientific_truth:
+    label: 科学真实性
+    weight: 0.0
+    hard_gate: true
+  contribution:
+    label: 研究贡献
+    weight: 1.0
+  literature_novelty:
+    label: 文献与创新性论证
+    weight: 1.0
+  method_rigor:
+    label: 方法严谨性
+    weight: 1.0
+  experiment_sufficiency:
+    label: 实验充分性
+    weight: 1.0
+  argument_structure:
+    label: 论证与结构
+    weight: 1.0
+  reproducibility:
+    label: 可复现性
+    weight: 1.0
+  academic_expression:
+    label: 学术表达
+    weight: 1.0
+  figures_format:
+    label: 图表与格式
+    weight: 0.8
+  review_risk:
+    label: 审稿风险
+    weight: 1.0
+
+# 各来源 → 维度 的归属
+source_dimension:
+  review-gate: scientific_truth        # 保真类违例直接关系科学真实性
+  claim-guard: scientific_truth        # 浮夸/绝对化断言影响主张真实性
+  term-check: academic_expression
+  lit-verify: literature_novelty
+  submission-audit: review_risk
+  issue-registry: argument_structure
+
+# 细粒度覆写：check / issue 命中时优先于 source_dimension
+# 格式：source::check_or_issue -> dimension
+dimension_overrides:
+  "review-gate::objectivity.hype": contribution
+  "review-gate::length": academic_expression
+  "review-gate::similarity": academic_expression
+  "review-gate::terminology": academic_expression
+  "review-gate::hype_residue": contribution
+  "review-gate::aiflavor": academic_expression
+  "review-gate::paragraph_count": argument_structure
+  "term-check::mixed_usage": academic_expression
+  "term-check::coined_word": scientific_truth
+  "lit-verify::rejected": scientific_truth
+  "lit-verify::unverified": literature_novelty
+  # 浮夸词按性质分流：最高级/领先性断言归贡献表述，强化词与口语归学术表达
+  "claim-guard::absolute": contribution
+  "claim-guard::hype": contribution
+  "claim-guard::unsupported": scientific_truth
+  "claim-guard::intensifier": academic_expression
+  "claim-guard::informal": academic_expression
+  "claim-guard::colloquial": academic_expression
+  "claim-guard::redundant": academic_expression
+
+# 细粒度覆写：check / issue 命中时优先于 default_severity_to_priority
+priority_overrides:
+  # 保真类：数字/引用/公式/图表丢失或新增，一律阻断级
+  "review-gate::numeric_missing": P0
+  "review-gate::numeric_added": P0
+  "review-gate::unit_loss": P0
+  "review-gate::citation_missing": P0
+  "review-gate::citation_added": P0
+  "review-gate::citation_out_of_bounds": P0
+  "review-gate::figure_missing": P0
+  "review-gate::formula": P0
+  "review-gate::paragraph_count": P1
+  "review-gate::entity_missing": P1
+  "review-gate::polarity_flips": P0
+  "review-gate::scope_lost": P1
+  # 文献造假/核验失败
+  "lit-verify::rejected": P0
+  "lit-verify::unverified": P1
+  # 投稿审查的硬门禁
+  "submission-audit::statistics": P0
+  "submission-audit::evidence": P1
+  "submission-audit::figures": P2
+  "submission-audit::docx_structure": P1
+  "submission-audit::placeholders": P2
+  "submission-audit::fabrication_risk": P0
+  # 浮夸与贡献表述
+  "claim-guard::absolute": P1
+  "claim-guard::hype": P1
+  "review-gate::objectivity.hype": P1
+
+# 去重指纹所用字段：同一 source + 同一 found/term/field + 同一上下文前 60 字 视为同一问题
+dedup:
+  context_chars: 60
+
+# 评分规则（quality-score 用）：每个维度按未解决问题的加权严重度扣分
+scoring:
+  # 优先级 → 单条问题的扣分权重
+  priority_penalty:
+    P0: 4.0
+    P1: 2.0
+    P2: 1.0
+    P3: 0.4
+  # 单维度扣分达到该值时封顶为 0 分（避免问题数量线性压垮分数）
+  dimension_penalty_cap: 6.0
+  # 无任何问题时的维度满分
+  base_score: 4.0
+
+# 修改规划（revision-planner 用）
+planning:
+  # 事实约束：每个任务都继承，违反即被 review-gate 拦下
+  fact_constraints:
+    - 严禁新增原稿没有的数值、引用、单位与出处
+    - 不得删除或淡化不利结果以改善观感
+    - 极性方向与对冲强度必须与原文一致
+    - 不得改动公式含义与方法事实
+    - 结论必须严格受实验结果约束
+  # 需要人工确认的来源：这些任务不自动改写，只登记
+  requires_human_sources:
+    - lit-verify
+  # 缺材料即阻断的维度（PRD §6.2：证据不足时暂停对该事实的实质性改写）
+  material_blocked_dimensions:
+    - method_rigor
+    - experiment_sufficiency
+    - reproducibility

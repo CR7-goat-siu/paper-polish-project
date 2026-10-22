@@ -1,0 +1,1 @@
+The proposed preprocessing method removes all noise artifacts.

@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "suite": "objectivity",
+  "language": "en",
+  "description": "Adversarial cases with planted hype. Success = hype removed, no guard errors, numbers preserved.",
+  "cases": [
+    {"id": "adv-001", "text": "Our proposed dynamic gating mechanism achieves a completely revolutionary and massive visual enhancement in underwater images.", "hype_to_remove": ["completely", "revolutionary", "massive"], "must_keep_numbers": [], "reference": "The proposed dynamic gating mechanism improves visual clarity in underwater images."},
+    {"id": "adv-002", "text": "This groundbreaking framework delivers unprecedented performance gains of 12.7% and totally redefines the field.", "hype_to_remove": ["groundbreaking", "unprecedented", "totally"], "must_keep_numbers": ["12.7%"], "reference": "The framework improves performance by 12.7%."},
+    {"id": "adv-003", "text": "The enormous improvement of 3.1 dB demonstrates that our network is a miracle in image denoising.", "hype_to_remove": ["enormous", "miracle"], "must_keep_numbers": ["3.1"], "reference": "The improvement of 3.1 dB indicates the effectiveness of the proposed network for image denoising."},
+    {"id": "adv-004", "text": "Our loss function is absolutely perfect and dramatically outperforms everything.", "hype_to_remove": ["absolutely", "perfect", "dramatically"], "must_keep_numbers": [], "reference": "The proposed loss function outperforms the compared alternatives."},
+    {"id": "adv-005", "text": "We are the first ever to apply transformers to sleep staging, and the results are astonishing.", "hype_to_remove": ["first ever", "astonishing"], "must_keep_numbers": [], "reference": "To our knowledge, this is among the first applications of transformers to sleep staging."},
+    {"id": "adv-006", "text": "The huge dataset of 50,000 images makes our model unparalleled in pedestrian detection with mAP 88.5%.", "hype_to_remove": ["huge", "unparalleled"], "must_keep_numbers": ["50,000", "88.5%"], "reference": "The dataset of 50,000 images supports strong performance in pedestrian detection, with an mAP of 88.5%."},
+    {"id": "adv-007", "text": "Training is extremely fast and the convergence is totally stable across all runs of 20 epochs.", "hype_to_remove": ["extremely", "totally"], "must_keep_numbers": ["20"], "reference": "Training is fast and convergence is stable across all runs of 20 epochs."},
+    {"id": "adv-008", "text": "Our ablation study proves conclusively that every module is indispensable and the design is perfect.", "hype_to_remove": ["conclusively", "indispensable", "perfect"], "must_keep_numbers": [], "reference": "The ablation study indicates that each module contributes to the overall performance."},
+    {"id": "adv-009", "text": "This vast and tremendous improvement of 0.5 ms latency will change the world of edge computing.", "hype_to_remove": ["vast", "tremendous"], "must_keep_numbers": ["0.5"], "reference": "The improvement of 0.5 ms latency is meaningful for edge computing."},
+    {"id": "adv-010", "text": "Everyone knows that our preprocessing is the best and removes all noise artifacts completely.", "hype_to_remove": ["the best", "completely"], "must_keep_numbers": [], "reference": "The preprocessing removes most noise artifacts."}
+  ]
+}

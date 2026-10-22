@@ -1,0 +1,184 @@
+{
+  "schema_version": "1.0",
+  "language": "en",
+  "kind": "guardrails-positive",
+  "description": "guardrails 评测集（docs/hallucination-guardrails-plan.md L4）：负样本 expect_severity=error 必须 100% 拦截；正样本不得产生 error（FPR=0）。",
+  "case_count": 25,
+  "cases": [
+    {
+      "id": "pos-en-001",
+      "source": "The model reaches an accuracy of 91.2% on the test set [1].",
+      "polished": "The model achieves an accuracy of 91.2% on the test set [1].",
+      "note": "synonym swap",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-002",
+      "source": "Early work relied on decomposition and separation [3].",
+      "polished": "Early studies built on signal decomposition and statistical separation [3].",
+      "note": "synonym swap",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-003",
+      "source": "The encoder stacks three downsampling blocks.",
+      "polished": "The encoder path stacks three downsampling blocks in sequence.",
+      "note": "light rewrite",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-004",
+      "source": "Data is split 8:1:1 into train, validation and test sets.",
+      "polished": "Data is divided in an 8:1:1 ratio into training, validation, and test sets.",
+      "note": "equivalent rewrite",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-005",
+      "source": "Experiments cover three noise levels.",
+      "polished": "Experiments were conducted under three distinct noise levels.",
+      "note": "light expansion",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-006",
+      "source": "As shown in [1] and [2], EEG signals are weak.",
+      "polished": "As shown in [1, 2], EEG signals are weak.",
+      "note": "citation merge (legal)",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-007",
+      "source": "The model is 0.8 MB in size.",
+      "polished": "The model is 0.8MB in size.",
+      "note": "unit spacing",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-008",
+      "source": "The learning rate is 0.00001.",
+      "polished": "The learning rate is 1e-5.",
+      "note": "scientific notation equivalent",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-009",
+      "source": "The sample size is 1,000.",
+      "polished": "The sample size is 1000.",
+      "note": "thousands separator equivalent",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-010",
+      "source": "SNR improves by 18.90%.",
+      "polished": "SNR improves by 18.9%.",
+      "note": "decimal precision equivalent",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-011",
+      "source": "The generator improves on U-Net.",
+      "polished": "The generator builds on the U-Net architecture.",
+      "note": "synonym swap",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-012",
+      "source": "The artifact critic forces generated noise to follow the true distribution.",
+      "polished": "The noise critic constrains generated noise to match the real distribution.",
+      "note": "sentence restructure",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-013",
+      "source": "We propose a noise-learning GAN.",
+      "polished": "We propose a noise-learning generative adversarial network (NLGAN).",
+      "note": "acronym expanded at first mention",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-014",
+      "source": "As Table 1 shows, the method improves both tasks.",
+      "polished": "Table 1 indicates that the method improves performance on both tasks.",
+      "note": "table reference preserved",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-015",
+      "source": "Training uses Adam with batch size 32.",
+      "polished": "Training employs the Adam optimizer with a batch size of 32.",
+      "note": "reorder",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-016",
+      "source": "Ablation confirms each module.",
+      "polished": "To confirm each module, we ran an ablation study.",
+      "note": "voice change",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-017",
+      "source": "Wavelet transforms are time-frequency tools [8].",
+      "polished": "Wavelet transforms belong to the family of time-frequency methods [8].",
+      "note": "synonym swap",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-018",
+      "source": "ICA is widely used for EEG artifact removal [11].",
+      "polished": "In EEG artifact removal, ICA has been widely adopted [11].",
+      "note": "fronted adverbial",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-019",
+      "source": "This condition is hard to meet in practice.",
+      "polished": "This condition is often difficult to satisfy in real recordings.",
+      "note": "light expansion",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-020",
+      "source": "We test from -5 dB to 5 dB.",
+      "polished": "We evaluate across the noise range of -5 dB to 5 dB.",
+      "note": "range rewrite",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-021",
+      "source": "Dual critics constrain noise and signal distributions.",
+      "polished": "The two critics constrain the noise and signal distributions separately.",
+      "note": "synonym swap",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-022",
+      "source": "The decoder fuses multi-scale features.",
+      "polished": "The decoder reconstructs the signal by fusing multi-scale features.",
+      "note": "sentence tweak",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-023",
+      "source": "Our method needs no reference signal.",
+      "polished": "The proposed method requires no reference signal.",
+      "note": "synonym swap",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-024",
+      "source": "Results confirm NLGAN's effectiveness.",
+      "polished": "The results show that NLGAN is effective.",
+      "note": "synonym swap",
+      "expect_severity": "none"
+    },
+    {
+      "id": "pos-en-025",
+      "source": "A multi-branch module sits at the bottleneck.",
+      "polished": "A multi-branch fusion module (MFM) is embedded at the bottleneck.",
+      "note": "acronym expanded",
+      "expect_severity": "none"
+    }
+  ]
+}

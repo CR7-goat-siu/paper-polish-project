@@ -1,0 +1,1 @@
+We train a convolutional neural network and a long short-term memory module using backpropagation.

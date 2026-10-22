@@ -1,0 +1,62 @@
+{
+  "en-light": {
+    "dehype_rate": 1.0,
+    "guard_detection_rate": 1.0,
+    "terminology_recall": 1.0,
+    "coined_word_interception": 1.0,
+    "gleu_avg": 0.7338,
+    "fix_rate_avg": 1.0,
+    "overcorrection_rate": 0.0,
+    "number_preservation_rate": 1.0
+  },
+  "en-deep": {
+    "dehype_rate": 1.0,
+    "guard_detection_rate": 1.0,
+    "terminology_recall": 0.9667,
+    "coined_word_interception": 0.9667,
+    "gleu_avg": 0.6676,
+    "fix_rate_avg": 1.0,
+    "overcorrection_rate": 0.0,
+    "number_preservation_rate": 1.0
+  },
+  "en-rewrite": {
+    "dehype_rate": 1.0,
+    "guard_detection_rate": 1.0,
+    "terminology_recall": 1.0,
+    "coined_word_interception": 1.0,
+    "gleu_avg": 0.6368,
+    "fix_rate_avg": 1.0,
+    "overcorrection_rate": 0.0,
+    "number_preservation_rate": 1.0
+  },
+  "cn-light": {
+    "dehype_rate": 1.0,
+    "guard_detection_rate": 1.0,
+    "terminology_recall": 1.0,
+    "coined_word_interception": 1.0,
+    "gleu_avg": 0.6951,
+    "fix_rate_avg": 1.0,
+    "overcorrection_rate": 0.0,
+    "number_preservation_rate": 1.0
+  },
+  "cn-deep": {
+    "dehype_rate": 1.0,
+    "guard_detection_rate": 1.0,
+    "terminology_recall": 1.0,
+    "coined_word_interception": 0.9583,
+    "gleu_avg": 0.4799,
+    "fix_rate_avg": 1.0,
+    "overcorrection_rate": 0.0,
+    "number_preservation_rate": 1.0
+  },
+  "cn-rewrite": {
+    "dehype_rate": 1.0,
+    "guard_detection_rate": 1.0,
+    "terminology_recall": 1.0,
+    "coined_word_interception": 1.0,
+    "gleu_avg": 0.3117,
+    "fix_rate_avg": 1.0,
+    "overcorrection_rate": 0.0,
+    "number_preservation_rate": 1.0
+  }
+}
