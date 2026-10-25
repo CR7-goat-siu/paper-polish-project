@@ -26,6 +26,7 @@ prompt（focus_issues），按问题优先级选强度（chunk_strength）。
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import shutil
@@ -39,7 +40,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from utils import adjudication, executor_bridge, issue_model, job_io  # noqa: E402
+from utils import adjudication, executor_bridge, issue_model, job_io, review_trace  # noqa: E402
 from utils.anchor_norm import normalize_anchor  # noqa: E402
 from utils.config_loader import PROJECT_ROOT, load_yaml_file, normalize_language  # noqa: E402
 from utils.logger import get_logger  # noqa: E402
@@ -429,9 +430,16 @@ def _review_stagnation_step(
 
 
 def _emit_review_cycle(
-    state: dict[str, Any], out_dir: Path, prev_text_file: str
+    state: dict[str, Any],
+    out_dir: Path,
+    prev_text_file: str,
+    *,
+    purpose: str = "revision",
 ) -> None:
-    """对当前最佳版本发射一轮评审作业（只评改动章节），进入 awaiting_review_sim。"""
+    """对当前最佳版本发射一轮评审作业，进入 awaiting_review_sim。
+
+    purpose=revision：修改循环评审（只评改动章节 + cross 视图）；
+    purpose=final_acquittal：最终放行评审（全章节 fresh_only，F2）。"""
     review = state["review_sim"]
     cycle_index = len(state.get("review_history") or []) + 1
     cycle_dir = Path(out_dir) / "work" / f"review-cycle-{cycle_index:03d}"
@@ -454,25 +462,38 @@ def _emit_review_cycle(
         )
         only_sections = diff.get("review_sections") or None
 
-    build_config = dict(review.get("config") or {})
-    roles = build_config.get("roles") or {}
-    current = review.get("roles_current") or sorted(roles)
-    build_config["roles"] = {key: value for key, value in roles.items() if key in set(current)}
-    cross_view = dict(build_config.get("cross_view") or {})
-    cross_view["enabled"] = bool(review.get("include_cross", True))
-    build_config["cross_view"] = cross_view
-
-    result = run_skill(
-        "review-sim",
-        {
-            "mode": "build",
-            "text": new_text,
-            "language": state["language"],
-            "out": str(cycle_dir),
-            "only_sections": only_sections,
-            "config": build_config,
-        },
-    )
+    if purpose == "final_acquittal":
+        result = run_skill(
+            "review-sim",
+            {
+                "mode": "build_final",
+                "text": new_text,
+                "language": state["language"],
+                "title": "",
+                "out": str(cycle_dir),
+                "previous_thread_ids": state.get("previous_thread_ids") or [],
+                "source_file": str(state.get("best", {}).get("text_file") or ""),
+            },
+        )
+    else:
+        build_config = dict(review.get("config") or {})
+        roles = build_config.get("roles") or {}
+        current = review.get("roles_current") or sorted(roles)
+        build_config["roles"] = {key: value for key, value in roles.items() if key in set(current)}
+        cross_view = dict(build_config.get("cross_view") or {})
+        cross_view["enabled"] = bool(review.get("include_cross", True))
+        build_config["cross_view"] = cross_view
+        result = run_skill(
+            "review-sim",
+            {
+                "mode": "build",
+                "text": new_text,
+                "language": state["language"],
+                "out": str(cycle_dir),
+                "only_sections": only_sections,
+                "config": build_config,
+            },
+        )
     if not int(result.get("job_count") or 0):
         # 改动章节过滤后无作业（如角色-章节矩阵不覆盖改动）：跳过本轮评审，
         # 如实记录，不计停滞
@@ -489,6 +510,7 @@ def _emit_review_cycle(
         return
     state["review_cycle"] = {
         "cycle": cycle_index,
+        "purpose": purpose,
         "dir": str(cycle_dir),
         "jobs_file": str(cycle_dir / "review-jobs.json"),
         "responses_dir": str(cycle_dir / "responses"),
@@ -497,6 +519,80 @@ def _emit_review_cycle(
     }
     state["next_stage"] = "review"
     state["status"] = "awaiting_review_sim"
+
+
+def _stage_final_review(
+    state: dict[str, Any],
+    out_dir: Path,
+    cycle: dict[str, Any],
+    cycle_dir: Path,
+    cycle_n: int,
+) -> dict[str, Any]:
+    """final_acquittal 消费（F4）：响应 → 三态验收 → review_acceptance 落盘。
+
+    响应缺失时保持 awaiting_review_sim 幂等返回（harness 继续回填或执行桥）；
+    验收无论 done / provisional / accepted 都照实落盘并进入交付——release
+    Protocol 只消费 accepted（provisional / done 一律 staging）。
+    """
+    apply_result = run_skill(
+        "review-sim",
+        {
+            "mode": "apply",
+            "jobs_file": cycle["jobs_file"],
+            "responses_dir": cycle["responses_dir"],
+            "run_dir": str(out_dir),
+            "run_id": str(state.get("run_id") or ""),
+            "round_index": cycle_n,
+        },
+    )
+    (cycle_dir / "apply-result.json").write_text(
+        json.dumps(apply_result, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    pending = apply_result.get("pending_jobs") or []
+    if pending:
+        state["status"] = "awaiting_review_sim"
+        state["review_pending_jobs"] = pending
+        state["next_stage"] = "review"
+        _save_state(out_dir, state)
+        return state
+
+    acceptance = apply_result.get("acceptance") or {"status": "done", "gate_reason": "final apply 未产出验收"}
+    state["review_acceptance"] = acceptance
+    for thread_id in apply_result.get("thread_ids") or []:
+        if thread_id not in (state.get("previous_thread_ids") or []):
+            state.setdefault("previous_thread_ids", []).append(thread_id)
+    best_text = Path(state["best"]["text_file"]).read_text(encoding="utf-8")
+    acceptance_fresh = (
+        str(acceptance.get("reviewed_text_sha256") or "")
+        == hashlib.sha256(best_text.encode("utf-8")).hexdigest()
+    )
+    state["rounds"].append(
+        {
+            "round": int(state["round"]),
+            "kind": "final_review",
+            "cycle": cycle_n,
+            "acceptance_status": acceptance.get("status"),
+            "gate_reason": acceptance.get("gate_reason"),
+            "trace_id": acceptance.get("trace_id"),
+            "reviewer_model": acceptance.get("reviewer_model"),
+            "model_family": acceptance.get("model_family"),
+            "identity_source": acceptance.get("identity_source"),
+            "reviewed_text_sha256": acceptance.get("reviewed_text_sha256"),
+            "hash_fresh": acceptance_fresh,
+            "verdict": acceptance.get("verdict"),
+            "score": acceptance.get("score"),
+        }
+    )
+    state["review_history"] = (state.get("review_history") or []) + [
+        {"cycle": cycle_n, "purpose": "final_acquittal", "status": acceptance.get("status")}
+    ]
+    state["review_cycle"] = None
+    state["review_pending_jobs"] = []
+    state.pop("review_pending_deliver", None)
+    state["next_stage"] = "deliver"
+    state["status"] = "stopped"
+    _save_state(out_dir, state)
+    return state
 
 
 def stage_review(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
@@ -513,6 +609,8 @@ def stage_review(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
         return state
     cycle_dir = Path(cycle["dir"])
     cycle_n = int(cycle["cycle"])
+    if str(cycle.get("purpose") or "revision") == "final_acquittal":
+        return _stage_final_review(state, out_dir, cycle, cycle_dir, cycle_n)
     apply_result = run_skill(
         "review-sim",
         {
@@ -919,6 +1017,21 @@ def _migrate_state(state: dict[str, Any]) -> dict[str, Any]:
     state.setdefault("review_pending_jobs", [])
     state.setdefault("review_pending_deliver", False)
     state.setdefault("reviewed_text_sha256", "")
+    state.setdefault("previous_thread_ids", [])
+    state.setdefault("run_id", "")
+    acceptance = state.get("review_acceptance")
+    if not isinstance(acceptance, dict) or not acceptance:
+        state["review_acceptance"] = {
+            "status": "done",
+            "gate_reason": "legacy run-state：无最终评审身份证据，迁移为 done（不得迁移为 accepted）",
+        }
+    else:
+        # 三轮评审第 1 条语义：迁移后的验收不得凭空升格为 accepted
+        if acceptance.get("status") not in ("done", "provisional", "accepted"):
+            acceptance["status"] = "done"
+        if acceptance.get("status") == "accepted" and not acceptance.get("reviewed_text_sha256"):
+            acceptance["status"] = "done"
+            acceptance["gate_reason"] = "legacy accepted 缺少哈希证据，降级为 done"
     state.setdefault("guidance_chunk_count", 0)
     return state
 
@@ -1003,6 +1116,9 @@ def stage_init(
         "review_cycle": None,
         "review_pending_jobs": [],
         "reviewed_text_sha256": "",
+        "previous_thread_ids": [],
+        "review_acceptance": None,
+        "run_id": Path(out_dir).resolve().as_posix(),
         "guidance_chunk_count": 0,
     }
     _save_state(out_dir, state)
@@ -1026,12 +1142,14 @@ def stage_reaudit(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
 
 
 def _sha256_file(path: str | Path) -> str:
+    """文件内容哈希（换行归一）：与 review_trace.sha256_text 同口径，
+    避免 Windows CRLF/LF 翻译导致同一内容的内存形态与文件字节哈希不一致。"""
     import hashlib
 
     digest = hashlib.sha256()
     with Path(path).open("rb") as handle:
         for chunk in iter(lambda: handle.read(65536), b""):
-            digest.update(chunk)
+            digest.update(chunk.replace(b"\r\n", b"\n"))
     return digest.hexdigest()
 
 
@@ -1046,16 +1164,16 @@ def _final_review_or_deliver(
     """
     state["stop_reason"] = stop_reason
     review = state.get("review_sim") or {}
-    cycles_done = len(state.get("review_history") or [])
-    if (
-        review.get("enabled")
-        and cycles_done < int(review.get("max_review_cycles", 8))
-        and not state.get("review_cycle")
-    ):
+    final_already = any(
+        c.get("purpose") == "final_acquittal" and not c.get("skipped")
+        for c in state.get("review_history") or []
+    )
+    if review.get("enabled") and not final_already and not state.get("review_cycle"):
+        # 最终放行评审：全章节 fresh_only（F2），不计入修改轮预算
         prev = str((state.get("best") or {}).get("text_file") or "")
-        # 最终评审对全部章节发射（best 与 prev 相同 → diff 为空 → 不过滤）
         state["review_pending_deliver"] = True
-        _emit_review_cycle(state, out_dir, prev)
+        _emit_review_cycle(state, out_dir, prev, purpose="final_acquittal")
+        _save_state(out_dir, state)
         return state
     state["next_stage"] = "deliver"
     state["status"] = "stopped"
@@ -1323,15 +1441,10 @@ def stage_decide(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
     if stop:
         state["stop_reason"] = stop_reason
         review = state.get("review_sim") or {}
-        cycles_done = len(state.get("review_history") or [])
-        if (
-            review.get("enabled")
-            and verdict["decision"] != "reject"
-            and cycles_done < int(review.get("max_review_cycles", 8))
-        ):
-            # 最终版本也要评审：交付报告需要语义复核结果，先评后交付
+        if review.get("enabled") and verdict["decision"] != "reject":
+            # 最终版本也要评审：交付报告需要语义复核结果，先评后交付（final_acquittal）
             state["review_pending_deliver"] = True
-            _emit_review_cycle(state, out_dir, prev_text_file)
+            _emit_review_cycle(state, out_dir, prev_text_file, purpose="final_acquittal")
         else:
             state["next_stage"] = "deliver"
             state["status"] = "stopped"
@@ -1556,33 +1669,60 @@ def _release_requirements(
     allow_conditional_release: bool,
     waivers: dict[str, dict[str, Any]],
     ledger_path: str | Path | None,
+    out_dir: str | Path | None = None,
 ) -> dict[str, Any]:
-    """Release Protocol（架构评审 2026-10-25 二/三轮）：正式交付的四条件。
+    """Release Protocol（架构评审 2026-10-25 二/三轮 + reviewer 身份契约 F4）。
 
     ① deterministic_audit：合并状态 READY，或 CONDITIONAL 且显式放行；
-    ② final_review：评审启用、存在**非 skipped** 的已完成周期、无未决周期，
-      且 `reviewed_text_sha256` == 最终稿文本哈希（评审证据绑定最终稿版本；
-      评审后稿件再被改动而未复审 → 哈希不一致 → 阻断）；
-      豁免须为带 author/reason 的签核工件；
+    ② final_review：`review_acceptance.status == "accepted"`（跨族 + 可信身份
+      + complete + scope final_full + verdict 正面），且其
+      `reviewed_text_sha256` == 当前最终稿哈希（评审后稿件任意字符变化 →
+      旧 accepted 立即过期，显式 stale_review 原因），且 trace 验签通过
+      （request/response 未篡改、身份一致、未跨 run 复用、事件链完整）。
+      provisional / done 一律不满足；豁免须为带 author/reason 的签核工件；
     ③ submission_audit：预审已执行且 automated_pass——**不可豁免**；
     ④ precision_gate：人工裁决账本达标（唯一 issue_id、非空 adjudicator、
       ≥2 来源、绑定当前稿件哈希、已裁决 ≥5 且 precision ≥ 0.8）；
       豁免同样须为签核工件。
     """
-    review = state.get("review_sim") or {}
-    cycles = state.get("review_history") or []
-    completed = [c for c in cycles if not c.get("skipped")]
-    final_review_ok = bool(
-        review.get("enabled")
-        and completed
-        and not state.get("review_cycle")
-        and not (state.get("review_pending_jobs") or [])
-    )
-    if final_review_ok:
-        final_sha = str(state.get("reviewed_text_sha256") or "")
-        best_file = str((state.get("best") or {}).get("text_file") or "")
-        current_sha = _sha256_file(best_file) if best_file and Path(best_file).exists() else ""
-        final_review_ok = bool(final_sha and current_sha and final_sha == current_sha)
+    best_file = str((state.get("best") or {}).get("text_file") or "")
+    current_sha = _sha256_file(best_file) if best_file and Path(best_file).exists() else ""
+
+    acceptance = state.get("review_acceptance") or {}
+    acceptance_status = str(acceptance.get("status") or "done")
+    final_review_ok = False
+    final_review_reason = ""
+    if state.get("review_cycle") or (state.get("review_pending_jobs") or []):
+        # 评审周期未决（响应未回填）→ fail-closed，不得在评审悬置时放行
+        final_review_reason = "final_review_pending: 存在未决的评审周期（响应未回填）"
+    elif acceptance_status != "accepted":
+        final_review_reason = (
+            "review_acceptance 不是 accepted（provisional / done / 缺失均不可 release）"
+        )
+    if acceptance_status == "accepted" and not final_review_reason:
+        final_sha = str(acceptance.get("reviewed_text_sha256") or "")
+        if not final_sha or final_sha != current_sha:
+            final_review_reason = (
+                "stale_review: 评审后最终稿已变更（reviewed_text_sha256 与当前最终稿哈希不一致），"
+                "旧 accepted 评审立即过期"
+            )
+        else:
+            trace_verdict = review_trace.verify_trace(
+                out_dir or ".",
+                str(acceptance.get("trace_id") or ""),
+                run_id=str(state.get("run_id") or ""),
+                expected_job_id=str(acceptance.get("job_id") or "") or None,
+                expected_artifact_sha256=final_sha,
+                expected_identity={
+                    "executor_model": str(acceptance.get("executor_model") or ""),
+                    "reviewer_model": str(acceptance.get("reviewer_model") or ""),
+                    "identity_source": str(acceptance.get("identity_source") or ""),
+                },
+            )
+            if trace_verdict.get("ok"):
+                final_review_ok = True
+            else:
+                final_review_reason = f"trace_invalid: {trace_verdict.get('reason')}"
     if "final_review" in waivers:
         final_review_ok = True
 
@@ -1620,11 +1760,7 @@ def _release_requirements(
     }
     reasons = {
         "deterministic_audit": "合并状态未达 READY" if not deterministic_ok else "",
-        "final_review": (
-            "评审未启用/未完成/被跳过，或评审后稿件已变更未复审（reviewed_text_sha256 不一致）"
-            if not final_review_ok
-            else ""
-        ),
+        "final_review": (final_review_reason if not final_review_ok else ""),
         "submission_audit": (
             "投稿预审未执行或未全部通过（此条件不可豁免）" if not preflight_ok else ""
         ),
@@ -1689,6 +1825,7 @@ def stage_deliver(
                 "review": {
                     "cycles": state.get("review_history") or [],
                     "active_findings": state.get("review_findings") or [],
+                    "review_acceptance": state.get("review_acceptance"),
                 },
                 "final": {
                     "issue_count": final_audit["registry"]["issue_count"],
@@ -1760,7 +1897,19 @@ def stage_deliver(
         allow_conditional_release=allow_conditional_release,
         waivers=waivers,
         ledger_path=ledger,
+        out_dir=out_dir,
     )
+    # F4 状态迁移：accepted 评审在 release 校验发现哈希失配/trace 损坏时，
+    # 立即降级为 done（旧 accepted 过期），原因写入 gate_reason
+    acceptance = state.get("review_acceptance") or {}
+    if (
+        acceptance.get("status") == "accepted"
+        and not release_req["checks"]["final_review"]
+    ):
+        acceptance["status"] = "done"
+        acceptance["gate_reason"] = release_req["reasons"].get("final_review", "release 校验未通过")
+        state["review_acceptance"] = acceptance
+        _save_state(out_dir, state)
     delivery_tier = "release" if release_req["all_pass"] else "staging"
     docx_label = "可投稿候选" if delivery_tier == "release" else "诊断包"
     index_label = "交付索引" if delivery_tier == "release" else "诊断索引"

@@ -18,6 +18,7 @@ enforce_review_sim_guards 与 revision-planner 的 requires_human_sources
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sys
@@ -29,7 +30,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from utils.anchor_norm import normalize_anchor  # noqa: E402
-from utils import response_matching  # noqa: E402
+from utils import model_identity, response_matching, review_trace  # noqa: E402
 from utils.config_loader import PROJECT_ROOT, load_yaml_file, normalize_language  # noqa: E402
 from utils.logger import get_logger  # noqa: E402
 from utils.prompt_renderer import render_template  # noqa: E402
@@ -54,6 +55,366 @@ RESPONSE_FINDING_FIELDS = (
     "line_or_paragraph_locator",
     "rationale",
 )
+
+# ---- reviewer 身份契约（F1）与最终放行评审（F2/F3/F4）----
+# identity_source 枚举固定：只有 host_session_event / backend_reported 可信
+# （可参与自动 release）；caller_declared 最多 provisional；unavailable 永不通过。
+IDENTITY_SOURCES = (
+    "host_session_event",
+    "backend_reported",
+    "caller_declared",
+    "unavailable",
+)
+TRUSTED_IDENTITY_SOURCES = ("host_session_event", "backend_reported")
+FINAL_VERDICTS = ("acquitted", "rejected")
+
+# final_acquittal 响应必填字段（缺任一 → 无效响应 → acceptance=done）
+FINAL_RESPONSE_FIELDS = (
+    "job_id",
+    "section_id",
+    "role",
+    "executor_model",
+    "reviewer_model",
+    "model_family",
+    "identity_source",
+    "thread_id",
+    "reviewed_text_sha256",
+    "scope",
+    "complete",
+    "verdict",
+    "score",
+    "findings",
+)
+
+
+def _figures_manifest(text: str) -> str:
+    """从全文提取图表题注清单（final 评审的允许输入之一）。"""
+    lines = []
+    for raw in (text or "").splitlines():
+        stripped = raw.strip()
+        if re.match(r"^(图|表|Figure|Table|Fig\.)\s*\d+", stripped):
+            lines.append(stripped[:120])
+    return "\n".join(lines) if lines else "（未检测到图表题注）"
+
+
+def build_final_acquittal_job(
+    text: str,
+    *,
+    language: str = "en",
+    title: str = "",
+    out_dir: str | Path = "output/review-sim",
+    artifact_sha256: str = "",
+    previous_thread_ids: list[str] | None = None,
+    journal_constraints: str = "",
+    source_file: str = "",
+    run_id: str = "",
+) -> tuple[dict[str, Any], str]:
+    """构建 final_acquittal 评审作业（F2/F3）。
+
+    输入白名单：当前全文（含参考文献）、图表清单、期刊约束、artifact hash、
+    文件路径。context_policy=fresh_only；previous_thread_ids 供响应线程新鲜度
+    校验。返回 (job, prompt_text)。
+    """
+    language = normalize_language(language)
+    artifact_sha256 = artifact_sha256 or review_trace.sha256_text(text)
+    char_count = len(text or "")
+    job_id = "revsim-final-acquittal"
+    required_scope = {
+        "mode": "final_full",
+        "sections": ["__all__"],
+        "includes_references": True,
+        "includes_figures": True,
+        "char_count": char_count,
+    }
+    prompt = render_template(
+        "review-sim-final.md",
+        language,
+        job_id=job_id,
+        role="final_acquittal",
+        section_id="final",
+        paper_title=title or "(untitled)",
+        journal_constraints=journal_constraints or "（未提供）" if language == "cn" else "(none provided)",
+        artifact_sha256=artifact_sha256,
+        source_file=source_file or "(in-memory)",
+        char_count=char_count,
+        section_text=text or "",
+        figures_manifest=_figures_manifest(text),
+    )
+    out_root = Path(out_dir)
+    prompts_dir = out_root / "prompts"
+    responses_dir = out_root / "responses"
+    prompts_dir.mkdir(parents=True, exist_ok=True)
+    responses_dir.mkdir(parents=True, exist_ok=True)
+    prompt_path = prompts_dir / f"{job_id}.prompt.txt"
+    prompt_path.write_text(prompt, encoding="utf-8")
+    job = {
+        "job_id": job_id,
+        "purpose": "final_acquittal",
+        "role": "final_acquittal",
+        "section_id": "final",
+        "section_heading": "Final acquittal review",
+        "section_type": "final",
+        "section_chars": char_count,
+        "section_text": text or "",
+        "artifact_sha256": artifact_sha256,
+        "char_count": char_count,
+        "identity_contract": {
+            "required_fields": [
+                "executor_model",
+                "reviewer_model",
+                "model_family",
+                "identity_source",
+                "thread_id",
+            ],
+            "identity_source_enum": list(IDENTITY_SOURCES),
+            "trusted_identity_sources": list(TRUSTED_IDENTITY_SOURCES),
+            "family_derivation": "deterministic-from-model-name",
+        },
+        "required_response_fields": list(FINAL_RESPONSE_FIELDS),
+        "context_policy": "fresh_only",
+        "context_id": f"final-{artifact_sha256[:12]}",
+        "required_scope": required_scope,
+        "previous_thread_ids": list(previous_thread_ids or []),
+        "prompt_file": str(prompt_path.resolve()),
+        "response_file": str((responses_dir / f"{job_id}.txt").resolve()),
+        "status": "pending",
+        "response": "",
+    }
+    return job, prompt
+
+
+def adjudicate_final_response(
+    payload: dict[str, Any] | None,
+    *,
+    job: dict[str, Any],
+    response_text: str,
+    run_dir: str | Path,
+    run_id: str = "",
+    round_index: int = 0,
+) -> dict[str, Any]:
+    """对 final_acquittal 响应做 fail-closed 验证并产出三态验收（F1/F3/F4）。
+
+    状态语义：done=响应有效但未达 acquittal；provisional=身份可信度不足
+    （同族 / caller_declared）；accepted=跨族 + 可信身份 + complete + scope
+    final_full + 哈希与当前工件一致 + verdict 正面。任何验证失败都写明
+    gate_reason，并仍写 trace（评审尝试本身是证据）。
+    """
+    job_id = str(job.get("job_id") or "")
+    artifact_sha256 = str(job.get("artifact_sha256") or "")
+    acceptance = {
+        "status": "done",
+        "gate_reason": "",
+        "job_id": job_id,
+        "trace_id": "",
+        "executor_model": "",
+        "reviewer_model": "",
+        "model_family": "",
+        "identity_source": "",
+        "reviewed_text_sha256": "",
+        "complete": False,
+        "verdict": "",
+        "score": None,
+    }
+
+    def _fail(reason: str, *, scope_ok: bool = False, complete: bool = False,
+              verdict: str = "", score: Any = None, identity: dict[str, Any] | None = None) -> dict[str, Any]:
+        acceptance["gate_reason"] = reason
+        acceptance["complete"] = complete
+        if verdict:
+            acceptance["verdict"] = verdict
+        if score is not None:
+            acceptance["score"] = score
+        for key in ("executor_model", "reviewer_model", "model_family", "identity_source", "reviewed_text_sha256"):
+            if identity and identity.get(key):
+                acceptance[key] = str(identity[key])
+        trace = _write_final_trace(
+            run_dir=run_dir,
+            run_id=run_id,
+            job=job,
+            round_index=round_index,
+            response_text=response_text,
+            payload=payload if isinstance(payload, dict) else {},
+            review_completed=complete,
+            review_scope_complete=scope_ok,
+            identity=identity or {},
+        )
+        acceptance["trace_id"] = trace.get("trace_id", "")
+        return acceptance
+
+    if not isinstance(payload, dict):
+        return _fail(f"invalid_json: 响应不是 JSON 对象")
+    missing = [f for f in FINAL_RESPONSE_FIELDS if not _field_present(payload, f)]
+    if missing:
+        return _fail(f"missing_fields: {','.join(missing)}")
+    identity = {
+        "executor_model": str(payload["executor_model"]).strip(),
+        "reviewer_model": str(payload["reviewer_model"]).strip(),
+        "model_family": str(payload["model_family"]).strip().lower(),
+        "identity_source": str(payload["identity_source"]).strip().lower(),
+        "reviewed_text_sha256": str(payload["reviewed_text_sha256"]).strip().lower(),
+    }
+    acceptance.update(
+        {
+            "executor_model": identity["executor_model"],
+            "reviewer_model": identity["reviewer_model"],
+            "model_family": identity["model_family"],
+            "identity_source": identity["identity_source"],
+            "reviewed_text_sha256": identity["reviewed_text_sha256"],
+            "complete": bool(payload.get("complete")),
+            "verdict": str(payload.get("verdict") or "").strip().lower(),
+            "score": payload.get("score"),
+        }
+    )
+    if identity["identity_source"] not in IDENTITY_SOURCES:
+        return _fail(f"illegal_identity_source: {identity['identity_source']!r}", identity=identity)
+    derived = model_identity.derive_family(identity["reviewer_model"])
+    if identity["model_family"] != derived:
+        return _fail(
+            f"forged_family: 声明 {identity['model_family']!r} 与推导 {derived!r} 不一致",
+            identity=identity,
+        )
+    thread_id = str(payload.get("thread_id") or "").strip()
+    if not thread_id:
+        return _fail("missing_thread_id", identity=identity)
+    if thread_id in (job.get("previous_thread_ids") or []):
+        return _fail("thread_reuse: thread_id 出现在 previous_thread_ids（复用旧上下文）", identity=identity)
+    if identity["reviewed_text_sha256"] != str(job.get("artifact_sha256") or "").lower():
+        return _fail(
+            "hash_mismatch: reviewed_text_sha256 与作业 artifact_sha256 不一致",
+            identity=identity,
+        )
+    scope = payload.get("scope")
+    scope_ok = False
+    if isinstance(scope, dict):
+        expected = job.get("required_scope") or {}
+        scope_ok = (
+            str(scope.get("mode") or "") == "final_full"
+            and list(scope.get("sections") or []) == ["__all__"]
+            and scope.get("includes_references") is True
+            and scope.get("includes_figures") is True
+            and str(scope.get("char_count") or "") == str(expected.get("char_count"))
+        )
+    if not scope_ok:
+        return _fail("scope_incomplete: scope 不是 final_full 全文口径", scope_ok=False,
+                     complete=acceptance["complete"], verdict=acceptance["verdict"],
+                     score=acceptance["score"], identity=identity)
+    if not acceptance["complete"]:
+        return _fail("incomplete_review", scope_ok=True, identity=identity)
+    if acceptance["verdict"] not in FINAL_VERDICTS:
+        return _fail(f"invalid_verdict: {acceptance['verdict']!r}", scope_ok=True,
+                     complete=True, identity=identity)
+    if acceptance["verdict"] == "rejected":
+        return _fail("negative_verdict", scope_ok=True, complete=True,
+                     verdict=acceptance["verdict"], score=acceptance["score"], identity=identity)
+
+    # 身份可信度分层（F1）：只有 host_session_event / backend_reported 可信；
+    # caller_declared 最多 provisional；unknown 家族永不通过。
+    reviewer_family = model_identity.derive_family(identity["reviewer_model"])
+    executor_family = model_identity.derive_family(identity["executor_model"])
+    acceptance["model_family"] = reviewer_family
+    if reviewer_family == "unknown" or executor_family == "unknown":
+        return _fail("unknown_identity: 模型名无法唯一推导家族", scope_ok=True, complete=True,
+                     verdict=acceptance["verdict"], score=acceptance["score"], identity=identity)
+    trace = _write_final_trace(
+        run_dir=run_dir,
+        run_id=run_id,
+        job=job,
+        round_index=round_index,
+        response_text=response_text,
+        payload=payload,
+        review_completed=True,
+        review_scope_complete=True,
+        identity=identity,
+    )
+    acceptance["trace_id"] = trace["trace_id"]
+    if identity["identity_source"] == "caller_declared":
+        acceptance["status"] = "provisional"
+        acceptance["gate_reason"] = "identity_source=caller_declared 不可信，最多 provisional"
+        return acceptance
+    if identity["identity_source"] == "unavailable":
+        acceptance["status"] = "done"
+        acceptance["gate_reason"] = "identity_source=unavailable：身份不可知，不能进入 acquittal"
+        return acceptance
+    if reviewer_family == executor_family:
+        acceptance["status"] = "provisional"
+        acceptance["gate_reason"] = "same-family: 评审者与执行者同族，存在同源盲区"
+        return acceptance
+    acceptance["status"] = "accepted"
+    acceptance["gate_reason"] = ""
+    return acceptance
+
+
+def _field_present(payload: dict[str, Any], field: str) -> bool:
+    value = payload.get(field)
+    if field in ("complete",):
+        return isinstance(value, bool)
+    if field == "scope":
+        return isinstance(value, dict)
+    if field == "score":
+        return isinstance(value, (int, float))
+    if field == "findings":
+        return isinstance(value, list)
+    return bool(str(value or "").strip())
+
+
+def _write_final_trace(
+    *,
+    run_dir: str | Path,
+    run_id: str,
+    job: dict[str, Any],
+    round_index: int,
+    response_text: str,
+    payload: dict[str, Any],
+    review_completed: bool,
+    review_scope_complete: bool,
+    identity: dict[str, Any],
+) -> dict[str, Any]:
+    request = {
+        "job_id": job.get("job_id"),
+        "purpose": job.get("purpose") or "final_acquittal",
+        "prompt_file": job.get("prompt_file"),
+        "prompt_text": Path(str(job.get("prompt_file") or "")).read_text(encoding="utf-8")
+        if job.get("prompt_file") and Path(str(job.get("prompt_file"))).exists()
+        else "",
+        "artifact_paths": {
+            "response_file": job.get("response_file"),
+            "source_file": job.get("section_heading"),
+        },
+        "artifact_sha256": job.get("artifact_sha256"),
+        "char_count": job.get("char_count"),
+        "scope": job.get("required_scope"),
+        "context_policy": job.get("context_policy"),
+        "previous_thread_ids": job.get("previous_thread_ids"),
+    }
+    thread_id = str(payload.get("thread_id") or "unknown-thread")
+    meta = {
+        "thread_id": thread_id,
+        "executor_model": identity.get("executor_model", ""),
+        "reviewer_model": identity.get("reviewer_model", ""),
+        "model_family": model_identity.derive_family(identity.get("reviewer_model", "")),
+        "identity_source": identity.get("identity_source", ""),
+        "review_completed": review_completed,
+        "review_scope_complete": review_scope_complete,
+        "score": payload.get("score"),
+        "verdict": str(payload.get("verdict") or ""),
+        "review_independence": {
+            "context_policy": job.get("context_policy"),
+            "thread_reused": thread_id in (job.get("previous_thread_ids") or []),
+            "previous_thread_count": len(job.get("previous_thread_ids") or []),
+        },
+    }
+    return review_trace.create_trace(
+        run_dir,
+        run_id=run_id or "review-sim",
+        job_id=str(job.get("job_id") or ""),
+        purpose=str(job.get("purpose") or "final_acquittal"),
+        round_index=round_index,
+        artifact_sha256=str(job.get("artifact_sha256") or ""),
+        thread_id=thread_id,
+        request=request,
+        response_text=response_text,
+        meta=meta,
+    )
 
 
 def load_config(path: str | Path | None = None) -> dict[str, Any]:
@@ -387,11 +748,92 @@ def _parse_response_json(raw: str) -> dict[str, Any]:
     return payload
 
 
+def _apply_final(
+    payload: dict[str, Any],
+    responses_dir: str | Path | None,
+    *,
+    run_dir: str | Path | None,
+    run_id: str,
+    round_index: int,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """final_acquittal 消费（F2/F3/F4）：身份契约 + 哈希/scope 校验 + 三态验收。"""
+    jobs = [job for job in payload.get("jobs") or [] if isinstance(job, dict)]
+    if not jobs:
+        raise ValueError("final_acquittal 作业包为空")
+    job = jobs[0]
+    job_id = str(job.get("job_id") or "")
+    raw_response = str(job.get("response") or "")
+    response_root = Path(responses_dir) if responses_dir else None
+    if not raw_response and response_root is not None:
+        assigned = response_matching.match_files(
+            jobs, response_root,
+            identity_fields=["role", "section_id"],
+            anchor_field="section_text",
+            quote_field="exact_source_quote",
+        )["assignments"].get(job_id)
+        if assigned:
+            raw_response = Path(assigned).read_text(encoding="utf-8-sig")
+    payload_response: dict[str, Any] | None = None
+    if raw_response.strip():
+        try:
+            payload_response = _parse_response_json(raw_response)
+        except (ValueError, json.JSONDecodeError):
+            payload_response = None
+    acceptance = adjudicate_final_response(
+        payload_response,
+        job=job,
+        response_text=raw_response,
+        run_dir=run_dir or Path(str(job.get("response_file") or "output/review-sim")).parent.parent,
+        run_id=run_id,
+        round_index=round_index,
+    )
+    # final 意见同样逐字锚定校验（意见本身不决定 acceptance，但入证据清单）
+    findings: list[dict[str, Any]] = []
+    rejected: list[dict[str, Any]] = []
+    if isinstance(payload_response, dict):
+        haystack = normalize_anchor(str(job.get("section_text") or ""))
+        for index, item in enumerate(payload_response.get("findings") or []):
+            if not isinstance(item, dict):
+                rejected.append({"job_id": job_id, "finding_index": index, "reason": "finding_not_object"})
+                continue
+            quote = normalize_anchor(str(item.get("exact_source_quote") or ""))
+            if len(quote) < 12 or quote not in haystack:
+                rejected.append({"job_id": job_id, "finding_index": index, "reason": "fabricated_or_mismatched_quote"})
+                continue
+            findings.append(
+                {
+                    "check": normalize_ws(str(item.get("issue_category")))[:80],
+                    "found": normalize_ws(str(item.get("claim_or_defect_summary")))[:200],
+                    "severity": "warning",
+                    "message": normalize_ws(str(item.get("claim_or_defect_summary")))[:300],
+                    "context_snippet": quote[:300],
+                    "confidence": "low",
+                    "requires_human": True,
+                    "role": str(job.get("role") or "final_acquittal"),
+                    "section_id": str(job.get("section_id") or "final"),
+                }
+            )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "purpose": "final_acquittal",
+        "acceptance": acceptance,
+        "trace_id": acceptance.get("trace_id", ""),
+        "findings": findings,
+        "rejected": rejected,
+        "thread_ids": ([str(payload_response.get("thread_id"))] if isinstance(payload_response, dict) and payload_response.get("thread_id") else []),
+        "status": "adjudicated",
+    }
+
+
 def apply_responses(
     jobs_or_path: dict[str, Any] | str | Path,
     responses_dir: str | Path | None = None,
     *,
     config: dict[str, Any] | None = None,
+    run_dir: str | Path | None = None,
+    run_id: str = "",
+    round_index: int = 0,
 ) -> dict[str, Any]:
     """校验回填的评审响应，产出归一化 findings 与被拒清单（fail-closed）。
 
@@ -414,6 +856,12 @@ def apply_responses(
     required_fields = [str(item) for item in validation.get("required_fields") or RESPONSE_FINDING_FIELDS]
     severity_map = dict(validation.get("severity_map") or {"major": "warning", "minor": "info"})
     min_quote = int((config.get("limits") or {}).get("min_quote_chars", 12))
+
+    if str(payload.get("purpose") or "") == "final_acquittal" or (
+        jobs and str(jobs[0].get("purpose") or "") == "final_acquittal"
+    ):
+        return _apply_final(payload, responses_dir, run_dir=run_dir, run_id=run_id,
+                            round_index=round_index, config=config)
 
     response_root = Path(responses_dir) if responses_dir else None
     match_result = {"assignments": {}, "unmatched_files": [], "warnings": []}
@@ -618,6 +1066,45 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
             only_sections=args.get("only_sections"),
         )
 
+    if mode == "build_final":
+        text = str(args.get("text") or "")
+        if not text.strip():
+            input_file = args.get("input_file") or args.get("text_file")
+            if not input_file:
+                raise ValueError("review-sim build_final 需要 text 或 input_file")
+            path = Path(str(input_file))
+            if path.suffix.lower() == ".docx":
+                text = str(run_skill("paper-parser", {"input": str(path), "format": "auto"}).get("full_text") or "")
+            else:
+                text = path.read_text(encoding="utf-8-sig")
+        job, _prompt = build_final_acquittal_job(
+            text,
+            language=language,
+            title=str(args.get("title") or ""),
+            out_dir=args.get("out") or "output/review-sim",
+            artifact_sha256=str(args.get("artifact_sha256") or ""),
+            previous_thread_ids=[str(t) for t in (args.get("previous_thread_ids") or [])],
+            journal_constraints=str(args.get("journal_constraints") or ""),
+            source_file=str(args.get("source_file") or ""),
+        )
+        out_root = Path(str(args.get("out") or "output/review-sim"))
+        payload = {
+            "schema_version": SCHEMA_VERSION,
+            "purpose": "final_acquittal",
+            "language": language,
+            "title": str(args.get("title") or ""),
+            "job_count": 1,
+            "jobs": [job],
+            "status": "built",
+            "warnings": [
+                "final_acquittal 响应必须携带完整身份契约字段；缺失即无效响应（acceptance=done）。"
+            ],
+        }
+        (out_root / "review-jobs.json").write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        return payload
+
     if mode == "apply":
         jobs_source = args.get("jobs") or args.get("jobs_file") or args.get("out")
         if jobs_source is None:
@@ -626,6 +1113,9 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
             jobs_source,
             args.get("responses_dir"),
             config=config,
+            run_dir=args.get("run_dir"),
+            run_id=str(args.get("run_id") or ""),
+            round_index=int(args.get("round_index") or 0),
         )
 
     if mode == "register":

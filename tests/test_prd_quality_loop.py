@@ -8,6 +8,8 @@
 - §5 阶段二/三：问题有编号、分 P0-P3、计划含全部必填字段。
 """
 
+import hashlib
+from unittest.mock import patch
 import json
 import shutil
 import tempfile
@@ -487,7 +489,10 @@ class ReleaseBoundaryE2ETests(unittest.TestCase):
         self.addCleanup(shutil.rmtree, out_dir, ignore_errors=True)
         fixture = Path("test-manuscripts/cn-clean-draft.md")
         # 干净稿无任务 → best 恒为 round-000（与输入同内容），哈希可预知
-        expected_sha = hashlib.sha256(fixture.read_bytes()).hexdigest()
+        # （与 release 同口径：换行归一后的内容哈希）
+        expected_sha = hashlib.sha256(
+            fixture.read_bytes().replace(b"\r\n", b"\n")
+        ).hexdigest()
         header = [
             "issue_id", "source", "check", "priority", "evidence_snippet",
             "adjudication", "note", "adjudicator", "date", "manuscript_sha256",
@@ -562,6 +567,196 @@ class ReleaseBoundaryE2ETests(unittest.TestCase):
         reason = result["release_requirements"]["reasons"].get("precision_gate", "")
         self.assertTrue("不唯一" in reason or "署名" in reason, reason)
         self.assertEqual(result["delivery_tier"], "staging")
+
+
+class ReviewAcceptanceE2ETests(unittest.TestCase):
+    """F4 三态端到端：final_acquittal → review_acceptance → release 消费。
+
+    - done → accepted：跨族可信评审响应回填后验收升格；
+    - accepted 后 artifact 变化 → done（stale_review 显式原因）；
+    - provisional（同族）不可 release；
+    - 成功路径（接线级）：accepted + 预审通过 → release 命名可投稿候选。
+    """
+
+    def _run_to_final(self, *, reviewer_model, model_family, identity_source):
+        """跑干净稿完整闭环，停机路径发射 final_acquittal，回填指定身份的
+        评审响应，消费后返回 (result, out_dir, state)。"""
+        import hashlib
+
+        loop = skill_module("optimizer-loop")
+        out_dir = Path(tempfile.mkdtemp(prefix="acce2e-"))
+        self.addCleanup(shutil.rmtree, out_dir, ignore_errors=True)
+        payload = {
+            "stage": "init",
+            "text_file": "test-manuscripts/cn-clean-draft.md",
+            "language": "cn",
+            "identity": True,
+            "review_sim": True,
+            "max_rounds": 1,
+            "out": str(out_dir),
+        }
+        loop.run(payload)
+        view = loop.run({"stage": "build", "out": str(out_dir)})
+        if view["next_stage"] == "apply":
+            loop.run({"stage": "apply", "out": str(out_dir), "identity": True})
+            view = loop.run({"stage": "decide", "out": str(out_dir)})
+        # 干净稿无任务 → build 直接先评后交付；有任务 → apply/decide 后停机发射
+        assert view["next_stage"] == "review", view
+        state = json.loads((out_dir / "run-state.json").read_text(encoding="utf-8"))
+        assert state["review_cycle"]["purpose"] == "final_acquittal", state["review_cycle"]
+        # 回填符合身份契约的 final 响应
+        jobs = json.loads(Path(state["review_cycle"]["jobs_file"]).read_text(encoding="utf-8"))
+        job = jobs["jobs"][0]
+        best_text = Path(state["best"]["text_file"]).read_text(encoding="utf-8")
+        response = {
+            "job_id": job["job_id"],
+            "section_id": "final",
+            "role": "final_acquittal",
+            "executor_model": "GLM-5.3-Flash",
+            "reviewer_model": reviewer_model,
+            "model_family": model_family,
+            "identity_source": identity_source,
+            "thread_id": "thread-final-e2e-001",
+            "reviewed_text_sha256": job["artifact_sha256"],
+            "scope": {
+                "mode": "final_full",
+                "sections": ["__all__"],
+                "includes_references": True,
+                "includes_figures": True,
+                "char_count": job["char_count"],
+            },
+            "complete": True,
+            "verdict": "acquitted",
+            "score": 4,
+            "findings": [],
+        }
+        responses = Path(state["review_cycle"]["responses_dir"])
+        responses.mkdir(parents=True, exist_ok=True)
+        (responses / f"{job['job_id']}.txt").write_text(
+            json.dumps(response, ensure_ascii=False), encoding="utf-8"
+        )
+        view = loop.run({"stage": "review", "out": str(out_dir)})
+        state = json.loads((out_dir / "run-state.json").read_text(encoding="utf-8"))
+        return loop, out_dir, state, best_text
+
+    def test_done_to_accepted_then_staging_honestly(self):
+        loop, out_dir, state, best_text = self._run_to_final(
+            reviewer_model="claude-sonnet-4",
+            model_family="anthropic",
+            identity_source="host_session_event",
+        )
+        self.assertEqual(state["review_acceptance"]["status"], "accepted")
+        self.assertEqual(
+            state["review_acceptance"]["reviewed_text_sha256"],
+            hashlib.sha256(best_text.encode("utf-8")).hexdigest(),
+        )
+        # trace 落盘
+        trace_dir = out_dir / "review-traces" / state["review_acceptance"]["trace_id"]
+        self.assertTrue((trace_dir / "response.md").exists())
+        self.assertTrue((trace_dir / "meta.json").exists())
+        # 交付（诚实边界）：材料门（submission-audit）离线不可合法变绿 → staging，
+        # final_review 条件因 accepted 而通过
+        result = loop.run({"stage": "deliver", "out": str(out_dir), "submission_audit": True})
+        self.assertEqual(result["status"], "CONDITIONALLY_READY")
+        self.assertEqual(result["delivery_tier"], "staging")
+        checks = result["release_requirements"]["checks"]
+        self.assertTrue(checks["final_review"], "accepted 评审必须被 release 消费")
+        self.assertFalse(checks["submission_audit"], "材料门必须挡住 release")
+        # iteration log 记录 review_acceptance
+        log = json.loads((out_dir / "iteration_log.json").read_text(encoding="utf-8"))
+        self.assertEqual(log["review"]["review_acceptance"]["status"], "accepted")
+
+    def test_provisional_cannot_release_e2e(self):
+        loop, out_dir, state, _ = self._run_to_final(
+            reviewer_model="GLM-5.3",
+            model_family="zhipu",
+            identity_source="host_session_event",
+        )
+        self.assertEqual(state["review_acceptance"]["status"], "provisional")
+        result = loop.run({"stage": "deliver", "out": str(out_dir), "submission_audit": True})
+        self.assertEqual(result["delivery_tier"], "staging")
+        self.assertFalse(result["release_requirements"]["checks"]["final_review"])
+        self.assertIn("不是 accepted", result["release_requirements"]["reasons"]["final_review"])
+
+    def test_accepted_then_artifact_change_goes_done(self):
+        loop, out_dir, state, best_text = self._run_to_final(
+            reviewer_model="claude-sonnet-4",
+            model_family="anthropic",
+            identity_source="host_session_event",
+        )
+        self.assertEqual(state["review_acceptance"]["status"], "accepted")
+        # 评审后最终稿被改动一个字符 → 旧 accepted 立即过期（F4/F3）
+        best_file = Path(state["best"]["text_file"])
+        best_file.write_text(best_text + " ", encoding="utf-8")
+        result = loop.run({"stage": "deliver", "out": str(out_dir), "submission_audit": True})
+        state = json.loads((out_dir / "run-state.json").read_text(encoding="utf-8"))
+        self.assertEqual(state["review_acceptance"]["status"], "done")
+        self.assertIn("stale_review", state["review_acceptance"]["gate_reason"])
+        self.assertIn("stale_review", result["release_requirements"]["reasons"]["final_review"])
+
+    def test_full_release_success_path_wiring(self):
+        """交付验收 3（接线级）：accepted + 预审通过 → release 命名可投稿候选。
+
+        submission-audit 的材料门离线不可合法变绿（evidence 门要求文献核验与
+        作者材料——这是该门禁的设计目的），本测试用桩预审验证 release 接线；
+        材料门的真实阻断由 test_valid_evidence_blocked_only_by_materials 证明。
+        """
+        loop, out_dir, state, _ = self._run_to_final(
+            reviewer_model="claude-sonnet-4",
+            model_family="anthropic",
+            identity_source="host_session_event",
+        )
+        self.assertEqual(state["review_acceptance"]["status"], "accepted")
+        # 精确账本（作者裁决证据）：绑定本稿哈希、双来源、署名、precision 0.8
+        best_text = Path(state["best"]["text_file"]).read_text(encoding="utf-8")
+        import csv as _csv
+
+        sha = hashlib.sha256(best_text.encode("utf-8")).hexdigest()
+        ledger = out_dir / "adjudication-ledger.csv"
+        with ledger.open("w", newline="", encoding="utf-8-sig") as handle:
+            writer = _csv.writer(handle)
+            writer.writerow([
+                "issue_id", "source", "check", "priority", "evidence_snippet",
+                "adjudication", "note", "adjudicator", "date", "manuscript_sha256",
+            ])
+            for i in range(1, 5):
+                writer.writerow([
+                    f"iss-{i}", "claim-guard" if i % 2 else "consistency-check",
+                    "hype", "P1", "证据", "TP", "", "作者甲", "2026-10-26", sha,
+                ])
+            writer.writerow([
+                "iss-5", "consistency-check", "hype", "P2", "证据", "FP", "",
+                "作者乙", "2026-10-26", sha,
+            ])
+        (out_dir / "root").mkdir(parents=True, exist_ok=True)
+        with patch.object(
+            loop,
+            "_run_submission_preflight",
+            return_value={
+                "status": "ok",
+                "automated_pass": True,
+                "human_signoff_status": "required_not_completed",
+                "final_publication_allowed": False,
+            },
+        ):
+            result = loop.run(
+                {
+                    "stage": "deliver",
+                    "out": str(out_dir),
+                    "submission_audit": True,
+                    "deliver_to_root": True,
+                    "root_dir": str(out_dir / "root"),
+                }
+            )
+        self.assertEqual(result["status"], "READY_FOR_AUTHOR_REVIEW")
+        self.assertEqual(result["delivery_tier"], "release")
+        self.assertTrue(all(result["release_requirements"]["checks"].values()))
+        self.assertTrue((out_dir / "root" / "cn-clean-draft_可投稿候选.docx").exists())
+        index = (out_dir / "root" / "cn-clean-draft_交付索引.md").read_text(encoding="utf-8")
+        self.assertIn("正式交付（release）", index)
+        self.assertIn("仍需作者签核", index)
+        # final_publication_allowed 恒 false（签核只属于最终发表环节）
+        self.assertFalse(result["submission_audit"]["final_publication_allowed"])
 
 
 class OptimizerLoopTests(unittest.TestCase):

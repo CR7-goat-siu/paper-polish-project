@@ -56,6 +56,40 @@ description: Simulated multi-role peer review (methodology / statistics / domain
 - 产出：`findings[]`（已归一，带 `confidence=low` / `requires_human=True` / `role` /
   `section_id` / `locator` / `rationale`）、`rejected[]`（含原因）、`pending_jobs`。
 
+### mode=build_final（F2：final_acquittal 最终放行评审）
+
+- `text` / `input_file`：当前全文（含参考文献）；`out`；`title`；`language`；
+- `previous_thread_ids`：本 run 此前全部评审线程 id（响应线程新鲜度校验用）；
+- `journal_constraints` / `source_file`：白名单输入（目标期刊约束 / 源文件路径）。
+- 产出单作业 `revsim-final-acquittal`，`context_policy=fresh_only`，
+  `artifact_sha256` 绑定当前全文（换行归一 SHA-256），
+  `required_scope={mode: final_full, sections: ["__all__"], ...}`。
+- **输入白名单**：全文、图表清单、期刊约束、artifact hash、文件路径——
+  prompt 模板 `prompts/<lang>/review-sim-final.md` 中不存在 focus_issues /
+  审计批注 / 历史意见 / 修改摘要（测试锁定）。
+
+### reviewer 身份契约（F1）
+
+- job 声明 `identity_contract`（必填身份字段、identity_source 枚举、可信来源、
+  家族推导方式）与 `required_response_fields`；
+- 响应必须回填 `executor_model / reviewer_model / model_family /
+  identity_source / thread_id`；`model_family` 由
+  `utils/model_identity.derive_family(reviewer_model)` 确定性推导核对，
+  声明与推导不一致 = 伪造身份 → 响应无效（done）；
+- `identity_source` 枚举：`host_session_event | backend_reported |
+  caller_declared | unavailable`；仅前两者可信；
+  `unknown` 家族或 `unavailable` 永不进入 acquittal。
+
+### mode=apply（final_acquittal 分支）
+
+- 响应解析 → 身份契约校验（缺字段/非法枚举/伪造 family/旧 thread → done）→
+  哈希一致性（`reviewed_text_sha256` 必须等于作业 `artifact_sha256`）→
+  scope 校验（final_full 全文口径）→ complete/verdict 校验 →
+  身份可信度分层（跨族+可信=accepted；同族/caller_declared=provisional；
+  其余=done）→ `utils.review_trace.create_trace` 落盘（request/response/meta
+  + append-only 事件链）→ 产出 `acceptance` 三态。
+- final 意见同样逐字锚定校验（意见不决定 acceptance，但入证据清单）。
+
 ### mode=register
 
 - `apply_result` / `apply_result_file`：apply 产物；
