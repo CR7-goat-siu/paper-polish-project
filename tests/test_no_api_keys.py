@@ -28,7 +28,12 @@ def _python_sources():
 
 
 class NoApiKeyTests(unittest.TestCase):
-    """零 API Key / 零第三方 SDK 的静态与运行时守护。"""
+    """零 API Key 红线的静态与运行时守护。
+
+    网络模块禁令（requests/socket 等）是零 Key 红线的执行机制：所有流量必须
+    经 utils/web_fetch 以强制免密钥头、限速与缓存；密钥型 SDK（openai 等）
+    本身以凭据为前提，直接禁止。
+    """
 
     def test_no_third_party_network_or_sdk_imports(self):
         offenders = []
@@ -40,7 +45,11 @@ class NoApiKeyTests(unittest.TestCase):
                 top = match.group(1).split(".")[0]
                 if top in FORBIDDEN_TOP_LEVEL_MODULES:
                     offenders.append(f"{path.relative_to(PROJECT_ROOT)}: {line.strip()}")
-        self.assertEqual(offenders, [], f"禁止第三方网络/SDK 依赖: {offenders}")
+        self.assertEqual(
+            offenders,
+            [],
+            f"禁止绕过 utils/web_fetch 的网络模块与密钥型 SDK（零 API Key 红线执行机制）: {offenders}",
+        )
 
     def test_no_api_key_reads_from_environment(self):
         offenders = []

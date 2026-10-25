@@ -17,7 +17,7 @@ description: Offline two-phase batch pipeline — build parses papers and emits 
 
 - `only_chunks`：只为指定 parent chunk id 出作业（局部补丁）；其余章节在 apply
   阶段保持原文（`no_jobs` 为预期行为，不计入门禁失败）；
-- `focus_issues`：审计问题列表（issue-registry 的 issue dict），转换为锚定批注
+- `focus_issues（条目可用 `_comment_label`/`_comment_author` 覆写批注标签，评审意见标「评审意见/Review-Sim」区别于「审计问题/Auto-Audit」）`：审计问题列表（issue-registry 的 issue dict），转换为锚定批注
   注入对应 chunk 的 prompt `{{comments}}` 通道（与导师批注同优先级；
   证据片段两端的窗口省略号会被剥掉后再锚定；未能锚定的问题会在 build 告警中透出）；
 - `chunk_strength`：`{chunk_id: strength}` 逐章节覆盖润色强度

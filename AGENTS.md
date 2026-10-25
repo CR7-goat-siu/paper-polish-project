@@ -6,27 +6,31 @@
 
 **项目定位：辅助 coding harness 的论文润色、修改与预审能力层。**
 
-本项目不自行启动模型、不内置模型执行器，也不负责代替 coding harness 做任务编排。
+本项目默认不自行启动模型，也不负责代替 coding harness 做任务编排。
 coding harness 是执行主体，负责读取 `AGENTS.md` / `SKILL.md`、规划修改、调用模型、使用工具和回填响应；
 本项目负责提供领域规则、Prompt、确定性变换、门禁、文档读写与审计结果。
+确需项目侧自动执行模型交互时，只能经**免密钥执行桥**（本地推理服务或用户已登录的 CLI，
+凭据由该通道自持，项目代码与配置不接触任何凭据），且调用必须写穿同一套作业包与审计文件。
 
 本项目不得宣称、也不得被描述为“无需人工签核的最终发表系统”；
 发布前作者/通讯作者人工签核是硬门禁，不是失败，也不得被自动化绕过。“可投稿候选终稿”
 仅表示语言、结构、逻辑、术语、引用格式、统计表达、图表标题与投稿格式达到送审候选标准，
 不保证录用，不替代作者签核。
 
-本项目是一个**零 API Key、零模型执行器**的学术论文预处理、后处理与投稿前预审能力层，负责：
+本项目是一个**零 API Key**的学术论文预处理、后处理与投稿前预审能力层，负责：
 
 1. 通过 `paper-parser` 解析 LaTeX / Markdown / DOCX 论文，得到可独立加工的章节块（docx 无损读写）。
 2. 通过 `en-polish` / `cn-polish` 的 **build 阶段**切分 chunk、渲染结构化 Prompt，产出润色作业包（jobs）。
-3. **coding harness 负责实际的 LLM 交互**：读取作业包中的 prompt 调用模型，把响应回填到 `response` 字段或 `responses/<job_id>.txt`；本项目不调用任何模型。
+3. **coding harness 负责实际的 LLM 交互**：读取作业包中的 prompt 调用模型，把响应回填到 `response` 字段或 `responses/<job_id>.txt`；本项目默认不调用任何模型，唯一例外是经用户授权的免密钥执行桥（见第 2 节），其调用仍写穿同一套审计文件。
 4. 通过 `en-polish` / `cn-polish` 的 **apply 阶段**清洗响应、执行 `review-gate` 门禁、生成带反馈的重试作业、装配全文与 diff 报告，并回写 docx。
 5. 通过 `claim-guard` / `term-check` / `format-adapter` 做客观性守卫、术语校验与格式归一（全部本地确定性规则）。
 6. 通过 `evaluator` 用结构化测试集量化润色质量（对抗性客观性 / 术语召回 / GLEU / 保真度）。
 
 ## 2. 不可违背的工程约束
 
-- **零 API Key、零第三方依赖、零内置模型执行器**：本仓库不读取任何 Key / Token，不启动 Codex CLI、Ollama 或其它模型命令；代码只用 Python 标准库。文献检索允许访问**公开免密钥**学术数据源（Crossref / OpenAlex / Semantic Scholar / arXiv / Europe PMC / PubMed），但必须走 `utils/web_fetch`（超时重试 + 每源限速 + 磁盘缓存 + 离线模式），不得使用需要密钥的服务，也不得抓取 Google Scholar 等条款不允许的页面。模型交互只通过“作业包出、响应回填进”的文件契约，由 coding harness 完成。
+- **唯一硬红线——零 API Key**：本仓库不读取任何 Key / Token / Secret，不发送 Authorization 头，不使用任何需要密钥的服务；模型调用若经执行桥完成，凭据必须由该通道自持（本地推理服务 / 用户已登录 CLI），项目代码与配置不得接触凭据。文献检索只允许访问**公开免密钥**学术数据源（Crossref / OpenAlex / Semantic Scholar / arXiv / Europe PMC / PubMed），且必须走 `utils/web_fetch`（超时重试 + 每源限速 + 磁盘缓存 + 离线模式），不得抓取 Google Scholar 等条款不允许的页面。
+- **依赖策略**：Python 标准库优先；允许在收益明确时引入第三方依赖（解析、协议、评测等），但任何依赖不得读取、携带或传输密钥，所有网络流量仍必须经 `utils/web_fetch`（直连网络模块禁令是零 Key 红线的执行机制，见 `tests/test_no_api_keys.py`）。
+- **模型交互默认走"作业包出、响应回填进"的文件契约**（由 coding harness 完成）；经用户授权的免密钥执行桥是唯一例外——凭据由通道自持，调用必须写穿同一套 jobs / responses / 审计文件，`utils/guardrails` 门禁与 fail-closed 语义不变。
 - 中英文润色管线相互独立：语言差异只体现在 `prompts/cn/`、`prompts/en/`、`config/cn-rules.yaml`、`config/en-rules.yaml` 与对应数据中。
 - 所有业务能力以 `skills/<skill-name>/` 形式实现，每个 Skill 必须有 `SKILL.md` 与可独立调用的 `run(args) -> dict` 入口。
 - Prompt 一律模板化：正文只允许出现在 `prompts/**`，Skill 内禁止硬编码提示词正文；代码只通过 `utils.prompt_renderer.render_template()` 渲染。
@@ -49,7 +53,7 @@ coding harness 是执行主体，负责读取 `AGENTS.md` / `SKILL.md`、规划�
 3. **作业构建（*-polish build）**：逐 chunk 渲染 Prompt（规则 JSON + 术语对照 + 修正对照表 + 章节类型 + 上一块尾部上下文 + 复核反馈 + 按锚定段落挂到本 chunk 的导师批注 `{{comments}}`（最高优先级）+ 文档级简报 `{{brief}}`，均随 job 落盘供 retry 还原），写出 `jobs.json` 与 `prompts/`。
 4. **coding harness 执行**：按作业调用模型；响应可保留原始 JSON（自动抽取文本与截断状态）。
 5. **响应应用（*-polish apply）**：清洗 → review-gate 门禁（数字 / 引用 / 公式 / 段落 / 长度 / 相似度 / 浮夸残留 / 术语残留）→ 失败自动生成带反馈的重试作业 → 装配全文。
-6. **质量提升循环（由 harness 经 optimizer-loop 状态机驱动，协议见 docs/protocol.md）**：`stage=init` 建立全源基线审计（issue-registry 文本模式自动跑 claim-guard / term-check / cite-manager audit / lit-search gap / consistency-check / stat-check，结构缺陷如引用越界 / 图表未定义 / 摘要数字不一致也登记为 P0-P3）→ `stage=build` 按修改计划**选择性出作业**（only_chunks 局部补丁 + 审计问题经 `{{comments}}` 通道注入 prompt + 按问题优先级选强度）→ harness 回填响应 → `stage=apply`（门禁 fail 且重试耗尽时句级外科修复优先，整块回退为最后手段）→ `stage=decide` 独立复核（新增 P0/P1 按**指纹**判定拒绝并回滚；按指纹做任务级验证 fixed/still_open）→ 循环至停止条件 → `stage=deliver`（五件套 + 终稿 DOCX + submission-audit 预审 + 双门禁合并状态 + 交付索引，`deliver_to_root` 复制到根目录）。`run-state.json` 支持断点续跑；轮间修正规则/词库后用 `stage=audit` 刷新计划。
+6. **质量提升循环（由 harness 经 optimizer-loop 状态机驱动，协议见 docs/protocol.md）**——decide 接受修订后自动对改动章节发射 review-sim 评审周期（R1 对抗闭环：意见经锚定校验入登记表 → 下一轮以「评审意见」批注引导修订 → reReview 判定收敛；意见保持 requires_human，永不自动改写）；stage=backfill 可经免密钥执行桥（CLI/本地服务，零 Key）自动回填响应（R7）：`stage=init` 建立全源基线审计（issue-registry 文本模式自动跑 claim-guard / term-check / cite-manager audit / lit-search gap / consistency-check / stat-check，结构缺陷如引用越界 / 图表未定义 / 摘要数字不一致也登记为 P0-P3）→ `stage=build` 按修改计划**选择性出作业**（only_chunks 局部补丁 + 审计问题经 `{{comments}}` 通道注入 prompt + 按问题优先级选强度）→ harness 回填响应 → `stage=apply`（门禁 fail 且重试耗尽时句级外科修复优先，整块回退为最后手段）→ `stage=decide` 独立复核（新增 P0/P1 按**指纹**判定拒绝并回滚；按指纹做任务级验证 fixed/still_open）→ 循环至停止条件 → `stage=deliver`（五件套 + 终稿 DOCX + submission-audit 预审 + 双门禁合并状态 + 交付索引，`deliver_to_root` 复制到根目录）。`run-state.json` 支持断点续跑；轮间修正规则/词库后用 `stage=audit` 刷新计划。
 7. **守卫与归一（claim-guard / term-check / format-adapter / cite-manager / zotero-crossref）**：客观性 findings、术语 findings、references chunk 的 DOI / 页码归一；引用编号重排 / 合并 / 收敛 / 待补标记走 cite-manager（含 docx_plan）；需要动态文献管理时由 zotero-crossref 保留或重建 Zotero Word 域。
 8. **文献支撑（lit-search / lit-verify / cite-manager）**：检测缺少文献支撑的论断（信号词 + 无引用标记，另覆盖陈旧引用与参考文献信息不全）→ 把论点转成英文关键词与布尔检索式（同义词扩展），按多轮策略（宽式 / 精确 / 近五年高引）向公开免密钥数据源检索候选 → 确定性核验（DOI/标题/作者/年份/期刊/卷期页；无证据一律不通过，可选按 DOI/标题联网二次核验）→ 仅把 verified 条目用 `cite-manager` 的 insert 模式写入正文与参考文献表。残缺条目的自动补全走 lit-search `refill`（严格匹配 + 歧义中止 + 计划打标 `auto_filled_with_source`）；引用意图预填走 `cite-intent`（supporting/contrasting 必须逐字锚定被引摘要证据句，否则 fail-closed，结果待作者确认）。
 9. **产出**：润色全文、逐 chunk diff 报告、质量循环报告、docx 回写（段落对齐整段替换，或 token_replacements 外科式替换 + 写后强制回读比对）、result.json（pending/needs_review 状态供人工复核）。
@@ -73,10 +77,10 @@ coding harness 是执行主体，负责读取 `AGENTS.md` / `SKILL.md`、规划�
 | issue-registry | 问题登记：归一各审计 findings 为 P0-P3 清单（PRD §5 阶段二）；文本模式自动跑全源审计（claim-guard / term-check / cite-manager audit / lit-search gap / consistency-check / stat-check）；`enforce_review_sim_guards` 把 review-sim 来源硬编码为 requires_human | `run(args)` | utils/issue_model, utils/consistency, utils/stat_checks, claim-guard, term-check, cite-manager, lit-search |
 | quality-score | 多维度质量评分卡 0-4 分 + 科学真实性硬门槛（PRD §4） | `run(args)` | utils/issue_model, config/issue-rules.yaml |
 | revision-planner | 修改规划：问题清单 → 可执行任务（PRD §5 阶段三） | `run(args)` | utils/issue_model, config/issue-rules.yaml |
-| optimizer-loop | 迭代状态机：init/build/apply/decide/deliver 分步 + run-state.json 断点续跑；每轮按计划选择性出作业（only_chunks + focus_issues 批注注入 + chunk_strength），decide 做版本决策与任务级验证；不主动调用模型 | `run(args)` | 上述 Skill 的 `run()` 契约 |
+| optimizer-loop | 迭代状态机：init/build/apply/decide/review/backfill/deliver 分步 + run-state.json 断点续跑；每轮按计划选择性出作业（only_chunks + focus_issues 批注注入 + chunk_strength），decide 做版本决策与任务级验证；**R1 对抗闭环：decide 接受后对改动章节发射 review-sim 评审周期，意见生命周期（new/still_open/resolved）+ 平台期止损（2 轮换角色 / 4 轮升级人工）**；stage=backfill 走免密钥执行桥自动回填（R7）；不主动调用模型 | `run(args)` | 上述 Skill 的 `run()` 契约, config/executor-bridge.yaml, utils/executor_bridge |
 | batch-processor | 批量 build / apply 调度；支持计划驱动修订参数（only_chunks / focus_issues / chunk_strength） | `run(args)` | 上述 Skill 的 `run()` 契约 |
 | submission-audit | 投稿前预审：证据图谱 / 统计（含 stat-check 重算与 GRIM）/ 图表 / DOCX 渲染 / 期刊合规（`journal=<id>` 逐项 PASS/FAIL）/ 人工签核 | `run(args)` | config/submission.yaml, config/journals/*, utils/stat_checks, utils/journal_compliance |
-| review-sim | 模拟同行评审（章节 × methodology/statistics/domain_expert/novelty 作业包；响应必须逐字锚定原文，fail-closed 校验；意见强制 confidence=low + requires_human，永不自动改写） | `run(args)` | config/review-sim.yaml, prompts/*/review-sim-*.md, utils/sections, issue-registry |
+| review-sim | 模拟同行评审（章节 × methodology/statistics/domain_expert/novelty 作业包；响应逐字锚定原文 fail-closed 校验 + job_id 宽容匹配；意见强制 confidence=low + requires_human，永不自动改写；diff_sections 模式支撑按改动章节评审） | `run(args)` | config/review-sim.yaml, prompts/*/review-sim-*.md, utils/sections, utils/response_matching, issue-registry |
 | cite-intent | 引用证据强度预填：Crossref/OpenAlex 拉被引摘要（+S2 intents 交叉信号）→ 作业包 → supporting/contrasting 必须逐字锚定证据句，否则 fail-closed 降级 unverified；结果为 prefilled_pending_confirmation 待作者确认 | `run(args)` | config/literature.yaml, utils/web_fetch, utils/citation_check |
 
 ## 5. 质量评估体系（对应四大核心特点）

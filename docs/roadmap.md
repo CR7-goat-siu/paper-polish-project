@@ -113,6 +113,20 @@
       10 万字段落实测 ≈0.5s（纯标准库）。
 - [ ] L3 批处理集成与 docx 批注告警（下一阶段）。
 
+## P6 — 对抗闭环与免密钥执行桥（R1+R7，已完成，2026-10-25）
+
+- [x] R1 对抗闭环：review-sim 接入 optimizer-loop decide 轮——decide 接受后对
+  改动章节发射评审周期（diff_sections + cross 视图）；意见生命周期
+  new/still_open/resolved_by_reReview；活跃意见经 issue-registry `extra_sources`
+  同场登记并以「评审意见」批注引导下一轮修订（requires_human 红线不变）；
+  停机路径最终版本先评后交付；平台期止损 2 轮换角色 / 4 轮升级人工。
+  真实稿验证：5 意见全部收敛 + reReview 挖出跨表 SNR 矛盾等 4 条新问题。
+- [x] job_id 宽容匹配（`utils/response_matching.py` 四级归因），review-sim /
+  cite-intent apply 接入；润色作业保持严格 job_id。
+- [x] R7 免密钥执行桥：CLI / 回环 HTTP 双通道 + `bridge-log.jsonl` 审计 +
+  `stage=backfill`；零 Key 红线全程保持（loopback 白名单 + 免密钥头强制）。
+- [x] 锚定归一统一：问题→章节映射、批注→段落锚定全部走 `utils.anchor_norm`。
+
 ## P5 — 对标能力升级与诚实验证（已完成，2026-10-25）
 
 - [x] **五项能力升级**（对标调研后按架构红线落地）：stat-check 统计一致性
@@ -261,5 +275,6 @@
 
 - 路线图条目按"可验证完成物"书写：完成时打勾并附说明。
 - 任何会影响契约的迭代必须先更新 `AGENTS.md`、`SKILL.md` 与测试，再改实现。
-- 项目保持**零 API Key、零第三方依赖**：文献检索只允许公开免密钥端点，且必须走 `utils/web_fetch`
-  （超时重试 + 每源限速 + 磁盘缓存 + 离线模式）；任何引入密钥 / SDK / 抓取条款不允许页面的提议都违反架构红线。
+- 项目保持**零 API Key**：文献检索只允许公开免密钥端点，且必须走 `utils/web_fetch`
+  （超时重试 + 每源限速 + 磁盘缓存 + 离线模式）；引入密钥或需要密钥的服务的提议都违反架构红线。
+  第三方依赖标准库优先、收益明确时引入，依赖不得接触密钥。

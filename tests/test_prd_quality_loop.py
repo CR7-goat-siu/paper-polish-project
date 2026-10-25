@@ -262,7 +262,9 @@ class OptimizerLoopTests(unittest.TestCase):
         result, out_dir = self._run_loop(max_rounds=6, stagnant_limit=2)
         log = json.loads((out_dir / "iteration_log.json").read_text(encoding="utf-8"))
         self.assertIn("收益停滞", log["stop_reason"])
-        self.assertLessEqual(len(log["rounds"]), 4)
+        # 只数润色轮（kind=round）；对抗闭环的评审记录（kind=review）不计入停滞轮数
+        polish_rounds = [r for r in log["rounds"] if r.get("kind") == "round"]
+        self.assertLessEqual(len(polish_rounds), 4)
 
 
 if __name__ == "__main__":

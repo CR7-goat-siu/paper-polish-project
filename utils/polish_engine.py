@@ -16,6 +16,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from utils import chunk_contract, job_io
+from utils.anchor_norm import normalize_anchor
 from utils.config_loader import (
     ConfigError,
     detect_domain,
@@ -148,15 +149,18 @@ def _normalize_ws(value: Any) -> str:
 
 
 def _match_comment_in_text(comment: dict[str, Any], text: str) -> bool:
-    """判断批注是否锚定在给定文本上：归一化空白后做包含判断。
+    """判断批注是否锚定在给定文本上：anchor_norm 字符级等价后做包含判断。
 
+    锚定统一走 utils.anchor_norm（空白折叠 + 大小写折叠 + 全半角/引号/省略号
+    等价）：审计上下文窗口、导师批注与 review-sim 评审意见（其 context_snippet
+    已是 anchor_norm 形态）三种来源同口径；边界仍只是字符等价，无语义匹配。
     chunk 切分可能把锚文本截断在两块之间，此时用锚的前缀兜底匹配；
     过短（<6 字符）的前缀不做兜底，避免误挂到无关 chunk。
     """
-    anchor = _normalize_ws(comment.get("anchor_text"))
+    anchor = normalize_anchor(comment.get("anchor_text"))
     if not anchor:
         return False
-    target = _normalize_ws(text)
+    target = normalize_anchor(text)
     if anchor in target:
         return True
     prefix = anchor[:COMMENT_ANCHOR_PREFIX_CHARS]

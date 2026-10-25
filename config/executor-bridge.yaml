@@ -1,0 +1,42 @@
+# 免密钥执行桥配置（R7）：本地模型服务 / 用户已登录 CLI 的响应自动回填
+# 宪章边界：唯一红线 = 零 API Key——本配置与执行代码绝不读取/携带任何凭据；
+# CLI 凭据由该 CLI 自身登录态持有；HTTP 通道只允许回环地址（utils.web_fetch
+# post_text_loopback 强制）；所有调用写穿 bridge-log.jsonl 审计。
+#
+# 默认 enabled: false——只有用户显式开启并配好自己的通道后，执行桥才会
+# 自动回填响应；未开启时全部作业仍由 coding harness 手动回填（契约不变）。
+schema_version: 1
+
+enabled: false
+
+defaults:
+  timeout_seconds: 600
+
+channels:
+  # 自检通道：stdin 原样回显，用于验证桥机制本身（不调用任何模型）
+  echo-selftest:
+    type: cli
+    command:
+      - py
+      - -3
+      - -c
+      - import sys; sys.stdout.write(sys.stdin.read())
+    timeout_seconds: 60
+  # 本地推理服务示例（Ollama；凭据无需管理，服务本体监听回环地址）
+  ollama-local:
+    type: http
+    api: ollama-chat
+    endpoint: http://127.0.0.1:11434/api/chat
+    model: qwen3:32b
+    timeout_seconds: 300
+  # 用户已登录 CLI 示例（凭据由 CLI 登录态持有；按需取消注释并改成实际命令）
+  # claude-cli:
+  #   type: cli
+  #   command: [claude, -p]
+  #   timeout_seconds: 900
+
+# 作业类别 → 通道路由：对抗验证要求评审用与润色不同的模型（跨模型对抗）
+routing:
+  polish: echo-selftest
+  review-sim: echo-selftest
+  cite-intent: echo-selftest

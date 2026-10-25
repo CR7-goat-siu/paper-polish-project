@@ -200,7 +200,8 @@ class OptimizerLoopStateMachineTests(unittest.TestCase):
         self.assertEqual(view["status"], "running")
 
         view = self._stage("decide", out_dir)
-        self.assertIn(view["next_stage"], ("build", "deliver"))
+        # 对抗闭环（R1）启用时 decide 接受后进入评审周期；未启用/被拒则回 build
+        self.assertIn(view["next_stage"], ("build", "review", "deliver"))
         log = json.loads((out_dir / "run-state.json").read_text(encoding="utf-8"))
         round_records = [r for r in log["rounds"] if r.get("kind") == "round"]
         self.assertTrue(round_records[-1].get("task_status"), "decide 必须产出任务级验证")

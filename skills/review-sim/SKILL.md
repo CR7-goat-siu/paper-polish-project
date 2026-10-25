@@ -12,11 +12,15 @@ description: Simulated multi-role peer review (methodology / statistics / domain
 - 评审以"作业包出 / 响应进"方式执行：本 Skill 渲染作业包，coding harness
   调用模型并回填 `responses/<job_id>.txt`；本 Skill 不调用任何模型、不发网络请求。
 - **Fail-Closed 响应校验**（apply）：
-  - 响应必须是 JSON 对象，`job_id` / `section_id` / `role` 与作业一致；
+  - 响应必须是 JSON 对象；`role` / `section_id` 必须与作业一致；`job_id` 回显
+    不可靠时（异构执行器实测失败模式）身份凭据降级为 role+section_id，
+    二者错必拒（`utils.response_matching` 宽容匹配 + relabel 告警）；
   - 每条意见必填 `issue_category` / `claim_or_defect_summary` / `exact_source_quote` /
     `line_or_paragraph_locator` / `rationale`；
-  - `exact_source_quote` 空白归一后必须是对应章节原文的**逐字子串**（且 ≥
-    `limits.min_quote_chars`）——锚点伪造、改写、翻译一律丢弃并记录 rejected 原因；
+  - `exact_source_quote` 经 anchor_norm 字符级等价后必须是对应章节原文的**逐字子串**
+    （且 ≥ `limits.min_quote_chars`）——锚点伪造、改写、翻译一律丢弃并记录 rejected 原因；
+  - 响应文件名与 job_id 无关时按四级归因匹配（精确文件名 / 文件名子串 /
+    身份回显 / 内容锚定唯一归属），无法归属的文件记入 `unmatched_responses`。
 - **硬门禁（双层，不可绕过）**：
   1. `issue-registry.build_registry` 末尾的 `enforce_review_sim_guards` 把所有
      `source=review-sim` 的问题硬编码为 `confidence=low`、`status=needs_human`、
@@ -31,11 +35,19 @@ description: Simulated multi-role peer review (methodology / statistics / domain
 ### mode=build（默认）
 
 - `input_file` / `text_file` / `text`：论文输入（.docx 走 paper-parser，其余按文本切分）；
-- `language`；`title`；`out`：产物目录（默认 `output/review-sim`）。
+- `language`；`title`；`out`：产物目录（默认 `output/review-sim`）；
+- `only_sections`：只给这些 section_id 出作业（R1 对抗闭环按改动章节评审）；
+- `config`：配置文件路径或 dict（optimizer-loop 传入角色轮换后的子集）。
 - 产出：`review-jobs.json`（每个 job 带 `section_text` 锚定底本、`prompt_file`、
   `response_file`）+ `prompts/<job_id>.prompt.txt`。
 - 章节切分：Markdown/数字标题 → `utils.sections.classify_section` 类型标注；
   每个角色按配置的 sections 过滤，另加一个 `cross` 跨节比对作业（全文截断装配）。
+
+### mode=diff_sections
+
+- `old_text` / `new_text` / `language`：两版全文（确定性切分对比）；
+- 产出：`{changed[], removed[], review_sections[]}`——optimizer-loop 发射
+  评审周期时用 `review_sections` 做 `only_sections` 过滤。
 
 ### mode=apply
 
@@ -53,8 +65,18 @@ description: Simulated multi-role peer review (methodology / statistics / domain
 ## 输出
 
 - build：`{schema_version, job_count, jobs[], status}`；
-- apply：`{applied_count, rejected_count, pending_count, findings[], rejected[], status}`；
+- diff_sections：`{schema_version, changed[], removed[], review_sections[]}`；
+- apply：`{applied_count, rejected_count, pending_count, findings[], rejected[], warnings[], unmatched_responses[], status}`；
 - register：issue-registry registry（`issues[]` 内 review-sim 条目带硬门禁属性）。
+
+## 与 optimizer-loop 的对抗闭环（R1）
+
+- decide 接受修订后对**改动章节**发射评审周期（`diff_sections` 切分 + cross 全文视图）；
+- 意见生命周期：new →（guidance 批注驱动修订）→ reReview 未再命中 = resolved_by_reReview；
+- 意见跨轮去重键 = section_id + 类别 + 引文前缀（issue_model 指纹含模型复述文本，
+  不适合做意见级同一性）；
+- 平台期止损（config/review-sim.yaml loop 节）：连续 2 轮无新增无收敛 → 轮换
+  `alternate_roles`；连续 4 轮 → 停止循环、升级人工。
 
 ## 质量约束
 

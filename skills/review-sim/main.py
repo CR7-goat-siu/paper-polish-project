@@ -29,6 +29,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from utils.anchor_norm import normalize_anchor  # noqa: E402
+from utils import response_matching  # noqa: E402
 from utils.config_loader import PROJECT_ROOT, load_yaml_file, normalize_language  # noqa: E402
 from utils.logger import get_logger  # noqa: E402
 from utils.prompt_renderer import render_template  # noqa: E402
@@ -180,13 +181,21 @@ def build_jobs(
     parsed: dict[str, Any] | None = None,
     config: dict[str, Any] | None = None,
     out_dir: str | Path = "output/review-sim",
+    only_sections: list[str] | None = None,
 ) -> dict[str, Any]:
-    """按 章节 × 角色（+ 可选跨节视图）渲染评审作业包并落盘。"""
+    """按 章节 × 角色（+ 可选跨节视图）渲染评审作业包并落盘。
+
+    only_sections：只给这些 section_id 出作业（对抗闭环按改动章节评审）；
+    跨节视图不受其限制（全文交叉比对始终可看全局）。
+    """
     config = config or load_config()
     language = normalize_language(language)
     sections = split_sections(text, language=language, parsed=parsed)
     if not sections:
         raise ValueError("论文为空，无法生成评审作业包")
+    if only_sections:
+        allowed = {str(item) for item in only_sections}
+        sections = [section for section in sections if section["section_id"] in allowed]
     outline = _build_outline(sections)
     out_root = Path(out_dir)
     prompts_dir = out_root / "prompts"
@@ -332,6 +341,26 @@ def _assemble_cross_text(
     return "\n\n".join(parts)
 
 
+def diff_sections(
+    old_text: str, new_text: str, *, language: str = "en"
+) -> dict[str, Any]:
+    """对比两版文本的章节集合，返回需要评审的 section_id（改动 + 新增）。
+
+    供 optimizer-loop 对抗闭环做「只评审改动章节」的确定性切分；
+    section_id 与 build_jobs 完全同源（同一 split_sections），保证可过滤。
+    """
+    old = {s["section_id"]: s["text"] for s in split_sections(old_text, language=language)}
+    new = {s["section_id"]: s["text"] for s in split_sections(new_text, language=language)}
+    changed = sorted(sid for sid, text in new.items() if old.get(sid) != text)
+    removed = sorted(sid for sid in old if sid not in new)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "changed": changed,
+        "removed": removed,
+        "review_sections": changed,
+    }
+
+
 # --------------------------------------------------------------------------- #
 # apply：fail-closed 响应校验
 # --------------------------------------------------------------------------- #
@@ -367,7 +396,9 @@ def apply_responses(
     """校验回填的评审响应，产出归一化 findings 与被拒清单（fail-closed）。
 
     校验规则：
-    - 响应必须是 JSON 对象，job_id / section_id / role 与作业一致；
+    - 响应必须是 JSON 对象，role / section_id 与作业一致；job_id 回显不可靠
+      时（异构执行器实测失败模式）降级为 role+section_id 身份凭据，
+      二者错必拒，锚定门禁兜底（utils.response_matching）；
     - 每条 finding 必填 RESPONSE_FINDING_FIELDS 全部字段；
     - exact_source_quote 空白归一后必须是指定文本的逐字子串，
       且长度 ≥ min_quote_chars；否则整条丢弃并记录 rejected 原因。
@@ -385,6 +416,16 @@ def apply_responses(
     min_quote = int((config.get("limits") or {}).get("min_quote_chars", 12))
 
     response_root = Path(responses_dir) if responses_dir else None
+    match_result = {"assignments": {}, "unmatched_files": [], "warnings": []}
+    if response_root is not None:
+        match_result = response_matching.match_files(
+            jobs,
+            response_root,
+            identity_fields=["role", "section_id"],
+            anchor_field="section_text",
+            quote_field="exact_source_quote",
+        )
+    warnings: list[str] = list(match_result["warnings"])
     findings: list[dict[str, Any]] = []
     rejected: list[dict[str, Any]] = []
     applied = 0
@@ -407,9 +448,9 @@ def apply_responses(
 
         raw_response = str(job.get("response") or "")
         if not raw_response and response_root is not None:
-            response_file = response_root / f"{job_id}.txt"
-            if response_file.exists():
-                raw_response = response_file.read_text(encoding="utf-8-sig")
+            assigned = match_result["assignments"].get(job_id)
+            if assigned:
+                raw_response = Path(assigned).read_text(encoding="utf-8-sig")
         if not raw_response.strip():
             pending.append(job_id)
             continue
@@ -420,9 +461,14 @@ def apply_responses(
             rejected.append({"job_id": job_id, "finding_index": None, "reason": f"invalid_json: {exc}"})
             continue
 
-        if str(result.get("job_id") or "") != job_id:
-            rejected.append({"job_id": job_id, "finding_index": None, "reason": "job_id_mismatch"})
-            continue
+        echoed_id = str(result.get("job_id") or "")
+        if echoed_id != job_id:
+            # job_id 回显不可靠是异构执行器实测失败模式；身份凭据降级为
+            # role + section_id 回显一致——二者错必拒，锚定门禁兜底。
+            if not response_matching.identity_matches(result, job, ["role", "section_id"]):
+                rejected.append({"job_id": job_id, "finding_index": None, "reason": "job_id_mismatch"})
+                continue
+            warnings.append(f"job_id_relabel_accepted: {job_id} (echoed {echoed_id!r})")
         if str(result.get("section_id") or "") != section_id:
             rejected.append({"job_id": job_id, "finding_index": None, "reason": "section_id_mismatch"})
             continue
@@ -498,6 +544,8 @@ def apply_responses(
         "pending_jobs": pending,
         "findings": findings,
         "rejected": rejected,
+        "warnings": warnings,
+        "unmatched_responses": match_result["unmatched_files"],
         "status": "applied" if applied else ("pending" if pending else "no_valid_findings"),
     }
 
@@ -533,8 +581,16 @@ def register_findings(
 
 def run(args: dict[str, Any]) -> dict[str, Any]:
     mode = str(args.get("mode") or "build").lower()
-    config = load_config(args.get("config"))
+    raw_config = args.get("config")
+    config = raw_config if isinstance(raw_config, dict) else load_config(raw_config)
     language = normalize_language(str(args.get("language") or "en"))
+
+    if mode == "diff_sections":
+        old_text = str(args.get("old_text") or "")
+        new_text = str(args.get("new_text") or "")
+        if not old_text.strip() or not new_text.strip():
+            raise ValueError("review-sim diff_sections 需要 old_text 与 new_text")
+        return diff_sections(old_text, new_text, language=language)
 
     if mode == "build":
         input_file = args.get("input_file") or args.get("input") or args.get("text_file")
@@ -559,6 +615,7 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
             parsed=parsed,
             config=config,
             out_dir=args.get("out") or "output/review-sim",
+            only_sections=args.get("only_sections"),
         )
 
     if mode == "apply":

@@ -34,7 +34,7 @@ paper-polish-project
 ## 设计约束
 
 - **模型执行在项目之外**：coding harness 读取 `jobs.json` 中的 Prompt，调用其已有模型能力，并把响应写回 `response` 字段或 `responses/<job_id>.txt`。
-- **零 API Key、零第三方依赖、零内置模型执行器**：项目不读取模型密钥，不启动 Codex CLI、Ollama 或其它模型命令，Python 代码只使用标准库。
+- **唯一红线：零 API Key**：项目不读取模型密钥、不使用需要密钥的服务，所有网络访问经 `utils/web_fetch` 走公开免密钥端点。Python 标准库优先，第三方依赖在收益明确时引入且不得接触密钥。模型交互默认由 coding harness 经作业包契约完成；可选免密钥执行桥（本地模型服务 / 用户已登录 CLI）凭据自持，并写穿同一套审计文件。
 - **唯一能力入口**：每个业务能力位于 `skills/<skill-name>/`，通过 `SKILL.md` 描述契约，通过 `run(args) -> dict` 执行。
 - **Prompt 模板化**：Prompt 正文只位于 `prompts/**`，代码通过 `utils.prompt_renderer.render_template()` 渲染。
 - **配置化驱动**：语言规则、领域包、术语、词库、文献源和预审阈值均来自 `config/` 与 `data/`。

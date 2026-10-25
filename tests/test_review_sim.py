@@ -185,6 +185,33 @@ class ReviewSimApplyTests(unittest.TestCase):
             },
         )
         result = self.module.run({"mode": "apply", "jobs": self.jobs, "responses_dir": str(self.tmp / "responses")})
+        # job_id 回显错误但 role+section_id 一致：宽容匹配接受（异构执行器
+        # 实测失败模式），身份凭据降级 + 锚定门禁兜底，记录 relabel 告警
+        self.assertEqual(result["applied_count"], 1)
+        self.assertTrue(any("job_id_relabel_accepted" in w for w in result["warnings"]))
+
+    def test_identity_fields_mismatch_is_rejected(self):
+        job = self._job("cross", "statistics")
+        quote = self._quote_from_job(job)
+        _write_response(
+            self.tmp,
+            job["job_id"],
+            {
+                "job_id": "revsim-someone-else",
+                "section_id": "elsewhere",
+                "role": "novelty",
+                "findings": [
+                    {
+                        "issue_category": "x",
+                        "claim_or_defect_summary": "s",
+                        "exact_source_quote": quote,
+                        "line_or_paragraph_locator": "¶1",
+                        "rationale": "r",
+                    }
+                ],
+            },
+        )
+        result = self.module.run({"mode": "apply", "jobs": self.jobs, "responses_dir": str(self.tmp / "responses")})
         self.assertEqual(result["applied_count"], 0)
         self.assertEqual(result["rejected"][0]["reason"], "job_id_mismatch")
 
