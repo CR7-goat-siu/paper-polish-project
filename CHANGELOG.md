@@ -3,6 +3,41 @@
 本项目的显著变更记录。格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循语义化版本。
 
+## [Unreleased] — v0.13.0 候选（2026-10-25）
+
+### 新增
+
+- **R1 对抗闭环：review-sim 接入 optimizer-loop decide 轮**——decide 接受修订
+  后对改动章节（`diff_sections` 确定性切分 + cross 全文视图）自动发射评审周期；
+  意见生命周期 new / still_open / resolved_by_reReview（跨轮去重键 = section +
+  类别 + 引文前缀）；活跃意见刷新进最佳版本审计（issue-registry `extra_sources`
+  合并通道），下一轮 build 以「评审意见」批注注入对应章节（guidance 驱动，
+  requires_human 红线不变）；停机路径上最终版本先评后交付；平台期止损照抄
+  ARIS 纪律（连续 2 轮无进展换角色组合、4 轮停止升级人工）。
+  **真实稿验证（第二份手稿 EEG 世清 docx，2 轮 + 2 评审周期）**：基线 29 问题
+  （P1×13）→ 终稿 23（P1×11），加权指数 1.88 → 2.07；cycle-1 的 5 条意见全部
+  经 guidance 修订并在 reReview 判定收敛（resolved 5/5）；cycle-2 挖出 4 条更
+  深层问题（含表1/表2 EOG SNR 23.939 vs 24.349 跨表矛盾——确定性审计实测漏检
+  的语义类）。交付状态 BLOCKED（P1 待作者裁决）为诚实结果。
+- **R7 免密钥执行桥**（`utils/executor_bridge.py` + `config/executor-bridge.yaml`
+  + optimizer-loop `stage=backfill`）：CLI 通道（argv 列表无 shell，命令只来自
+  配置）与回环 HTTP 通道（`utils/web_fetch.post_text_loopback`，仅允许
+  localhost/127.0.0.1/::1，请求头免密钥检查、不落缓存）；每次调用写穿
+  `bridge-log.jsonl` 审计；失败/超时作业保持 pending（fail-closed）；
+  默认 enabled=false，凭据由通道自持（用户已登录 CLI / 本地推理服务）。
+- **job_id 宽容匹配**（`utils/response_matching.py`）：异构执行器实测 17/17
+  不回显作业身份——文件级四级归因（精确文件名 / 文件名子串 / 身份键回显 /
+  逐字锚点内容唯一归属），歧义即放弃；review-sim / cite-intent apply 接入，
+  job_id 回显错误但身份键一致时接受并记 relabel 告警；润色作业无逐字锚点，
+  保持严格 job_id（防跨块换文）。
+
+### 修复
+
+- 锚定归一三处口径分裂：optimizer-loop 问题→章节映射、批注→段落锚定
+  （utils/polish_engine）统一改走 `utils.anchor_norm` 字符级等价（评审意见的
+  context_snippet 本就是 anchor_norm 形态，原空白折叠匹配必漏）；批注锚文本
+  改存原文形态。修复后真实稿 5 条评审意见全部锚定成功（修复前 0/5）。
+
 ## [Unreleased] — v0.12.0 候选（2026-10-25）
 
 ### 新增

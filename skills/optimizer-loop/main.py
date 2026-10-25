@@ -38,6 +38,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from utils import executor_bridge, issue_model, job_io  # noqa: E402
+from utils.anchor_norm import normalize_anchor  # noqa: E402
 from utils.config_loader import PROJECT_ROOT, load_yaml_file, normalize_language  # noqa: E402
 from utils.logger import get_logger  # noqa: E402
 from utils.skill_loader import run_skill  # noqa: E402
@@ -709,8 +710,12 @@ def _map_issues_to_chunks(
         if chunk.get("kind") in _POLISHABLE_KINDS
         and (chunk.get("heading") or "").strip() != (title or "").strip()
     }
+    # 证据与 chunk 内容统一走 anchor_norm 字符级等价（大小写/全半角/空白折叠）：
+    # 评审意见的 context_snippet 已是 anchor_norm 形态，确定性审计证据也可能
+    # 携带大小写或全半角漂移，两侧同口径才不会漏配；边界仍只是字符等价，
+    # 不做任何语义匹配
     normalized = [
-        (str(chunk.get("id")), _norm_ws(chunk.get("content")))
+        (str(chunk.get("id")), normalize_anchor(chunk.get("content") or ""))
         for chunk in chunks
         if str(chunk.get("id")) in polishable
     ]
@@ -722,16 +727,19 @@ def _map_issues_to_chunks(
             _strip_ellipsis(_norm_ws(issue.get("evidence"))),
             _norm_ws((issue.get("metadata") or {}).get("found")),
         ):
-            probe = probe.strip("。；;，, ")
+            raw_probe = probe.strip("。；;，, ")
+            probe = normalize_anchor(raw_probe)
             if len(probe) < 8:
                 continue
             chunk_id = _locate_probe(probe[:80], normalized)
-            anchored_text = probe[:80]
+            # anchor_text 存原文形态（polish 层按原文锚定挂载批注）；
+            # 归一形态只用于本函数内的定位比对
+            anchored_text = raw_probe[:80]
             if chunk_id is None:
                 # 跨章节边界的证据：全文审计的上下文窗口可能横跨两个章节
                 # （如 "…方法 ## 摘要 脑电信号作为…"），按 Markdown 标题切分后
                 # 优先取包含被标记词的片段（问题真正所在），否则取最长片段。
-                fragments = [f.strip() for f in re.split(r"\s##\s", probe) if len(f.strip()) >= 8]
+                fragments = [f.strip() for f in re.split(r"\s##\s", raw_probe) if len(f.strip()) >= 8]
                 found_term = _norm_ws((issue.get("metadata") or {}).get("found"))
                 found_head = found_term[:2] if len(found_term) >= 2 else found_term
                 fragments.sort(
@@ -739,7 +747,7 @@ def _map_issues_to_chunks(
                     reverse=True,
                 )
                 for fragment in fragments:
-                    chunk_id = _locate_probe(fragment[:80], normalized)
+                    chunk_id = _locate_probe(normalize_anchor(fragment[:80]), normalized)
                     if chunk_id is not None:
                         anchored_text = fragment[:80]
                         break

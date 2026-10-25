@@ -17,6 +17,7 @@
   - `stat-check`（`utils/stat_checks`）：统计报告一致性（t/F/χ²/Z/r 重算 p 值
     区间容差判定 / decision_error / GRIM 小样本均值颗粒度）
 - `sources`：已算好的审计结果列表，每项 `{skill, result, location?}`；
+- `extra_sources`：文本模式下的追加来源（如 review-sim 评审意见），与确定性审计同场登记；
   支持 review-gate（`violations`）、claim-guard / term-check（`findings`）、
   lit-verify（`results[*].findings`）、上述新来源（`findings`）等结构
 

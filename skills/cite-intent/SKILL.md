@@ -48,7 +48,9 @@ description: Prefills citation intent (supporting/contrasting/background/mention
 ### mode=apply
 
 - `jobs` / `jobs_file`：build 产物（默认取 out 目录下的 cite-intent-jobs.json）；
-- `responses_dir`：coding harness 回填目录（`<job_id>.txt`）。
+- `responses_dir`：coding harness 回填目录；文件名与 job_id 无关时按
+  `utils.response_matching` 四级归因（精确名/子串/claim+reference 回显/证据句锚定），
+  job_id 回显错误但身份键一致时接受并记 relabel 告警；coding harness 回填目录（`<job_id>.txt`）。
 
 ## 输出
 
