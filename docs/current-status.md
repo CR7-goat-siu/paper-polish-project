@@ -9,9 +9,29 @@
 
 ## 当前版本
 
-- 版本：`v0.11.0`
-- 日期：2026-10-22
-- 离线回归：344 项通过，4 项真实公网测试在普通回归中跳过
+- 版本：`v0.11.0`（未发布改动：计划驱动修订、全源审计、交付闭环、句级外科回退，
+  见 docs/roadmap.md P4.5 / P4.6）
+- 日期：2026-10-23
+- 离线回归：364 项通过，4 项真实公网测试在普通回归中跳过
+- 端到端红队 3 连：中文 Markdown（36→20）/ 英文 Markdown（45→22）/ LaTeX 换主题
+  （29→8）三轮全部自动收敛并交付，零关键失败（docs/roadmap.md P4）
+- optimizer-loop 状态机：init / audit / build / apply / decide / deliver 分步契约 +
+  `run-state.json` 断点续跑；每轮按修改计划选择性出作业（局部补丁），
+  审计问题注入 prompt 批注通道，decide 按指纹做版本决策与任务级验证
+- 交付闭环：终稿 DOCX（docx 回写稿 / Markdown 装配）+ submission-audit 预审 +
+  双门禁合并状态 + 交付索引 + 根目录交付（可选真实渲染）
+- 端到端真实循环验证：`output/e2e-realloop/`——coding harness 扮演模型，
+  埋坑稿 4 轮循环 36 → 20 问题自动收敛并交付（DOCX + 渲染 PDF + 预审）；
+  剩余问题全部 requires_human，fail-closed 诚实交付
+- 全源审计：issue-registry 文本模式覆盖 claim-guard / term-check /
+  cite-manager audit / lit-search gap / consistency-check，
+  引用越界、图表未定义、摘要数字不一致等结构缺陷已登记为 P0-P3 问题
+- 句级外科式 Fail-Closed：门禁重试耗尽时逐句回退违例句，保留已过审修改
+- 真实论文黄金标准评测集：56 篇 arXiv 全文 × 4 领域（biomedical-eeg 32 /
+  computer-vision 8 / nlp 8 / time-series 8；tools/build_gold_standard_corpus.py，
+  data/eval/gold-standard/）——阴性对照 P0 误报 0/56（四领域分域干净率均 1.0），
+  五类植入缺陷分域召回均 1.0；语料 v2 落实 corpus/candidates 分离与 index.json
+  全集清单；暴露并修复区间记号误判、无标题摘要盲区与年份标注式文献表的金标适配
 - 真实公网文献基准：6 个公开免密钥数据源连通，正样本核验与伪造样本拦截通过
 - 模拟坏稿：构建、Fail-Closed 和最终发表阻断行为通过
 - DOCX smoke：真实 Word 渲染通过，页面非空

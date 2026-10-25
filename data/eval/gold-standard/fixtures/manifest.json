@@ -1,0 +1,91 @@
+{
+  "1704.07603v2-excerpt.md": {
+    "arxiv_id": "1704.07603v2",
+    "domain": "biomedical-eeg",
+    "title": "Surrogate-based artifact removal from single-channel EEG",
+    "expected_variants": [
+      "abstract_fake_percent",
+      "ghost_figure_reference",
+      "hype_injection",
+      "duplicated_reference"
+    ]
+  },
+  "1908.10432v1-excerpt.md": {
+    "arxiv_id": "1908.10432v1",
+    "domain": "biomedical-eeg",
+    "title": "EEG Signal Dimensionality Reduction and Classification using Tensor Decomposition and Deep Convolutional Neural Networks",
+    "expected_variants": [
+      "abstract_fake_percent",
+      "ghost_figure_reference",
+      "hype_injection",
+      "duplicated_reference"
+    ]
+  },
+  "1809.01826v1-excerpt.md": {
+    "arxiv_id": "1809.01826v1",
+    "domain": "computer-vision",
+    "title": "Connecting Image Denoising and High-Level Vision Tasks via Deep Learning",
+    "expected_variants": [
+      "abstract_fake_percent",
+      "ghost_figure_reference",
+      "hype_injection",
+      "duplicated_reference"
+    ]
+  },
+  "1810.05052v1-excerpt.md": {
+    "arxiv_id": "1810.05052v1",
+    "domain": "computer-vision",
+    "title": "Deep Learning for Image Denoising: A Survey",
+    "expected_variants": [
+      "citation_out_of_bounds",
+      "abstract_fake_percent",
+      "ghost_figure_reference",
+      "hype_injection",
+      "duplicated_reference"
+    ]
+  },
+  "1912.01389v2-excerpt.md": {
+    "arxiv_id": "1912.01389v2",
+    "domain": "nlp",
+    "title": "Towards Lingua Franca Named Entity Recognition with BERT",
+    "expected_variants": [
+      "abstract_fake_percent",
+      "ghost_figure_reference",
+      "hype_injection"
+    ]
+  },
+  "1912.07095v1-excerpt.md": {
+    "arxiv_id": "1912.07095v1",
+    "domain": "nlp",
+    "title": "Robust Named Entity Recognition with Truecasing Pretraining",
+    "expected_variants": [
+      "abstract_fake_percent",
+      "ghost_figure_reference",
+      "hype_injection"
+    ]
+  },
+  "1902.00636v1-excerpt.md": {
+    "arxiv_id": "1902.00636v1",
+    "domain": "time-series",
+    "title": "A Spatial-Temporal Decomposition Based Deep Neural Network for Time Series Forecasting",
+    "expected_variants": [
+      "citation_out_of_bounds",
+      "abstract_fake_percent",
+      "ghost_figure_reference",
+      "hype_injection",
+      "duplicated_reference"
+    ]
+  },
+  "1902.05312v2-excerpt.md": {
+    "arxiv_id": "1902.05312v2",
+    "domain": "time-series",
+    "title": "Generalisation in fully-connected neural networks for time series forecasting",
+    "expected_variants": [
+      "citation_out_of_bounds",
+      "abstract_fake_percent",
+      "ghost_figure_reference",
+      "hype_injection",
+      "duplicated_reference"
+    ]
+  }
+}

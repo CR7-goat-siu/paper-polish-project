@@ -1,0 +1,3324 @@
+{
+  "paper_count": 56,
+  "domain_count": 4,
+  "papers_by_domain": {
+    "biomedical-eeg": 32,
+    "computer-vision": 8,
+    "nlp": 8,
+    "time-series": 8
+  },
+  "recall_by_domain": {
+    "biomedical-eeg": 1.0,
+    "computer-vision": 1.0,
+    "nlp": 1.0,
+    "time-series": 1.0
+  },
+  "negative_control_clean_rate": 1.0,
+  "p0_false_positive_papers": [],
+  "positive_recall_overall": 1.0,
+  "positive_recall_by_defect": {
+    "citation_out_of_bounds": {
+      "total": 52,
+      "detected": 52
+    },
+    "abstract_fake_percent": {
+      "total": 51,
+      "detected": 51
+    },
+    "ghost_figure_reference": {
+      "total": 51,
+      "detected": 51
+    },
+    "hype_injection": {
+      "total": 51,
+      "detected": 51
+    },
+    "duplicated_reference": {
+      "total": 53,
+      "detected": 53
+    }
+  },
+  "generated_at": "2026-10-25T09:18:02",
+  "papers": [
+    {
+      "arxiv_id": "1704.07603v2",
+      "domain": "biomedical-eeg",
+      "title": "Surrogate-based artifact removal from single-channel EEG",
+      "published": "2017-04-25",
+      "chars": 57014,
+      "reference_count": 41,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 7,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::absolute complete（absolute）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute Complete（absolute）",
+          "claim-guard::unanchored_claim complete（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-026 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-94b3a97a-041 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-c967c481-040 [P1] 正文第 9 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-6f344da5-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-028 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "1908.10432v1",
+      "domain": "biomedical-eeg",
+      "title": "EEG Signal Dimensionality Reduction and Classification using Tensor Decomposition and Deep Convolutional Neural Networks",
+      "published": "2019-08-27",
+      "chars": 32102,
+      "reference_count": 30,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 4,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-027 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-84243001-067 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-36fe5ee0-067 [P1] 正文第 17 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-334f97c0-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-030 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "1911.04338v1",
+      "domain": "biomedical-eeg",
+      "title": "Active Learning for Black-Box Adversarial Attacks in EEG-Based Brain-Computer Interfaces",
+      "published": "2019-11-07",
+      "chars": 37618,
+      "reference_count": 43,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 6,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::absolute completely（absolute）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-018 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-1241cafe-036 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-036 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-8c14b0d2-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-018 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2009.11662v4",
+      "domain": "biomedical-eeg",
+      "title": "EEGdenoiseNet: A benchmark dataset for end-to-end deep learning solutions of EEG denoising",
+      "published": "2020-09-24",
+      "chars": 55995,
+      "reference_count": 78,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 5,
+        "p0_details": [],
+        "p1_details": [
+          "term-check::nonstandard_use convolution neural network（nonstandard_use）",
+          "term-check::nonstandard_use deep-learning（nonstandard_use）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-029 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-b85ed178-070 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-c967c481-069 [P1] 正文第 9 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-390e20e9-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-029 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2104.08120v1",
+      "domain": "biomedical-eeg",
+      "title": "Orthogonal Features Based EEG Signals Denoising Using Fractional and Compressed One-Dimensional CNN AutoEncoder",
+      "published": "2021-04-16",
+      "chars": 60653,
+      "reference_count": 37,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 13,
+        "p0_details": [],
+        "p1_details": [
+          "term-check::nonstandard_use over-fitting（nonstandard_use）",
+          "term-check::nonstandard_use convolution neural network（nonstandard_use）",
+          "claim-guard::hype The optimal（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-041 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-f15deec4-057 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-055 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-af9cf25e-006 [P1] perfectly（absolute）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-041 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2110.06634v3",
+      "domain": "biomedical-eeg",
+      "title": "End-to-end translation of human neural activity to speech with a dual-dual generative adversarial network",
+      "published": "2021-10-13",
+      "chars": 57940,
+      "reference_count": 40,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 6,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim complete（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-018 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-8a73d34c-027 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-027 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-29985780-011 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-018 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2112.00989v2",
+      "domain": "biomedical-eeg",
+      "title": "Embedding Decomposition for Artifacts Removal in EEG Signals",
+      "published": "2021-12-02",
+      "chars": 56179,
+      "reference_count": 64,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 10,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute completely（absolute）",
+          "claim-guard::absolute completely（absolute）",
+          "claim-guard::absolute completely（absolute）",
+          "claim-guard::absolute totally（absolute）",
+          "claim-guard::absolute completely（absolute）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim completely（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-023 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-023 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2202.05170v1",
+      "domain": "biomedical-eeg",
+      "title": "Efficacy of Transformer Networks for Classification of Raw EEG Data",
+      "published": "2022-02-08",
+      "chars": 36807,
+      "reference_count": 43,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 8,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::intensifier massive（intensifier）",
+          "claim-guard::intensifier enormous（intensifier）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype unprecedented（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype unprecedented（hype）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-025 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-025 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2208.02405v1",
+      "domain": "biomedical-eeg",
+      "title": "Transformer Convolutional Neural Networks for Automated Artifact Detection in Scalp EEG",
+      "published": "2022-08-04",
+      "chars": 26474,
+      "reference_count": 15,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 6,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "consistency-check::abstract_number 摘要声称 35.5%，正文找不到对应数值（含小数等价形式）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-012 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-260cfb65-026 [P1] 摘要声称 35.5%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-c967c481-026 [P1] 正文第 9 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-177e3984-010 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-012 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2209.11980v1",
+      "domain": "biomedical-eeg",
+      "title": "Removal of Ocular Artifacts in EEG Using Deep Learning",
+      "published": "2022-09-24",
+      "chars": 32006,
+      "reference_count": 28,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 10,
+        "p0_details": [],
+        "p1_details": [
+          "term-check::nonstandard_use long-short term memory（nonstandard_use）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype The best（hype）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim State-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-029 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-259cf7b6-036 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-036 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-5513d8c4-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-029 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2302.10121v2",
+      "domain": "biomedical-eeg",
+      "title": "EEG2IMAGE: Image Reconstruction from EEG Brain Signals",
+      "published": "2023-02-20",
+      "chars": 27501,
+      "reference_count": 33,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 3,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::unanchored_claim complete（unanchored_claim）",
+          "claim-guard::unanchored_claim complete（unanchored_claim）",
+          "claim-guard::unanchored_claim complete（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-015 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-8f189192-031 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-030 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-a1372c86-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-015 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2401.05589v1",
+      "domain": "biomedical-eeg",
+      "title": "Multi-Dimensional Framework for EEG Signal Processing and Denoising Through Tensor-based Architecture",
+      "published": "2024-01-10",
+      "chars": 59393,
+      "reference_count": 44,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 13,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype groundbreaking（hype）",
+          "claim-guard::hype groundbreaking（hype）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim complete（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-027 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-a4f0fee3-067 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-067 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-09f49b60-021 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-027 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2404.15289v2",
+      "domain": "biomedical-eeg",
+      "title": "EEGDiR: Electroencephalogram denoising network for temporal information storage and global modeling through Retentive Network",
+      "published": "2024-03-20",
+      "chars": 74681,
+      "reference_count": 43,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 10,
+        "p0_details": [],
+        "p1_details": [
+          "term-check::nonstandard_use deep-learning（nonstandard_use）",
+          "term-check::nonstandard_use attentional mechanism（nonstandard_use）",
+          "claim-guard::hype The best（hype）",
+          "claim-guard::hype exceptional（hype）",
+          "claim-guard::hype exceptional（hype）",
+          "claim-guard::absolute complete（absolute）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-038 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-75370f2d-084 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-078 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-2a3e46e8-024 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-038 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2502.05332v2",
+      "domain": "biomedical-eeg",
+      "title": "Removing Neural Signal Artifacts with Autoencoder-Targeted Adversarial Transformers (AT-AT)",
+      "published": "2025-02-07",
+      "chars": 30570,
+      "reference_count": 32,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 3,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype best-in-class（hype）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::unanchored_claim complete（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-020 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-7943895c-048 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-047 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-53cdcc8e-014 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-020 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2502.06438v2",
+      "domain": "biomedical-eeg",
+      "title": "FEMBA: Efficient and Scalable EEG Analysis with a Bidirectional Mamba Foundation Model",
+      "published": "2025-02-10",
+      "chars": 38376,
+      "reference_count": 28,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 16,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::intensifier tremendous（intensifier）",
+          "claim-guard::intensifier Huge（intensifier）",
+          "claim-guard::intensifier Huge（intensifier）",
+          "claim-guard::intensifier Huge（intensifier）",
+          "claim-guard::intensifier Huge（intensifier）",
+          "claim-guard::intensifier Huge（intensifier）",
+          "claim-guard::intensifier Massive（intensifier）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute indispensable（absolute）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-023 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-dcade8f5-041 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-040 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-0ba583b9-023 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-023 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2502.08686v1",
+      "domain": "biomedical-eeg",
+      "title": "EEG Artifact Detection and Correction with Deep Autoencoders",
+      "published": "2025-02-12",
+      "chars": 58924,
+      "reference_count": 49,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 17,
+        "p0_details": [],
+        "p1_details": [
+          "term-check::nonstandard_use deep-learning（nonstandard_use）",
+          "claim-guard::absolute totally（absolute）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::unanchored_claim state of the art（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim state of the art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim extreme（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim extremely（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-034 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-5db919c0-064 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-063 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-2c0e456d-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-034 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2507.22263v1",
+      "domain": "biomedical-eeg",
+      "title": "Deep Learning for Gradient and BCG Artifacts Removal in EEG During Simultaneous fMRI",
+      "published": "2025-07-29",
+      "chars": 57151,
+      "reference_count": 36,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 10,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute complete（absolute）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::absolute Absolute（absolute）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-026 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-027 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2509.04951v1",
+      "domain": "biomedical-eeg",
+      "title": "Detecting Blinks in Healthy and Parkinson's EEG: A Deep Learning Perspective",
+      "published": "2025-09-05",
+      "chars": 32999,
+      "reference_count": 22,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 8,
+        "p0_details": [],
+        "p1_details": [
+          "term-check::nonstandard_use deep-learning（nonstandard_use）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute complete（absolute）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim extreme（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-023 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-62dd4b5b-034 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-7f1efe09-030 [P1] 正文第 11 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-7c1bc9c0-018 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-024 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2509.14302v1",
+      "domain": "biomedical-eeg",
+      "title": "D4PM: A Dual-branch Driven Denoising Diffusion Probabilistic Model with Joint Posterior Diffusion Sampling for EEG Artifacts Removal",
+      "published": "2025-09-17",
+      "chars": 25802,
+      "reference_count": 23,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 5,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::hype The best（hype）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-020 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-ce45c390-030 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-030 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-5d6259d9-018 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-020 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2509.14665v1",
+      "domain": "biomedical-eeg",
+      "title": "Task-Oriented Learning for Automatic EEG Denoising",
+      "published": "2025-09-18",
+      "chars": 70501,
+      "reference_count": 43,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 10,
+        "p0_details": [],
+        "p1_details": [
+          "term-check::nonstandard_use data-augmentation（nonstandard_use）",
+          "term-check::nonstandard_use learning-rate（nonstandard_use）",
+          "term-check::nonstandard_use deep-learning（nonstandard_use）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-022 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-69f6933f-031 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-030 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-18832e49-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-022 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2510.15371v2",
+      "domain": "biomedical-eeg",
+      "title": "Cortical-SSM: A Deep State Space Model for Motor Imagery Decoding from EEG Signals",
+      "published": "2025-10-17",
+      "chars": 79355,
+      "reference_count": 71,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 5,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute complete（absolute）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-9014cb58-136 [P1] 摘要声称 97.3%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-136 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-44b2a86f-020 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-096 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2510.19829v1",
+      "domain": "biomedical-eeg",
+      "title": "SSL-SE-EEG: A Framework for Robust Learning from Unlabeled EEG Data with Self-Supervised Learning and Squeeze-Excitation Networks",
+      "published": "2025-10-07",
+      "chars": 35382,
+      "reference_count": 47,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 7,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim State-of-the-Art（unanchored_claim）",
+          "consistency-check::abstract_number 摘要声称 85%，正文找不到对应数值（含小数等价形式）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-018 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-72e06d4c-030 [P1] 摘要声称 85%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-029 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-7ee2c7ea-014 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-018 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2510.22257v1",
+      "domain": "biomedical-eeg",
+      "title": "LUNA: Efficient and Topology-Agnostic Foundation Model for EEG Signal Analysis",
+      "published": "2025-10-25",
+      "chars": 78387,
+      "reference_count": 37,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 16,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::intensifier tremendous（intensifier）",
+          "claim-guard::intensifier Huge（intensifier）",
+          "claim-guard::intensifier massive（intensifier）",
+          "claim-guard::intensifier Huge（intensifier）",
+          "claim-guard::intensifier Huge（intensifier）",
+          "claim-guard::intensifier Huge（intensifier）",
+          "claim-guard::intensifier Huge（intensifier）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::unanchored_claim complete（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim complete（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim State-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-031 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-058e71a7-074 [P1] 摘要声称 97.3%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-069 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-428f9ce8-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-031 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2601.05789v1",
+      "domain": "biomedical-eeg",
+      "title": "SAFE: Secure and Accurate Federated Learning for Privacy-Preserving Brain-Computer Interfaces",
+      "published": "2026-01-09",
+      "chars": 57603,
+      "reference_count": 70,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 11,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype The best（hype）",
+          "claim-guard::absolute complete（absolute）",
+          "claim-guard::hype The best（hype）",
+          "claim-guard::hype The best（hype）",
+          "claim-guard::hype The best（hype）",
+          "claim-guard::hype The best（hype）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim complete（unanchored_claim）",
+          "claim-guard::unanchored_claim completely（unanchored_claim）",
+          "claim-guard::unanchored_claim complete（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-032 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-dad65e88-051 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-045 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-17cbc687-023 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-032 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2603.19100v2",
+      "domain": "biomedical-eeg",
+      "title": "LuMamba: Latent Unified Mamba for Electrode Topology-Invariant and Efficient EEG Modeling",
+      "published": "2026-03-19",
+      "chars": 32478,
+      "reference_count": 21,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 6,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::intensifier tremendous（intensifier）",
+          "claim-guard::intensifier massive（intensifier）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::hype the best（hype）",
+          "consistency-check::abstract_number 摘要声称 80.99%，正文找不到对应数值（含小数等价形式）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-011 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-1b8c9e0d-018 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-017 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-1fe68cad-011 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-012 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2603.26716v1",
+      "domain": "biomedical-eeg",
+      "title": "FEMBA on the Edge: Physiologically-Aware Pre-Training, Quantization, and Deployment of a Bidirectional Mamba EEG Foundation Model on an Ultra-low Power Microcontroller",
+      "published": "2026-03-18",
+      "chars": 78031,
+      "reference_count": 62,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 20,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::intensifier tremendous（intensifier）",
+          "claim-guard::intensifier Huge（intensifier）",
+          "claim-guard::intensifier Huge（intensifier）",
+          "claim-guard::intensifier massive（intensifier）",
+          "claim-guard::intensifier Huge（intensifier）",
+          "claim-guard::intensifier massively（intensifier）",
+          "claim-guard::intensifier Huge（intensifier）",
+          "claim-guard::intensifier Huge（intensifier）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute completely（absolute）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim extreme（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim extreme（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-043 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-c7f309e1-083 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-083 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-68ad7dc5-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-043 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2604.24428v2",
+      "domain": "biomedical-eeg",
+      "title": "BandRouteNet: An Adaptive Band Routing Neural Network for EEG Artifact Removal",
+      "published": "2026-04-27",
+      "chars": 28578,
+      "reference_count": 20,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 4,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-015 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-636f467b-037 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-c967c481-037 [P1] 正文第 9 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-86227cec-011 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-015 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2605.06724v2",
+      "domain": "biomedical-eeg",
+      "title": "Enabling Unsupervised Training of Deep EEG Denoisers With Intelligent Partitioning",
+      "published": "2026-05-07",
+      "chars": 102192,
+      "reference_count": 42,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 23,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::intensifier huge（intensifier）",
+          "claim-guard::intensifier hugely（intensifier）",
+          "term-check::nonstandard_use deep-learning（nonstandard_use）",
+          "claim-guard::hype the Optimal（hype）",
+          "claim-guard::absolute complete（absolute）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::hype The Optimal（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim extreme（unanchored_claim）",
+          "claim-guard::unanchored_claim extreme（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-047 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-4e3eaf5c-087 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-087 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-af9cf25e-007 [P1] perfectly（absolute）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-047 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2605.18296v1",
+      "domain": "biomedical-eeg",
+      "title": "MEEDAV: A Synchronous Web Viewer for EEG, Eye-Tracking and Speech Data",
+      "published": "2026-05-18",
+      "chars": 17718,
+      "reference_count": 10,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 4,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::absolute complete（absolute）",
+          "claim-guard::unanchored_claim complete（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-007 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-6e83226d-010 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-010 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-0789a392-008 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-007 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2606.08594v2",
+      "domain": "biomedical-eeg",
+      "title": "How Much Capacity Does EEG Denoising Need? Ultra-Compact Networks reveal Benchmark Saturation and Metric-Utility Gap",
+      "published": "2026-06-07",
+      "chars": 74484,
+      "reference_count": 44,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 9,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::hype The best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim complete（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-021 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-15a7d725-032 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-c967c481-032 [P1] 正文第 9 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-5fe3fcb4-018 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-021 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2606.24087v1",
+      "domain": "biomedical-eeg",
+      "title": "NeuroSonic: Conditional Flow Matching for EEG-to-Speech Reconstruction",
+      "published": "2026-06-23",
+      "chars": 27905,
+      "reference_count": 30,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 3,
+        "p0_details": [],
+        "p1_details": [
+          "term-check::nonstandard_use learning-rate（nonstandard_use）",
+          "claim-guard::hype the best（hype）",
+          "consistency-check::abstract_number 摘要声称 26.3%，正文找不到对应数值（含小数等价形式）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-007 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-e1793836-037 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-036 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-af9cf25e-002 [P1] perfectly（absolute）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-007 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2607.08855v1",
+      "domain": "biomedical-eeg",
+      "title": "Spatial Neighboring Scattering Transform: A Cross-Channel Amplitude Coupling Measure for EEG Connectivity",
+      "published": "2026-07-09",
+      "chars": 48853,
+      "reference_count": 43,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 4,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-015 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-015 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "1809.01826v1",
+      "domain": "computer-vision",
+      "title": "Connecting Image Denoising and High-Level Vision Tasks via Deep Learning",
+      "published": "2018-09-06",
+      "chars": 51507,
+      "reference_count": 49,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 8,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype The best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype The best（hype）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-031 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-de7faa17-057 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-057 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-8938e683-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-031 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "1810.05052v1",
+      "domain": "computer-vision",
+      "title": "Deep Learning for Image Denoising: A Survey",
+      "published": "2018-10-11",
+      "chars": 25243,
+      "reference_count": 50,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 5,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::intensifier enormous（intensifier）",
+          "claim-guard::intensifier enormous（intensifier）",
+          "term-check::nonstandard_use deep-learning（nonstandard_use）",
+          "claim-guard::hype amazing（hype）",
+          "claim-guard::unanchored_claim completely（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-028 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-01797348-068 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-068 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-32391d2c-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-028 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "1811.11721v2",
+      "domain": "computer-vision",
+      "title": "CCNet: Criss-Cross Attention for Semantic Segmentation",
+      "published": "2018-11-28",
+      "chars": 68438,
+      "reference_count": 77,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 12,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::intensifier huge（intensifier）",
+          "claim-guard::intensifier huge（intensifier）",
+          "claim-guard::intensifier huge（intensifier）",
+          "claim-guard::intensifier huge（intensifier）",
+          "term-check::nonstandard_use convolution neural network（nonstandard_use）",
+          "term-check::nonstandard_use cross attention（nonstandard_use）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "consistency-check::abstract_number 摘要声称 81.9%，正文找不到对应数值（含小数等价形式）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-048 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-0326a341-091 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-088 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-7c128fad-020 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-048 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "1905.11172v1",
+      "domain": "computer-vision",
+      "title": "GRDN:Grouped Residual Dense Network for Real Image Denoising and GAN-based Real-world Noise Modeling",
+      "published": "2019-05-27",
+      "chars": 31609,
+      "reference_count": 33,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 10,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-027 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-c7d03b2b-058 [P1] 摘要声称 88.8%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-c967c481-057 [P1] 正文第 9 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-1a540fb6-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-027 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "1907.12273v2",
+      "domain": "computer-vision",
+      "title": "Interlaced Sparse Self-Attention for Semantic Segmentation",
+      "published": "2019-07-29",
+      "chars": 54372,
+      "reference_count": 63,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 4,
+        "p0_details": [],
+        "p1_details": [
+          "term-check::nonstandard_use cross attention（nonstandard_use）",
+          "claim-guard::intensifier huge（intensifier）",
+          "claim-guard::hype new benchmark for（hype）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-034 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-93f98845-074 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-074 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-3c5cf319-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-034 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "1909.10360v3",
+      "domain": "computer-vision",
+      "title": "RAUNet: Residual Attention U-Net for Semantic Segmentation of Cataract Surgical Instruments",
+      "published": "2019-09-23",
+      "chars": 24001,
+      "reference_count": 12,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 10,
+        "p0_details": [],
+        "p1_details": [
+          "term-check::nonstandard_use over-fitting（nonstandard_use）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim complete（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-027 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-0b7615a9-037 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-037 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-5df0d27d-016 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-027 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "1911.03975v2",
+      "domain": "computer-vision",
+      "title": "Graph Neural Net using Analytical Graph Filters and Topology Optimization for Image Denoising",
+      "published": "2019-11-10",
+      "chars": 26862,
+      "reference_count": 28,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 7,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::absolute perfect（absolute）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-018 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-246761b7-023 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-023 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-85f30971-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-018 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "1911.08877v1",
+      "domain": "computer-vision",
+      "title": "Improving Semantic Segmentation of Aerial Images Using Patch-based Attention",
+      "published": "2019-11-20",
+      "chars": 38305,
+      "reference_count": 36,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 7,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::intensifier tremendously（intensifier）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute complete（absolute）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-022 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-f1c081b5-056 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-056 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-6fab245a-015 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-023 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "1912.01389v2",
+      "domain": "nlp",
+      "title": "Towards Lingua Franca Named Entity Recognition with BERT",
+      "published": "2019-11-19",
+      "chars": 40680,
+      "reference_count": 21,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 10,
+        "p0_details": [],
+        "p1_details": [
+          "term-check::nonstandard_use fine tuning（nonstandard_use）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype The best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-e9639e35-039 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-039 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-23e67156-017 [P1] undoubtedly（hype）"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "1912.07095v1",
+      "domain": "nlp",
+      "title": "Robust Named Entity Recognition with Truecasing Pretraining",
+      "published": "2019-12-15",
+      "chars": 37316,
+      "reference_count": 30,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 11,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::absolute perfect（absolute）",
+          "claim-guard::absolute perfect（absolute）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::absolute perfect（absolute）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute perfect（absolute）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::absolute perfect（absolute）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::unanchored_claim state of the art（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-e1648dff-036 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-036 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-2088c94e-001 [P1] revolutionary（hype）"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2002.08902v1",
+      "domain": "nlp",
+      "title": "Application of Pre-training Models in Named Entity Recognition",
+      "published": "2020-02-09",
+      "chars": 17133,
+      "reference_count": 20,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 2,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-014 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-9107cbf6-036 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-036 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-53fc4515-008 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-014 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2006.08297v1",
+      "domain": "nlp",
+      "title": "Fine-grained Human Evaluation of Transformer and Recurrent Approaches to Neural Machine Translation for English-to-Chinese",
+      "published": "2020-06-15",
+      "chars": 40996,
+      "reference_count": 29,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 11,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute complete（absolute）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype State of the Art（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-457fac96-036 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-036 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-9cb2a994-001 [P1] revolutionary（hype）"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2011.01504v1",
+      "domain": "nlp",
+      "title": "BioNerFlair: biomedical named entity recognition using flair embedding and sequence tagger",
+      "published": "2020-11-03",
+      "chars": 29212,
+      "reference_count": 43,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 8,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype The best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-029 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-0b11f4a7-069 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-069 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-af9cf25e-002 [P1] perfectly（absolute）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-029 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2107.02039v1",
+      "domain": "nlp",
+      "title": "Power Law Graph Transformer for Machine Translation and Representation Learning",
+      "published": "2021-06-27",
+      "chars": 49688,
+      "reference_count": 29,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 7,
+        "p0_details": [],
+        "p1_details": [
+          "term-check::nonstandard_use long-short term memory（nonstandard_use）",
+          "claim-guard::intensifier Massive（intensifier）",
+          "claim-guard::hype State of the art（hype）",
+          "claim-guard::hype The best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-021 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-021 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2107.08199v2",
+      "domain": "nlp",
+      "title": "Dynamic Transformer for Efficient Machine Translation on Embedded Devices",
+      "published": "2021-07-17",
+      "chars": 29509,
+      "reference_count": 15,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 10,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::absolute perfect（absolute）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype The optimal（hype）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute perfect（absolute）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-020 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-397cb26a-025 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-025 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-6915a338-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-020 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2109.01084v1",
+      "domain": "nlp",
+      "title": "Text Classification for Predicting Multi-level Product Categories",
+      "published": "2021-09-02",
+      "chars": 52905,
+      "reference_count": 26,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 12,
+        "p0_details": [],
+        "p1_details": [
+          "term-check::nonstandard_use over-fitting（nonstandard_use）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim complete（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-025 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-fe3b363f-053 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-053 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-3209144f-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-025 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "1902.00636v1",
+      "domain": "time-series",
+      "title": "A Spatial-Temporal Decomposition Based Deep Neural Network for Time Series Forecasting",
+      "published": "2019-02-02",
+      "chars": 69114,
+      "reference_count": 50,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 13,
+        "p0_details": [],
+        "p1_details": [
+          "term-check::nonstandard_use long-short term memory（nonstandard_use）",
+          "term-check::nonstandard_use fine tuning（nonstandard_use）",
+          "claim-guard::absolute complete（absolute）",
+          "claim-guard::absolute complete（absolute）",
+          "claim-guard::absolute complete（absolute）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::absolute Absolute（absolute）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-033 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-328660c1-075 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-073 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-24c718b5-021 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-033 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "1902.05312v2",
+      "domain": "time-series",
+      "title": "Generalisation in fully-connected neural networks for time series forecasting",
+      "published": "2019-02-14",
+      "chars": 86090,
+      "reference_count": 38,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 15,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::absolute perfectly（absolute）",
+          "claim-guard::absolute perfectly（absolute）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-052 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-56752255-094 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-092 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-01224436-023 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-052 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "1911.08793v1",
+      "domain": "time-series",
+      "title": "A Framework for End-to-End Deep Learning-Based Anomaly Detection in Transportation Networks",
+      "published": "2019-11-20",
+      "chars": 57397,
+      "reference_count": 41,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 15,
+        "p0_details": [],
+        "p1_details": [
+          "term-check::nonstandard_use over-fitting（nonstandard_use）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype The optimal（hype）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim state of the art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim Extreme（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim Extreme（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-050 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-aa9c5ce4-063 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-063 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-1f259b19-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-050 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "1912.02549v1",
+      "domain": "time-series",
+      "title": "Deep Anomaly Detection in Packet Payload",
+      "published": "2019-12-05",
+      "chars": 48826,
+      "reference_count": 39,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 4,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-028 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-8728ee09-070 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-068 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-92781ae0-014 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-028 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2001.09547v2",
+      "domain": "time-series",
+      "title": "A clustering approach to time series forecasting using neural networks: A comparative study on distance-based vs. feature-based clustering methods",
+      "published": "2020-01-27",
+      "chars": 51803,
+      "reference_count": 33,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 15,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::intensifier massive（intensifier）",
+          "claim-guard::intensifier massive（intensifier）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::hype The optimal（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-032 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-61f3acbd-055 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-055 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-69a395e9-021 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-032 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2004.03722v1",
+      "domain": "time-series",
+      "title": "Challenges in Vessel Behavior and Anomaly Detection: From Classical Machine Learning to Deep Learning",
+      "published": "2020-04-07",
+      "chars": 57120,
+      "reference_count": 67,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 13,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::intensifier massive（intensifier）",
+          "claim-guard::intensifier enormous（intensifier）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::absolute complete（absolute）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim state of the art（unanchored_claim）",
+          "claim-guard::unanchored_claim extreme（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-030 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-bceb4b01-070 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-7f1efe09-070 [P1] 正文第 11 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-af9cf25e-005 [P1] perfectly（absolute）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-030 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2009.00945v1",
+      "domain": "time-series",
+      "title": "LAVARNET: Neural Network Modeling of Causal Variable Relationships for Multivariate Time Series Forecasting",
+      "published": "2020-09-02",
+      "chars": 56460,
+      "reference_count": 45,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 19,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::hype the optimal（hype）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::hype state of the art（hype）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::absolute absolute（absolute）",
+          "claim-guard::unanchored_claim state of the art（unanchored_claim）",
+          "claim-guard::unanchored_claim state of the art（unanchored_claim）",
+          "claim-guard::unanchored_claim state of the art（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-040 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-3b867381-080 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-080 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-36100775-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-040 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    },
+    {
+      "arxiv_id": "2012.02364v2",
+      "domain": "time-series",
+      "title": "Deep Learning for Medical Anomaly Detection -- A Survey",
+      "published": "2020-12-04",
+      "chars": 174064,
+      "reference_count": 232,
+      "negative_control": {
+        "p0_count": 0,
+        "p1_count": 12,
+        "p0_details": [],
+        "p1_details": [
+          "claim-guard::intensifier tremendous（intensifier）",
+          "claim-guard::intensifier tremendous（intensifier）",
+          "claim-guard::hype the best（hype）",
+          "claim-guard::absolute completely（absolute）",
+          "claim-guard::hype astonishing（hype）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim complete（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）",
+          "claim-guard::unanchored_claim state-of-the-art（unanchored_claim）",
+          "claim-guard::unanchored_claim significant（unanchored_claim）"
+        ]
+      },
+      "positives": [
+        {
+          "name": "citation_out_of_bounds",
+          "expected_source": "cite-manager",
+          "expected_check": "out_of_bounds",
+          "detected": true,
+          "evidence": "ISS-9e82e369-045 [P0] 正文引用了 [999]，但参考文献列表中没有该条目"
+        },
+        {
+          "name": "abstract_fake_percent",
+          "expected_source": "consistency-check",
+          "expected_check": "abstract_number",
+          "detected": true,
+          "evidence": "ISS-9633cfa7-088 [P1] 摘要声称 99.9%，正文找不到对应数值（含小数等价形式）"
+        },
+        {
+          "name": "ghost_figure_reference",
+          "expected_source": "consistency-check",
+          "expected_check": "figure_reference",
+          "detected": true,
+          "evidence": "ISS-03c6ab82-085 [P1] 正文第 7 行引用了 Figure 99，但全文没有对应标题行"
+        },
+        {
+          "name": "hype_injection",
+          "expected_source": "claim-guard",
+          "expected_check": null,
+          "detected": true,
+          "evidence": "ISS-58eef845-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry",
+          "detected": true,
+          "evidence": "ISS-76cd595c-045 [P2] 参考文献条目 [1] 重复出现"
+        }
+      ]
+    }
+  ]
+}

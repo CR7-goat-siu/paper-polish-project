@@ -94,7 +94,7 @@
 
 ## P2.8 — 防幻觉/防错审查机制（已完成，2026-10-20）
 
-四层审查架构落地（方案见 docs/hallucination-guardrails-plan.md）：
+四层审查架构落地（L1 锚点锁定 / L2 十条确定性规则 / L3 批处理集成与 docx 批注 / L4 基准评测）：
 
 - [x] L2 `utils/guardrails.py`：十条确定性规则（数值守恒/极性翻转/引用守恒含编号越界/
       锚点守恒含实体篡改/对冲漂移/范围丢失/浮夸词/AI 腔密度/结构膨胀/语义漂移），
@@ -112,6 +112,58 @@
 - [x] 性能：倒排索引 + top-K 候选 + 主正则预计算 + Counter 多重集；
       10 万字段落实测 ≈0.5s（纯标准库）。
 - [ ] L3 批处理集成与 docx 批注告警（下一阶段）。
+
+## P4.6 — 交付闭环、真实循环验证与句级外科回退（已完成，2026-10-23）
+
+- [x] **交付闭环**：optimizer-loop `stage=deliver` 产出终稿 DOCX（docx 输入取
+      最佳轮次回写稿；md 输入经 `utils/docx_io.create_docx_from_markdown` 装配，
+      含 Title/Heading/图表题注样式）+ submission-audit 预审（`render` 可选真实渲染）+
+      PRD 三级与预审门禁**合并交付状态** + `delivery-index.md` + `deliver_to_root`
+      根目录交付；`stage=audit` 支持轮间规则修正后刷新计划。
+- [x] **端到端真实循环验证**（coding harness 扮演模型角色，`output/e2e-realloop/`）：
+      埋坑稿 4 轮循环 36 → 20 问题（P1 9 → 2），加权指数 0.62 → 2.29，
+      收益停滞自动停止，自动交付 DOCX + 渲染 PDF + 预审 + 根目录三件套；
+      剩余 20 项全部为 requires_human（[9] 越界、图表缺失、文献缺口）——fail-closed 诚实交付。
+- [x] **真实循环暴露并修复 6 个缺陷**：decide 按 issue_id 对比新 P0/P1 被序号漂移
+      误判（改指纹对比）；“极大极小博弈”（minimax）被 intensifier 词库误伤
+      （负向前瞻）；term-check 别名/规范词互为子串时永远误报 mixed_usage
+      （对称包含过滤）；跨章节边界证据无法锚定（标题切分片段回退 + 被标记词优先 +
+      锚点片段透传）；无可锚定问题时退化为无目标全量构建（改为停止交付）；
+      consistency-check 任务自动修改必撞守恒门禁（归 requires_human）。
+- [x] **句级外科式 Fail-Closed**（`utils/polish_engine._surgical_repair`）：
+      门禁 fail 且重试耗尽时逐句门禁，只回退违例句、保留已过审修改；
+      句数无法对齐或整块终检仍失败才整块回退；外科修复 chunk 标记需人工目检
+      （docx 批注区分 source/surgical 回退）。
+- [x] **目录整理**：根目录只留最终交付与源码；历史工作稿入 `manuscripts/`；
+      output/ 历史产物归档 `output/archive/`（保留交付索引引用的 eeg_v7）。
+- [x] **协议与 PRD 补档**：`docs/protocol.md`（harness 协作协议与端到端时序）、
+      `docs/prd.md`（PRD §2-§9 定稿，全仓库引用有了单一事实源）。
+- [x] 测试：新增 `test_surgical_fallback.py` 3 项；全量 358 项离线回归通过。
+
+## P4.5 — 计划驱动修订与全源审计（已完成，2026-10-23）
+
+把 optimizer-loop 从"审计 → 全文统一润色 → 再审计"升级为真正的
+「评估 → 计划 → 定向修改 → 独立复核 → 决策」闭环：
+
+- [x] **全源审计**：issue-registry 文本模式接入 cite-manager audit
+      （引用越界/未引用/重复，含 `## 参考文献` Markdown 标题识别修复）、
+      lit-search gap（缺引/陈旧/条目信息不全）、新增 `utils/consistency`
+      跨节一致性（图表引用完整性/摘要百分比 vs 正文数值含小数等价/结论实体
+      缺席实验章节）；`config/issue-rules.yaml` 补来源映射与 P0-P3 覆写。
+      此前全部漏检的结构缺陷（[9] 越界、图 3 未定义、摘要 100% vs 94.7%、
+      数据集 B 缺席实验）现在都成为带编号 issue。
+- [x] **计划驱动修订**：batch-processor build 支持 `only_chunks`（选择性出作业，
+      局部补丁）、`focus_issues`（审计问题经 `{{comments}}` 最高优先级批注通道
+      注入 prompt，锚定失败显式告警）、`chunk_strength`（按问题优先级选强度，
+      规则在 issue-rules.yaml planning 节）。
+- [x] **optimizer-loop 状态机化**：`stage=init/build/apply/decide/deliver/status`
+      分步契约 + `run-state.json` 断点续跑；build 后状态 awaiting_responses 并
+      给出确定性 pending_jobs 清单；每轮输入为历史最佳版本而非原稿。
+- [x] **任务级验证**：decide 阶段按问题指纹判定每个计划任务 fixed / still_open，
+      写入 iteration_log；lit-search / cite-manager 来源任务归 requires_human
+      （补文献必须走检索→核验→insert 管线，润色器不得代劳）。
+- [x] 测试：`test_plan_driven_revision.py` 11 项新增（consistency / 全源登记 /
+      选择构建 / 状态机断点续跑 / Markdown 标题回归）；全量 355 项离线回归通过。
 
 ## P4 — 投稿前预审与人工签核门禁（进行中，2026-10-21）
 
@@ -134,8 +186,32 @@
 - [x] 质量候选采用硬门禁 + 正增益接受规则，负增益自动回滚到上一最佳版本。
 - [x] 建立 33 篇 Crossref/arXiv 双源核验的 EEG 去噪论文质量验收集。
 - [x] 采集 37 条 arXiv 公开元数据候选并做 development/test 初分。
-- [ ] 真实论文评测集达到 30 篇可评测全文并完成 rubric/黄金标准复核。
-- [ ] 连续 3 轮端到端红队与真实渲染零关键失败。
+- [x] 真实论文评测集达到 30 篇可评测全文并完成 rubric/黄金标准复核
+     （2026-10-23 建成，2026-10-25 扩至多领域 v2，
+      `tools/build_gold_standard_corpus.py` + `data/eval/gold-standard/`）：
+      56 篇 arXiv 原生 HTML 全文 × 4 领域（biomedical-eeg 32 / computer-vision 8 /
+      nlp 8 / time-series 8，公开免密钥，全文只在 `output/gold-standard/`）；
+      阴性对照（真实论文全源审计）P0 误报 0/56；阳性对照（五类植入缺陷：
+      引用越界/摘要假数字/幽灵图表/浮夸句/重复条目）分域召回均 1.0；
+      文件管理 v2：`corpus/` 仅存官方集、淘汰稿带因移入 `candidates/`、
+      `index.json` 全集清单；离线回归夹具（真实论文短摘录，每领域 2 篇）入
+      `data/eval/gold-standard/fixtures/`（`test_gold_standard.py`）。
+      评测暴露并修复两个真实缺陷：数学区间记号 `[0, 1]` 被 cite-manager 误判
+      引用越界（引用编号从 1 起，含 0 的方括号组跳过）；无独立摘要标题的
+      arXiv 渲染（标题后第一段即摘要）缺数字一致性检查回退。
+- [x] 连续 3 轮端到端红队与真实渲染零关键失败（2026-10-24 完成）：
+      #1 `output/e2e-realloop/`（中文 Markdown 稿，4 轮 36→20）；
+      #2 `output/e2e-rt2-en/`（英文 Markdown 稿，3 轮 45→22）；
+      #3 `output/e2e-rt3-tex/`（自造 LaTeX 稿换主题，3 轮 29→8，测 LaTeX 解析路径）。
+      三轮全部自动交付（DOCX + 渲染 PDF + 预审），零关键失败（无崩溃、无门禁穿透、
+      剩余问题全部诚实归 requires_human）。红队共逼出并修复 11 个缺陷，包括：
+      cite-manager 数学区间 `[0,1]` 误判引用越界、不认识 LaTeX `\bibitem`；
+      claim-guard `complete(?:ly)?` 前缀误伤过去式 completed、`total` 误伤
+      L_total 公式名与 "a total of N"、`the best` 误伤合法对比指称（降级 warning）、
+      全文合并去重导致修一处后下一处指纹漂移被误判新增（改逐处上报 + 种子级
+      版本决策对比）；term-check 别名/规范词互为子串永远误报、复数形态不算
+      规范用法、"规范词 (缩写)" 首用定义误报混用、参考文献区论文标题被扫术语；
+      consistency-check 无独立摘要标题时跳过数字一致性。
 
 ## P3 — 规模化与协作
 
