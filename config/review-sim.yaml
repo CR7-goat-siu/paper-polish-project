@@ -1,0 +1,63 @@
+# review-sim 模拟同行评审配置（PRD：作业包出 / 响应进，fail-closed）
+# 角色定义与章节覆盖；评审 rubric 正文在 prompts/<lang>/review-sim-<role>.md
+schema_version: 1
+
+roles:
+  methodology:
+    # 方法学严密性：方法描述、消融合理性、实现细节与声明是否自洽
+    sections:
+      - method
+      - experiment
+      - discussion
+  statistics:
+    # 统计与实验设计：指标、样本量、显著性声明、数据划分
+    sections:
+      - abstract
+      - method
+      - experiment
+  domain_expert:
+    # 领域背景与跨节逻辑闭环：基线选择、相关工作和结论的领域一致性
+    sections:
+      - abstract
+      - introduction
+      - related_work
+      - method
+      - experiment
+      - discussion
+      - conclusion
+  novelty:
+    # 贡献声明与实际方案的匹配度
+    sections:
+      - abstract
+      - introduction
+      - conclusion
+
+cross_view:
+  # 跨节比对视图：每个角色额外生成一个全文交叉作业
+  enabled: true
+  # 跨节作业中每个章节文本的截断长度（字符）
+  max_chars_per_section: 6000
+  # 跨节作业全文总截断长度（字符）
+  max_chars_total: 24000
+
+limits:
+  # 每个作业最多返回的意见数
+  max_findings_per_job: 8
+  # 原文锚点（exact_source_quote）最小长度：过短的"引用"无法核验
+  min_quote_chars: 12
+
+# 响应校验（fail-closed）
+validation:
+  # 锚点匹配前对双方文本做空白归一（折叠连续空白），仍要求逐字符子串匹配
+  normalize_whitespace: true
+  # 必填字段：缺任一项该条意见作废
+  required_fields:
+    - issue_category
+    - claim_or_defect_summary
+    - exact_source_quote
+    - line_or_paragraph_locator
+    - rationale
+  # 严重度建议 → issue-registry severity 映射（review-sim 永不产出 error）
+  severity_map:
+    major: warning
+    minor: info

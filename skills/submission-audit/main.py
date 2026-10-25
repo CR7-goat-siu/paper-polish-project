@@ -204,6 +204,7 @@ def _pipeline(args: dict[str, Any]) -> dict[str, Any]:
         render=bool(args.get("render", False)),
         config_path=args.get("config"),
         version=str(args.get("version") or "pipeline"),
+        journal=args.get("journal"),
     )
     return {
         "mode": "pipeline",
@@ -245,4 +246,5 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
         render=bool(args.get("render", False)),
         config_path=args.get("config"),
         version=str(args.get("version") or "round-1"),
+        journal=args.get("journal"),
     )

@@ -50,9 +50,12 @@ class LitSearchTests(unittest.TestCase):
         self.config["network"]["cache_dir"] = str(self.tmp / "cache")
         for name in ("arxiv", "semantic-scholar", "europepmc"):
             self.config["sources"][name]["enabled"] = False
+        self._original_module_config = self.module.load_literature_config
         self.module.load_literature_config = lambda: self.config
         web_fetch.load_literature_config = lambda: self.config
         self.addCleanup(lambda: setattr(web_fetch, "load_literature_config", load_literature_config))
+        # 同步恢复 lit-search 模块级绑定，否则污染后续测试的配置读取
+        self.addCleanup(lambda: setattr(self.module, "load_literature_config", self._original_module_config))
         web_fetch.reset_stats()
         self.calls: list[str] = []
         web_fetch.set_transport(self._transport)
@@ -243,9 +246,12 @@ class MultiRoundAndPubmedTests(unittest.TestCase):
         self.config["network"]["cache_dir"] = str(self.tmp / "cache")
         for name in ("arxiv", "semantic-scholar", "europepmc", "pubmed"):
             self.config["sources"][name]["enabled"] = False
+        self._original_module_config = self.module.load_literature_config
         self.module.load_literature_config = lambda: self.config
         web_fetch.load_literature_config = lambda: self.config
         self.addCleanup(lambda: setattr(web_fetch, "load_literature_config", load_literature_config))
+        # 同步恢复 lit-search 模块级绑定，否则污染后续测试的配置读取
+        self.addCleanup(lambda: setattr(self.module, "load_literature_config", self._original_module_config))
         web_fetch.reset_stats()
         self.calls: list[str] = []
         web_fetch.set_transport(self._transport)
@@ -299,9 +305,12 @@ class PubMedAdapterTests(unittest.TestCase):
         self.config["network"]["cache_dir"] = str(self.tmp / "cache")
         for name in ("crossref", "openalex", "semantic-scholar", "arxiv", "europepmc"):
             self.config["sources"][name]["enabled"] = False
+        self._original_module_config = self.module.load_literature_config
         self.module.load_literature_config = lambda: self.config
         web_fetch.load_literature_config = lambda: self.config
         self.addCleanup(lambda: setattr(web_fetch, "load_literature_config", load_literature_config))
+        # 同步恢复 lit-search 模块级绑定，否则污染后续测试的配置读取
+        self.addCleanup(lambda: setattr(self.module, "load_literature_config", self._original_module_config))
         web_fetch.reset_stats()
         self.calls: list[str] = []
         web_fetch.set_transport(self._transport)
@@ -413,9 +422,12 @@ class AutoModeTests(unittest.TestCase):
         self.config["network"]["cache_dir"] = str(self.tmp / "cache")
         for name in ("arxiv", "semantic-scholar", "europepmc", "pubmed"):
             self.config["sources"][name]["enabled"] = False
+        self._original_module_config = self.module.load_literature_config
         self.module.load_literature_config = lambda: self.config
         web_fetch.load_literature_config = lambda: self.config
         self.addCleanup(lambda: setattr(web_fetch, "load_literature_config", load_literature_config))
+        # 同步恢复 lit-search 模块级绑定，否则污染后续测试的配置读取
+        self.addCleanup(lambda: setattr(self.module, "load_literature_config", self._original_module_config))
         web_fetch.reset_stats()
         web_fetch.set_transport(self._transport)
         self.addCleanup(web_fetch.set_transport, None)

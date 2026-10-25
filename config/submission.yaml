@@ -28,6 +28,10 @@ statistics:
   relative_tolerance: 0.01
   default_value_scale: 1.0
   require_critical_verified: true
+  # 统计报告一致性核查（statcheck + GRIM，纯确定性重算）
+  inferential_checks:
+    enabled: true
+    alpha: 0.05
 
 figures:
   minimum_figure_dpi: 300

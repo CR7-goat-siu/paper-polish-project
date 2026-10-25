@@ -1,0 +1,95 @@
+# Springer Nature 综合类期刊典型投稿档案（示例：Generic Springer Nature，投稿前请以期刊官网 Submission guidelines 为准）
+# 注意：项目自带的极简 YAML 解析器不支持"列表内联映射"，声明区/章节一律用命名映射
+schema_version: 1
+id: springer-generic
+name: Springer Nature (generic)
+publisher: Springer Nature
+language: en
+
+word_limits:
+  abstract_max_words: 350
+  body_min_words: 2000
+  body_max_words: 15000
+
+keywords:
+  min: 3
+  max: 10
+  separators:
+    - ";"
+    - ","
+
+sections:
+  enforce_order: false
+  required:
+    abstract:
+      patterns:
+        - "^abstract"
+    introduction:
+      patterns:
+        - "^introduction"
+        - "^background"
+    method:
+      patterns:
+        - "^method"
+        - "^materials and methods"
+    experiment:
+      patterns:
+        - "^result"
+        - "^experiment"
+    conclusion:
+      patterns:
+        - "^conclusion"
+    references:
+      patterns:
+        - "^references?"
+
+figures:
+  allowed_extensions:
+    - tif
+    - tiff
+    - eps
+    - pdf
+    - jpg
+    - jpeg
+    - png
+    - svg
+  min_dpi: 300
+
+reference_style: numbered
+
+required_declarations:
+  conflict_of_interest:
+    label: Conflict of interest / competing interests
+    severity: fail
+    patterns:
+      - "conflict of interest"
+      - "competing interest"
+  ethics:
+    label: Ethics approval and consent
+    severity: fail
+    patterns:
+      - "ethic"
+      - "institutional review board"
+      - "irb approval"
+      - "informed consent"
+  data_availability:
+    label: Data availability
+    severity: fail
+    patterns:
+      - "data availab"
+      - "availability of data"
+      - "data sharing"
+  author_contributions:
+    label: Author contributions
+    severity: fail
+    patterns:
+      - "author contribution"
+      - "contribution of the authors"
+  funding:
+    label: Funding / acknowledgments
+    severity: fail
+    patterns:
+      - "funding"
+      - "acknowledg"
+      - "supported by"
+      - "grant"

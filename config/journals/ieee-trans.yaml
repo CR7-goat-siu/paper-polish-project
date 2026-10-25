@@ -1,0 +1,98 @@
+# IEEE Transactions 系列典型投稿档案（示例：IEEE Transactions 系列，投稿前请以期刊官网 Author Guide 为准）
+# 注意：项目自带的极简 YAML 解析器不支持"列表内联映射"，声明区/章节一律用命名映射
+schema_version: 1
+id: ieee-trans
+name: IEEE Transactions (generic)
+publisher: IEEE
+language: en
+
+word_limits:
+  abstract_max_words: 250
+  body_min_words: 3000
+  body_max_words: 12000
+
+keywords:
+  min: 4
+  max: 8
+  separators:
+    - ";"
+    - ","
+
+sections:
+  enforce_order: false
+  required:
+    abstract:
+      patterns:
+        - "^abstract"
+        - "^index terms"
+    introduction:
+      patterns:
+        - "^introduction"
+    method:
+      patterns:
+        - "^method"
+        - "^proposed"
+        - "^approach"
+        - "^background"
+    experiment:
+      patterns:
+        - "^experiment"
+        - "^result"
+        - "^evaluation"
+    conclusion:
+      patterns:
+        - "^conclusion"
+    references:
+      patterns:
+        - "^references?"
+
+figures:
+  allowed_extensions:
+    - png
+    - tif
+    - tiff
+    - eps
+    - pdf
+    - jpg
+    - jpeg
+  min_dpi: 300
+
+reference_style: numbered
+
+required_declarations:
+  conflict_of_interest:
+    label: Conflict of interest
+    severity: fail
+    patterns:
+      - "conflict of interest"
+      - "competing interests"
+  ethics:
+    label: Ethics approval / informed consent
+    severity: fail
+    patterns:
+      - "ethic"
+      - "institutional review board"
+      - "irb approval"
+      - "informed consent"
+  data_availability:
+    label: Data availability
+    severity: fail
+    patterns:
+      - "data availab"
+      - "availability of data"
+      - "data sharing"
+  author_contributions:
+    label: Author contributions
+    severity: fail
+    patterns:
+      - "author contribution"
+      - "credit taxonomy"
+      - "contribution of the authors"
+  funding:
+    label: Funding / acknowledgments
+    severity: fail
+    patterns:
+      - "funding"
+      - "acknowledg"
+      - "supported by"
+      - "supported in part by"

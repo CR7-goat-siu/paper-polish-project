@@ -1,0 +1,97 @@
+# Elsevier 生物医学信号处理类期刊典型投稿档案（示例：Biomedical Signal Processing and Control 风格，投稿前请以期刊官网 Guide for Authors 为准）
+# 注意：项目自带的极简 YAML 解析器不支持"列表内联映射"，声明区/章节一律用命名映射
+schema_version: 1
+id: elsevier-bspc
+name: Elsevier Biomedical Signal Processing and Control (generic)
+publisher: Elsevier
+language: en
+
+word_limits:
+  abstract_max_words: 200
+  body_min_words: 2500
+  body_max_words: 10000
+
+keywords:
+  min: 3
+  max: 6
+  separators:
+    - ";"
+    - ","
+
+sections:
+  enforce_order: true
+  required:
+    abstract:
+      patterns:
+        - "^abstract"
+        - "^highlights"
+    introduction:
+      patterns:
+        - "^introduction"
+    method:
+      patterns:
+        - "^method"
+        - "^materials and methods"
+        - "^proposed"
+    experiment:
+      patterns:
+        - "^experiment"
+        - "^result"
+    conclusion:
+      patterns:
+        - "^conclusion"
+    references:
+      patterns:
+        - "^references?"
+
+figures:
+  allowed_extensions:
+    - tif
+    - tiff
+    - eps
+    - pdf
+    - jpg
+    - jpeg
+    - png
+  min_dpi: 300
+
+reference_style: numbered
+
+required_declarations:
+  conflict_of_interest:
+    label: Declaration of competing interest / conflict of interest
+    severity: fail
+    patterns:
+      - "conflict of interest"
+      - "competing interest"
+      - "declaration of interest"
+  ethics:
+    label: Ethics approval and consent to participate
+    severity: fail
+    patterns:
+      - "ethic"
+      - "institutional review board"
+      - "irb approval"
+      - "consent to participate"
+      - "informed consent"
+  data_availability:
+    label: Data availability statement
+    severity: fail
+    patterns:
+      - "data availab"
+      - "availability of data"
+      - "data sharing"
+  author_contributions:
+    label: Author contributions (CRediT)
+    severity: fail
+    patterns:
+      - "author contribution"
+      - "credit author"
+      - "credit taxonomy"
+  funding:
+    label: Funding statement
+    severity: fail
+    patterns:
+      - "funding"
+      - "acknowledg"
+      - "supported by"

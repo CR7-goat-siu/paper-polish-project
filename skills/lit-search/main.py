@@ -31,6 +31,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from utils.citation_check import (  # noqa: E402
+    author_surnames,
     canonical_entry,
     clean_text,
     doi_normalize,
@@ -44,11 +45,12 @@ from utils.citation_check import (  # noqa: E402
 from utils.config_loader import PROJECT_ROOT, load_literature_config, load_terms, normalize_language  # noqa: E402
 from utils.fidelity import CITATION_BRACKET_RE  # noqa: E402
 from utils.logger import get_logger  # noqa: E402
+from utils.skill_loader import run_skill  # noqa: E402
 import utils.web_fetch as web_fetch  # noqa: E402
 
 logger = get_logger("lit-search")
 
-MODES = ("gap", "search", "cards", "package", "auto")
+MODES = ("gap", "search", "cards", "package", "auto", "refill")
 SENTENCE_SPLIT_RE = re.compile(r"[^。！？!?；;\n]+[。！？!?；;]?", re.UNICODE)
 LATIN_TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9\-\+\.]{1,}")
 EN_STOPWORDS = {
@@ -486,7 +488,7 @@ def _recency_filter(recency_years: int | None) -> int | None:
     return datetime.now(timezone.utc).year - int(recency_years)
 
 
-def _search_crossref(query: str, *, source_cfg: dict[str, Any], config: dict[str, Any], offline: bool | None, recency_years: int | None, sort: str | None = None) -> list[dict[str, Any]]:
+def _search_crossref(query: str, *, source_cfg: dict[str, Any], config: dict[str, Any], offline: bool | None, recency_years: int | None, sort: str | None = None, force_refresh: bool = False) -> list[dict[str, Any]]:
     network_cfg = config.get("network") or {}
     params: dict[str, Any] = {
         "query.bibliographic": query,
@@ -506,12 +508,13 @@ def _search_crossref(query: str, *, source_cfg: dict[str, Any], config: dict[str
         config=config,
         min_interval=float(source_cfg.get("min_interval_seconds", 1.0)),
         offline=offline,
+        force_refresh=force_refresh,
     )
     items = ((data or {}).get("message") or {}).get("items") or []
     return [canonical_entry(item, "crossref") for item in items]
 
 
-def _search_openalex(query: str, *, source_cfg: dict[str, Any], config: dict[str, Any], offline: bool | None, recency_years: int | None, sort: str | None = None) -> list[dict[str, Any]]:
+def _search_openalex(query: str, *, source_cfg: dict[str, Any], config: dict[str, Any], offline: bool | None, recency_years: int | None, sort: str | None = None, force_refresh: bool = False) -> list[dict[str, Any]]:
     network_cfg = config.get("network") or {}
     params: dict[str, Any] = {
         "search": query,
@@ -530,12 +533,13 @@ def _search_openalex(query: str, *, source_cfg: dict[str, Any], config: dict[str
         config=config,
         min_interval=float(source_cfg.get("min_interval_seconds", 1.0)),
         offline=offline,
+        force_refresh=force_refresh,
     )
     items = (data or {}).get("results") or []
     return [canonical_entry(item, "openalex") for item in items]
 
 
-def _search_semanticscholar(query: str, *, source_cfg: dict[str, Any], config: dict[str, Any], offline: bool | None, recency_years: int | None, sort: str | None = None) -> list[dict[str, Any]]:
+def _search_semanticscholar(query: str, *, source_cfg: dict[str, Any], config: dict[str, Any], offline: bool | None, recency_years: int | None, sort: str | None = None, force_refresh: bool = False) -> list[dict[str, Any]]:
     network_cfg = config.get("network") or {}
     params: dict[str, Any] = {
         "query": query,
@@ -561,6 +565,7 @@ def _search_semanticscholar(query: str, *, source_cfg: dict[str, Any], config: d
                 config=config,
                 min_interval=float(source_cfg.get("min_interval_seconds", 1.5)),
                 offline=offline,
+                force_refresh=force_refresh,
             )
             break
         except Exception as exc:  # noqa: BLE001 - 同源端点互相兜底
@@ -584,7 +589,7 @@ def _search_semanticscholar(query: str, *, source_cfg: dict[str, Any], config: d
     return results
 
 
-def _search_arxiv(query: str, *, source_cfg: dict[str, Any], config: dict[str, Any], offline: bool | None, recency_years: int | None, sort: str | None = None) -> list[dict[str, Any]]:
+def _search_arxiv(query: str, *, source_cfg: dict[str, Any], config: dict[str, Any], offline: bool | None, recency_years: int | None, sort: str | None = None, force_refresh: bool = False) -> list[dict[str, Any]]:
     params: dict[str, Any] = {
         "search_query": f'all:"{query}"',
         "start": 0,
@@ -598,6 +603,7 @@ def _search_arxiv(query: str, *, source_cfg: dict[str, Any], config: dict[str, A
         min_interval=float(source_cfg.get("min_interval_seconds", 3.0)),
         offline=offline,
         accept="application/atom+xml",
+        force_refresh=force_refresh,
     )
     try:
         from xml.etree import ElementTree as ET
@@ -629,7 +635,7 @@ def _search_arxiv(query: str, *, source_cfg: dict[str, Any], config: dict[str, A
     return entries
 
 
-def _search_europepmc(query: str, *, source_cfg: dict[str, Any], config: dict[str, Any], offline: bool | None, recency_years: int | None, sort: str | None = None) -> list[dict[str, Any]]:
+def _search_europepmc(query: str, *, source_cfg: dict[str, Any], config: dict[str, Any], offline: bool | None, recency_years: int | None, sort: str | None = None, force_refresh: bool = False) -> list[dict[str, Any]]:
     since = _recency_filter(recency_years)
     final_query = f"({query}) AND (FIRST_PDATE:[{since}-01-01 TO 2100-01-01])" if since else query
     params: dict[str, Any] = {
@@ -646,6 +652,7 @@ def _search_europepmc(query: str, *, source_cfg: dict[str, Any], config: dict[st
         config=config,
         min_interval=float(source_cfg.get("min_interval_seconds", 0.5)),
         offline=offline,
+        force_refresh=force_refresh,
     )
     results = []
     for item in ((data or {}).get("resultList") or {}).get("result") or []:
@@ -672,7 +679,7 @@ def _search_europepmc(query: str, *, source_cfg: dict[str, Any], config: dict[st
     return results
 
 
-def _search_pubmed(query: str, *, source_cfg: dict[str, Any], config: dict[str, Any], offline: bool | None, recency_years: int | None, sort: str | None = None) -> list[dict[str, Any]]:
+def _search_pubmed(query: str, *, source_cfg: dict[str, Any], config: dict[str, Any], offline: bool | None, recency_years: int | None, sort: str | None = None, force_refresh: bool = False) -> list[dict[str, Any]]:
     """PubMed（NCBI E-utilities，免密钥）：esearch 取 id → esummary 取元数据。"""
     rows = int(source_cfg.get("rows", 6))
     since = _recency_filter(recency_years)
@@ -691,6 +698,7 @@ def _search_pubmed(query: str, *, source_cfg: dict[str, Any], config: dict[str, 
         config=config,
         min_interval=float(source_cfg.get("min_interval_seconds", 1.0)),
         offline=offline,
+        force_refresh=force_refresh,
     )
     ids = [str(item) for item in ((data or {}).get("esearchresult") or {}).get("idlist") or []]
     if not ids:
@@ -701,6 +709,7 @@ def _search_pubmed(query: str, *, source_cfg: dict[str, Any], config: dict[str, 
         config=config,
         min_interval=float(source_cfg.get("min_interval_seconds", 1.0)),
         offline=offline,
+        force_refresh=force_refresh,
     )
     result = (summary or {}).get("result") or {}
     entries = []
@@ -911,6 +920,7 @@ def search(
                         offline=offline,
                         recency_years=recency_years,
                         sort=sort or None,
+                        force_refresh=force_refresh,
                     )
                 except web_fetch.NetworkDisabledError as exc:
                     stats["errors"].append(f"offline: {exc}")
@@ -1048,11 +1058,310 @@ def _gap_query_variants(gaps: list[dict[str, Any]]) -> list[tuple[str, dict[str,
     return variants
 
 
+# --------------------------------------------------------------------------- #
+# refill：残缺文献条目 → 检索 → 严格匹配 → 核验 → Token 级补全计划
+# --------------------------------------------------------------------------- #
+
+_REFILL_DEFAULTS = {
+    "min_title_similarity": 0.92,
+    "max_year_delta": 1,
+    "ambiguity_epsilon": 0.02,
+    "max_candidates_per_entry": 5,
+}
+
+
+def _refill_settings(config: dict[str, Any]) -> dict[str, Any]:
+    settings = dict(_REFILL_DEFAULTS)
+    overrides = (config.get("refill") or {})
+    for key in settings:
+        if key in overrides:
+            settings[key] = overrides[key]
+    return settings
+
+
+def _entry_fields(line: str) -> dict[str, Any]:
+    """从残缺条目行启发式抽取 title / 第一作者姓氏 / 年份（用于匹配与核验）。"""
+    body = re.sub(r"^\s*\[\d{1,3}\]\s*", "", line or "").strip()
+    year_match = YEAR_IN_TEXT_RE.search(body)
+    year = int(year_match.group(1)) if year_match else None
+    surname = ""
+    surname_match = re.match(r"([A-Za-z][A-Za-z'’\-]+)", body)
+    if surname_match:
+        surname = surname_match.group(1).lower()
+    title = ""
+    quoted = QUOTED_TITLE_RE.search(body)
+    if quoted:
+        title = (quoted.group(1) or quoted.group(2) or "").strip()
+    if not title:
+        segments = re.split(r"\.\s+", body)
+        if len(segments) >= 2 and len(segments[1]) >= 8:
+            title = segments[1].strip(" .，,")
+    if not title:
+        title = body
+    return {"title": title, "surname": surname, "year": year, "body": body}
+
+
+def _author_surname_ok(entry_surname: str, candidate: dict[str, Any]) -> bool:
+    """第一作者姓氏核对：条目抽不出姓氏时放行（不阻塞），抽出时不匹配即拒绝。"""
+    if not entry_surname:
+        return True
+    surnames = author_surnames(candidate.get("authors") or [])
+    return any(entry_surname == str(item).lower() for item in surnames)
+
+
+def _collect_refill_entries(args: dict[str, Any], references_text: str, config: dict[str, Any], language: str, domain: str | None) -> list[dict[str, Any]]:
+    """三种入口合并：显式 entries / gaps / references_text（自检缺失字段）。"""
+    entries: dict[int, dict[str, Any]] = {}
+
+    def _register(number: int, line: str, missing: list[str] | None = None) -> None:
+        line = str(line or "").strip()
+        if not line:
+            return
+        existing = entries.get(number)
+        if existing is None or len(line) > len(existing["line"]):
+            entries[number] = {
+                "number": number,
+                "line": line,
+                "missing_fields": missing or (existing or {}).get("missing_fields") or [],
+            }
+
+    for entry in args.get("entries") or []:
+        if isinstance(entry, dict):
+            number = int(entry.get("number") or entry.get("id") or 0)
+            _register(number, str(entry.get("line") or ""), entry.get("missing_fields"))
+    gaps = args.get("gaps") or _load_json(args.get("gaps_file"), [])
+    for gap in gaps or []:
+        if not isinstance(gap, dict) or str(gap.get("gap_type")) != "incomplete_entry":
+            continue
+        quote = str(gap.get("quote") or "")
+        number = int(gap.get("reference_number") or 0)
+        _register(number, quote, [str(item) for item in gap.get("missing_fields") or []])
+    if not entries and references_text:
+        for item in parse_reference_entries(references_text):
+            pseudo = {
+                "doi": item.get("doi") or "",
+                "year": item.get("year") or "",
+                "pages": "x" if item.get("pages") else "",
+                "venue": item.get("venue") or "",
+            }
+            missing = missing_required_fields(pseudo, ["year", "venue", "pages"])
+            if pseudo["doi"]:
+                missing = [field for field in missing if field not in ("venue", "pages")]
+            if item.get("book_like") and "pages" in missing:
+                missing.remove("pages")
+            if missing:
+                _register(item["number"], item["line"], missing)
+    return sorted(entries.values(), key=lambda item: item["number"])
+
+
+def refill_incomplete_entries(
+    *,
+    config: dict[str, Any],
+    language: str,
+    domain: str | None,
+    offline: bool | None,
+    force_refresh: bool,
+    style: str,
+    entries_in: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """残缺条目补全管线：检索 → 严格匹配 → lit-verify → format-adapter 计划。
+
+    无证据不强填：匹配失败 / 歧义 / 核验不过的条目保持缺口并给出原因。
+    """
+    settings = _refill_settings(config)
+    results: list[dict[str, Any]] = []
+    for entry in entries_in:
+        number = entry["number"]
+        line = entry["line"]
+        fields = _entry_fields(line)
+        query = fields["title"] if len(fields["title"]) >= 8 else fields["body"]
+        if not query.strip():
+            results.append({"number": number, "status": "not_found", "reason": "no_query_constructible"})
+            continue
+        try:
+            outcome = search(
+                [query],
+                language=language,
+                domain=domain,
+                config=config,
+                sources=["crossref", "openalex"],
+                top_k=int(settings["max_candidates_per_entry"]),
+                offline=offline,
+                force_refresh=force_refresh,
+                rounds=["broad"],
+            )
+        except Exception as exc:  # noqa: BLE001 - 单条目检索失败不阻塞其余条目
+            results.append({"number": number, "status": "search_failed", "reason": str(exc)[:200]})
+            continue
+        candidates = outcome.get("candidates") or []
+
+        def _passes(candidate: dict[str, Any]) -> tuple[bool, float, str]:
+            similarity = title_similarity(fields["title"], candidate.get("title"))
+            if similarity < float(settings["min_title_similarity"]):
+                return False, similarity, "title_similarity_below_threshold"
+            if fields["year"] and candidate.get("year"):
+                try:
+                    if abs(int(candidate["year"]) - int(fields["year"])) > int(settings["max_year_delta"]):
+                        return False, similarity, "year_delta_exceeded"
+                except (TypeError, ValueError):
+                    return False, similarity, "year_unparsable"
+            if not _author_surname_ok(fields["surname"], candidate):
+                return False, similarity, "first_author_surname_mismatch"
+            return True, similarity, ""
+
+        passing = []
+        for candidate in candidates:
+            ok, similarity, reason = _passes(candidate)
+            if ok:
+                passing.append((similarity, candidate))
+        passing.sort(key=lambda item: -item[0])
+        if not passing:
+            best_similarity = max(
+                (title_similarity(fields["title"], candidate.get("title")) for candidate in candidates),
+                default=0.0,
+            )
+            results.append(
+                {
+                    "number": number,
+                    "status": "not_found",
+                    "reason": "no_candidate_passed_strict_match",
+                    "best_title_similarity": round(best_similarity, 4),
+                }
+            )
+            continue
+        # 歧义中止：前两名都过严格阈值且分数接近 → 绝不猜
+        if (
+            len(passing) >= 2
+            and passing[0][0] - passing[1][0] < float(settings["ambiguity_epsilon"])
+            and (passing[0][1].get("doi") or "") != (passing[1][1].get("doi") or "")
+        ):
+            results.append(
+                {
+                    "number": number,
+                    "status": "auto_fill_aborted_ambiguous",
+                    "reason": "two_candidates_within_epsilon",
+                    "top_candidates": [
+                        {"title": passing[0][1].get("title"), "doi": passing[0][1].get("doi")},
+                        {"title": passing[1][1].get("title"), "doi": passing[1][1].get("doi")},
+                    ],
+                }
+            )
+            continue
+        best = dict(passing[0][1])
+        # lit-verify 门禁：候选自带证据记录（检索原始响应），无证据不通过
+        try:
+            verification = run_skill(
+                "lit-verify",
+                {
+                    "candidates": [best],
+                    "language": language,
+                    "style": style,
+                    "online": False,
+                    "out": "",  # 单条目核验不落盘
+                },
+            )
+        except Exception as exc:  # noqa: BLE001
+            results.append({"number": number, "status": "verify_failed", "reason": str(exc)[:200]})
+            continue
+        verdict = str((verification.get("results") or [{}])[0].get("verdict") or "unverified")
+        if verdict != "verified" or not verification.get("verified_entries"):
+            results.append(
+                {
+                    "number": number,
+                    "status": "verify_failed",
+                    "reason": f"lit_verify_verdict_{verdict}",
+                    "findings": (verification.get("results") or [{}])[0].get("findings") or [],
+                }
+            )
+            continue
+        verified = dict(verification["verified_entries"][0])
+        verified.setdefault("source", best.get("source"))
+        verified.setdefault("source_id", best.get("source_id"))
+        try:
+            plan_result = run_skill(
+                "format-adapter",
+                {
+                    "mode": "refill_plan",
+                    "style": style,
+                    "entries": [
+                        {
+                            "number": number,
+                            "line": line,
+                            "verified": {
+                                "title": verified.get("title"),
+                                "authors": verified.get("authors") or [],
+                                "year": verified.get("year"),
+                                "venue": verified.get("venue"),
+                                "volume": verified.get("volume"),
+                                "issue": verified.get("issue"),
+                                "pages": verified.get("pages"),
+                                "doi": verified.get("doi"),
+                                "source": verified.get("source"),
+                                "source_id": verified.get("source_id"),
+                            },
+                        }
+                    ],
+                },
+            )
+        except Exception as exc:  # noqa: BLE001
+            results.append({"number": number, "status": "plan_failed", "reason": str(exc)[:200]})
+            continue
+        plans = plan_result.get("plans") or []
+        results.append(
+            {
+                "number": number,
+                "status": "filled" if plans else "plan_empty",
+                "matched": {
+                    "title": best.get("title"),
+                    "doi": best.get("doi"),
+                    "year": best.get("year"),
+                    "source": best.get("source"),
+                    "source_id": best.get("source_id"),
+                    "title_similarity": round(passing[0][0], 4),
+                },
+                "verified": {
+                    "title": verified.get("title"),
+                    "authors": verified.get("authors") or [],
+                    "year": verified.get("year"),
+                    "venue": verified.get("venue"),
+                    "volume": verified.get("volume"),
+                    "issue": verified.get("issue"),
+                    "pages": verified.get("pages"),
+                    "doi": verified.get("doi"),
+                },
+                "plan": plans[0] if plans else None,
+            }
+        )
+    summary = {
+        "total_entries": len(entries_in),
+        "filled": sum(1 for item in results if item.get("status") == "filled"),
+        "aborted_ambiguous": sum(1 for item in results if item.get("status") == "auto_fill_aborted_ambiguous"),
+        "not_found": sum(1 for item in results if item.get("status") == "not_found"),
+        "failed": sum(
+            1
+            for item in results
+            if item.get("status") in {"search_failed", "verify_failed", "plan_failed"}
+        ),
+    }
+    return {
+        "skill": "lit-search",
+        "mode": "refill",
+        "style": style,
+        "refills": results,
+        "summary": summary,
+        "status": "ok" if summary["total_entries"] == summary["filled"] else "partial",
+        "warnings": [
+            "补全计划带 auto_filled_with_source 证据（DOI/数据源），应用前须人工审阅或走 cite-manager。",
+            "歧义条目一律中止（auto_fill_aborted_ambiguous），绝不强行猜测。",
+        ],
+    }
+
+
 def run(args: dict[str, Any]) -> dict[str, Any]:
     """lit-search 入口。
 
     参数
-    - mode：gap / search / cards / package / auto（默认 gap）
+    - mode：gap / search / cards / package / auto / refill（默认 gap）
     - text / text_file；language（cn/en）；domain（auto 可）
     - paragraphs：段落文本列表（gap 用于定位段落下标）
     - references / references_file：参考文献文本（陈旧引用与信息不全检测）
@@ -1061,6 +1370,8 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
     - sources：限定数据源名列表；top_k；offline：强制离线（只用缓存）
     - rounds：多轮检索轮次（默认取 config multi_round）
     - style：引用格式（ieee/apa/gbt7714/bibtex）；out：产物目录前缀
+    - refill 模式：entries / gaps / references 三选一提供残缺条目，
+      检索 → 严格匹配 → lit-verify → format-adapter Token 级补全计划
     """
     mode = str(args.get("mode") or "gap").strip().lower()
     if mode not in MODES:
@@ -1131,6 +1442,24 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
         result["markdown"] = markdown
         result["files"]["cards"] = _write(out_dir / "lit-cards.md", markdown)
         return result
+
+    if mode == "refill":
+        outcome = refill_incomplete_entries(
+            config=config,
+            language=language,
+            domain=domain,
+            offline=offline,
+            force_refresh=force_refresh,
+            style=style,
+            entries_in=_collect_refill_entries(args, _references_text(args), config, language, domain),
+        )
+        outcome["files"] = {
+            "refills": _write(
+                out_dir / "lit-refills.json",
+                json.dumps(outcome, ensure_ascii=False, indent=2),
+            )
+        }
+        return outcome
 
     # search / auto：多源多轮检索
     gaps = args.get("gaps") or _load_json(args.get("gaps_file"), [])

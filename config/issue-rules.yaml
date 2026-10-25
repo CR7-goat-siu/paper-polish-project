@@ -56,6 +56,12 @@ source_dimension:
   lit-verify: literature_novelty
   submission-audit: review_risk
   issue-registry: argument_structure
+  cite-manager: literature_novelty     # 引用表完整性（漏引/漏列/重复）
+  lit-search: literature_novelty       # 文献支撑缺口（缺引/陈旧/信息不全）
+  consistency-check: argument_structure # 跨节一致性默认归论证结构，细类见覆写
+  stat-check: scientific_truth          # 统计报告重算不一致直接关系科学真实性
+  review-sim: review_risk               # 模拟评审意见默认归审稿风险，细类见覆写
+  journal-compliance: figures_format    # 期刊合规默认归图表格式，声明区细类见覆写
 
 # 细粒度覆写：check / issue 命中时优先于 source_dimension
 # 格式：source::check_or_issue -> dimension
@@ -79,6 +85,25 @@ dimension_overrides:
   "claim-guard::informal": academic_expression
   "claim-guard::colloquial": academic_expression
   "claim-guard::redundant": academic_expression
+  # 引用表完整性：越界引用与保真类同severity（正文引了不存在的条目）
+  "cite-manager::out_of_bounds": scientific_truth
+  # 跨节一致性细类：图表引用归图表格式，摘要数字归科学真实性
+  "consistency-check::figure_reference": figures_format
+  "consistency-check::table_reference": figures_format
+  "consistency-check::orphan_caption": figures_format
+  "consistency-check::abstract_number": scientific_truth
+  # 统计报告一致性：p 值重算与 GRIM 全部归科学真实性
+  "stat-check::decision_error": scientific_truth
+  "stat-check::p_value_mismatch": scientific_truth
+  "stat-check::grim_impossible_mean": scientific_truth
+  # 期刊合规细类：声明区归审稿风险，章节结构归论证结构，字数关键词归学术表达
+  "journal-compliance::declaration_missing": review_risk
+  "journal-compliance::sections_missing": argument_structure
+  "journal-compliance::sections_order": argument_structure
+  "journal-compliance::word_limit_abstract": academic_expression
+  "journal-compliance::word_limit_body": academic_expression
+  "journal-compliance::keywords_range": academic_expression
+  "journal-compliance::reference_style": literature_novelty
 
 # 细粒度覆写：check / issue 命中时优先于 default_severity_to_priority
 priority_overrides:
@@ -109,6 +134,35 @@ priority_overrides:
   "claim-guard::absolute": P1
   "claim-guard::hype": P1
   "review-gate::objectivity.hype": P1
+  # 引用表完整性（cite-manager audit）
+  "cite-manager::out_of_bounds": P0
+  "cite-manager::uncited_entry": P3
+  "cite-manager::duplicated_entry": P2
+  "cite-manager::unparsable_marker": P2
+  # 文献支撑缺口（lit-search gap，修复需 lit 管线，登记优先级）
+  "lit-search::missing_citation": P2
+  "lit-search::stale_citation": P3
+  "lit-search::incomplete_entry": P3
+  "lit-search::missing_entry": P0
+  # 跨节一致性（consistency-check）
+  "consistency-check::figure_reference": P1
+  "consistency-check::table_reference": P1
+  "consistency-check::orphan_caption": P2
+  "consistency-check::abstract_number": P1
+  "consistency-check::entity_consistency": P2
+  # 统计报告一致性（stat-check，statcheck+GRIM 重算）
+  "stat-check::decision_error": P1
+  "stat-check::p_value_mismatch": P1
+  "stat-check::grim_impossible_mean": P1
+  # 期刊合规（journal-compliance，声明区缺失即 FAIL）
+  "journal-compliance::declaration_missing": P1
+  "journal-compliance::sections_order": P2
+  "journal-compliance::word_limit_abstract": P2
+  "journal-compliance::word_limit_body": P2
+  "journal-compliance::keywords_range": P3
+  "journal-compliance::figure_dpi": P2
+  "journal-compliance::figure_format": P2
+  "journal-compliance::reference_style": P3
 
 # 去重指纹所用字段：同一 source + 同一 found/term/field + 同一上下文前 60 字 视为同一问题
 dedup:
@@ -137,10 +191,24 @@ planning:
     - 不得改动公式含义与方法事实
     - 结论必须严格受实验结果约束
   # 需要人工确认的来源：这些任务不自动改写，只登记
+  # （lit-search 补文献须走检索→核验→insert 管线；cite-manager 改号须走 apply/renumber；
+  #   consistency-check 的图表缺失/摘要数字冲突需要作者事实裁决——润色侧改号/改数
+  #   会分别触发图表守恒与数字守恒门禁，自动修改必然 Fail-Closed）
   requires_human_sources:
     - lit-verify
+    - lit-search
+    - cite-manager
+    - consistency-check
+    - review-sim
   # 缺材料即阻断的维度（PRD §6.2：证据不足时暂停对该事实的实质性改写）
   material_blocked_dimensions:
     - method_rigor
     - experiment_sufficiency
     - reproducibility
+  # 计划驱动修订（optimizer-loop build 用）：问题优先级 → 该 chunk 的润色强度
+  # 未命中时用 revision_default_strength；P0 任务一律 requires_human，不进自动修订
+  revision_default_strength: light
+  priority_strength:
+    P1: deep
+    P2: light
+    P3: light

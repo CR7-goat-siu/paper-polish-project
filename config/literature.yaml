@@ -14,6 +14,8 @@ sources:
     enabled: true
     kind: "openalex"
     endpoint: "https://api.openalex.org/works"
+    # 单条 work 查询（cite-intent 拉摘要用；abstract_inverted_index 还原为纯文本）
+    works_endpoint: "https://api.openalex.org/works"
     rows: 8
     weight: 1.0
     min_interval_seconds: 0.5
@@ -23,6 +25,8 @@ sources:
     endpoint: "https://api.semanticscholar.org/graph/v1/paper/search"
     # Graph search 在共享出口 IP 上经常返回 429；公开 bulk 端点作为同源兜底
     bulk_endpoint: "https://api.semanticscholar.org/graph/v1/paper/search/bulk"
+    # 单篇意图查询（cite-intent 用，免费 intents 字段）
+    paper_endpoint: "https://api.semanticscholar.org/graph/v1/paper"
     rows: 6
     weight: 0.9
     min_interval_seconds: 1.5

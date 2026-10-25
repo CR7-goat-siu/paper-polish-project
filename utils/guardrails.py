@@ -268,61 +268,85 @@ def _jaccard(left: set[str], right: set[str]) -> float:
 def _pair_sentences(
     source_sentences: list[str], polished_sentences: list[str], language: str
 ) -> tuple[list[tuple[int, int, float]], list[tuple[int, int, float]], list[int], list[int]]:
-    """贪心句级配对（倒排索引预 Filter，避免 O(n²) 全配对）。
+    """贪心句级配对（token 集合分组 + 倒排索引预 Filter，避免 O(n²) 全配对）。
 
     返回 (强配对, 弱配对, 未配对源句下标, 未配对润句下标)：
     - 强配对：相似度 ≥ PAIR_THRESHOLD；
     - 弱配对：润句的最佳匹配低于阈值——scope/hedge/极性检查仍需对照最佳源句，
       否则"润句删掉限定语"恰恰因不相似而逃过检查；
     - 弱配对附带最佳相似度，供语义漂移判定使用。
+
+    源句先按 token 集合分组：重复样板句（如反复出现的同型结果句）在索引与
+    Jaccard 计算中只代表一次，组内成员按原始顺序逐个消耗，维持一对一对齐。
+    没有这层分组，大量重复句会把每个润句的 top-K 候选全部占满，其余润句
+    因候选饥饿而误判为孤儿句，再触发孤儿检查的 O(孤儿数×源句数) 比对。
     """
     source_tokens = [_content_tokens(sentence, language) for sentence in source_sentences]
     polished_tokens = [_content_tokens(sentence, language) for sentence in polished_sentences]
-    # 倒排索引：token → 源句下标（只与共享 token 的源句算 Jaccard）
-    index: dict[str, list[int]] = {}
+    # 源句分组：token 集合 → 组（成员按原始下标排列，available 为未消耗成员栈）
+    groups: dict[frozenset[str], dict[str, Any]] = {}
+    group_list: list[dict[str, Any]] = []
     for si, tokens in enumerate(source_tokens):
-        for token in tokens:
-            index.setdefault(token, []).append(si)
+        key = frozenset(tokens)
+        group = groups.get(key)
+        if group is None:
+            group = {"tokens": tokens, "members": [si], "available": [si]}
+            groups[key] = group
+            group_list.append(group)
+        else:
+            group["members"].append(si)
+            group["available"].append(si)
+
+    # 倒排索引：token → 组下标（每组只登记一次）
+    index: dict[str, list[int]] = {}
+    for gi, group in enumerate(group_list):
+        for token in group["tokens"]:
+            index.setdefault(token, []).append(gi)
 
     scored: list[tuple[float, int, int]] = []
     for pi, tokens in enumerate(polished_tokens):
         if not tokens:
             continue
-        # 重叠计数预过滤：只对重叠最多的 top-K 候选算 Jaccard
+        # 重叠计数预过滤：只对重叠最多的 top-K 组算 Jaccard
         overlap: dict[int, int] = {}
         for token in tokens:
-            for si in index.get(token, ()):
-                overlap[si] = overlap.get(si, 0) + 1
+            for gi in index.get(token, ()):
+                overlap[gi] = overlap.get(gi, 0) + 1
         if not overlap:
             continue
         if len(overlap) > MAX_PAIR_CANDIDATES:
             top = heapq.nlargest(
                 MAX_PAIR_CANDIDATES, overlap.items(), key=lambda item: item[1]
             )
-            candidates = {si for si, _count in top}
+            candidate_groups = [gi for gi, _count in top]
         else:
-            candidates = set(overlap)
-        for si in candidates:
-            score = _jaccard(tokens, source_tokens[si])
+            candidate_groups = list(overlap)
+        for gi in candidate_groups:
+            group = group_list[gi]
+            if not group["available"]:
+                continue
+            score = _jaccard(tokens, group["tokens"])
             if score > 0:
-                scored.append((score, si, pi))
+                scored.append((score, gi, pi))
 
     scored.sort(reverse=True)
     pairs: list[tuple[int, int, float]] = []
     used_src: set[int] = set()
     used_pol: set[int] = set()
-    for score, si, pi in scored:
-        if si in used_src or pi in used_pol or score < PAIR_THRESHOLD:
+    for score, gi, pi in scored:
+        group = group_list[gi]
+        if not group["available"] or pi in used_pol or score < PAIR_THRESHOLD:
             continue
+        si = group["available"].pop(0)
         pairs.append((si, pi, round(score, 4)))
         used_src.add(si)
         used_pol.add(pi)
     weak: list[tuple[int, int, float]] = []
     claimed: set[int] = set()
-    for score, si, pi in scored:
+    for score, gi, pi in scored:
         if pi in used_pol or pi in claimed:
             continue
-        weak.append((si, pi, round(score, 4)))
+        weak.append((group_list[gi]["members"][0], pi, round(score, 4)))
         claimed.add(pi)
     orphan_source = [i for i in range(len(source_sentences)) if i not in used_src]
     orphan_polished = [i for i in range(len(polished_sentences)) if i not in used_pol]
@@ -700,8 +724,11 @@ def _check_polarity(
     src_anchored = _anchored_numbers(source)
     pol_anchored = _anchored_numbers(polished)
     for token, src_polarities in src_anchored.items():
-        for src_pol in src_polarities:
-            for pol_pol in pol_anchored.get(token, ()):
+        # 同一数值在重复样板句中会出现大量相同上下文，去重后比对唯一极性集
+        src_unique = {frozenset(item) for item in src_polarities}
+        pol_unique = {frozenset(item) for item in pol_anchored.get(token, ())}
+        for src_pol in src_unique:
+            for pol_pol in pol_unique:
                 for positive, negative in POLARITY_PAIRS:
                     if positive in src_pol and negative in pol_pol and positive not in pol_pol:
                         flips.append(f"数值 {token} 邻域“{positive}”→“{negative}”")
@@ -1174,18 +1201,23 @@ def _check_structure(
 
     # 孤儿新增句（"细节出现"漂移）：润句无任何源句对应，且内容不被任何源句包含
     # （包含 = 合法拆句，如 "A，B。" 拆成 "A。B。"，不判违规）
-    source_token_sets = [_content_tokens(sentence, language) for sentence in source_sentences]
+    # 源句按 token 集合去重后比对：重复样板句只算一次，避免 O(孤儿数×源句数) 重复计算
+    source_token_groups: dict[frozenset[str], set[str]] = {}
+    for sentence in source_sentences:
+        tokens = _content_tokens(sentence, language)
+        source_token_groups.setdefault(frozenset(tokens), tokens)
     fabricated: list[str] = []
     split_artifacts = 0
     for index in orphan_polished:
         sentence = polished_sentences[index]
         tokens = _content_tokens(sentence, language)
-        if tokens and any(tokens <= token_set for token_set in source_token_sets):
+        if tokens and any(tokens <= token_set for token_set in source_token_groups.values()):
             split_artifacts += 1
             continue
         # 与所有源句的最佳重叠低于下限才判"臆造"；中度重叠交给语义漂移警告
         best = max(
-            (_jaccard(tokens, token_set) for token_set in source_token_sets), default=0.0
+            (_jaccard(tokens, token_set) for token_set in source_token_groups.values()),
+            default=0.0,
         )
         if best >= ORPHAN_ERROR_FLOOR:
             continue

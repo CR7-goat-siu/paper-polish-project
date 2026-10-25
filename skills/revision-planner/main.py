@@ -29,6 +29,9 @@ LOG = get_logger("revision-planner")
 
 SCHEMA_VERSION = 1
 
+# review-sim 硬门禁：模拟评审意见永不自动改写（即使配置误删也不受影响）。
+HUMAN_ONLY_SOURCES = frozenset({"review-sim"})
+
 
 def _planning_cfg(rules: dict[str, Any]) -> dict[str, Any]:
     return rules.get("planning") or {}
@@ -112,11 +115,16 @@ def build_plan(
             "status": "pending",
         }
 
-        if source in human_sources or any(m.priority == "P0" for m in members):
-            # 文献核验未通过 / 阻断级问题：不自动改写，交作者裁定
+        if (
+            source in human_sources
+            or source in HUMAN_ONLY_SOURCES
+            or any(m.priority == "P0" for m in members)
+            or any((m.metadata or {}).get("requires_human") for m in members)
+        ):
+            # 文献核验未通过 / 阻断级问题 / 模拟评审意见：不自动改写，交作者裁定
             task["status"] = "requires_human"
             task["reason"] = (
-                "阻断级问题或需人工确认的来源，按 PRD §6.2 暂停实质性改写并继续其他任务"
+                "阻断级问题、需人工确认的来源或 requires_human 标记，按 PRD §6.2 暂停实质性改写并继续其他任务"
             )
             requires_human.append(task)
             continue

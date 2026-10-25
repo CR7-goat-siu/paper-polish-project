@@ -38,6 +38,9 @@ coding harness 是执行主体，负责读取 `AGENTS.md` / `SKILL.md`、规划�
 - 用户交付偏好：每轮最终候选 DOCX、渲染 PDF 与交付索引除写入 `output/` 外，
   必须同时复制到项目根目录，便于直接打开；根目录只放最终交付文件，
   完整审计、逐页图像、日志和中间产物仍保留在 `output/`。
+- 目录约定：真实手稿历史工作稿与原始输入放 `manuscripts/`；
+  历史运行产物归档 `output/archive/`；协作协议见 `docs/protocol.md`，
+  PRD 定稿见 `docs/prd.md`。
 
 ## 3. 标准润色 SOP（离线双阶段）
 
@@ -46,9 +49,9 @@ coding harness 是执行主体，负责读取 `AGENTS.md` / `SKILL.md`、规划�
 3. **作业构建（*-polish build）**：逐 chunk 渲染 Prompt（规则 JSON + 术语对照 + 修正对照表 + 章节类型 + 上一块尾部上下文 + 复核反馈 + 按锚定段落挂到本 chunk 的导师批注 `{{comments}}`（最高优先级）+ 文档级简报 `{{brief}}`，均随 job 落盘供 retry 还原），写出 `jobs.json` 与 `prompts/`。
 4. **coding harness 执行**：按作业调用模型；响应可保留原始 JSON（自动抽取文本与截断状态）。
 5. **响应应用（*-polish apply）**：清洗 → review-gate 门禁（数字 / 引用 / 公式 / 段落 / 长度 / 相似度 / 浮夸残留 / 术语残留）→ 失败自动生成带反馈的重试作业 → 装配全文。
-6. **质量提升循环（由 harness 调度）**：对当前最佳 chunk 生成改进候选 → 调用 `evaluator` 的 `pair` 模式计算硬门禁、数字保真、客观性、术语、长度与相似度综合分 → 只有硬门禁通过且分数增益达到阈值的版本才写回，否则保留上一最佳版本。
+6. **质量提升循环（由 harness 经 optimizer-loop 状态机驱动，协议见 docs/protocol.md）**：`stage=init` 建立全源基线审计（issue-registry 文本模式自动跑 claim-guard / term-check / cite-manager audit / lit-search gap / consistency-check / stat-check，结构缺陷如引用越界 / 图表未定义 / 摘要数字不一致也登记为 P0-P3）→ `stage=build` 按修改计划**选择性出作业**（only_chunks 局部补丁 + 审计问题经 `{{comments}}` 通道注入 prompt + 按问题优先级选强度）→ harness 回填响应 → `stage=apply`（门禁 fail 且重试耗尽时句级外科修复优先，整块回退为最后手段）→ `stage=decide` 独立复核（新增 P0/P1 按**指纹**判定拒绝并回滚；按指纹做任务级验证 fixed/still_open）→ 循环至停止条件 → `stage=deliver`（五件套 + 终稿 DOCX + submission-audit 预审 + 双门禁合并状态 + 交付索引，`deliver_to_root` 复制到根目录）。`run-state.json` 支持断点续跑；轮间修正规则/词库后用 `stage=audit` 刷新计划。
 7. **守卫与归一（claim-guard / term-check / format-adapter / cite-manager / zotero-crossref）**：客观性 findings、术语 findings、references chunk 的 DOI / 页码归一；引用编号重排 / 合并 / 收敛 / 待补标记走 cite-manager（含 docx_plan）；需要动态文献管理时由 zotero-crossref 保留或重建 Zotero Word 域。
-8. **文献支撑（lit-search / lit-verify / cite-manager）**：检测缺少文献支撑的论断（信号词 + 无引用标记，另覆盖陈旧引用与参考文献信息不全）→ 把论点转成英文关键词与布尔检索式（同义词扩展），按多轮策略（宽式 / 精确 / 近五年高引）向公开免密钥数据源检索候选 → 确定性核验（DOI/标题/作者/年份/期刊/卷期页；无证据一律不通过，可选按 DOI/标题联网二次核验）→ 仅把 verified 条目用 `cite-manager` 的 insert 模式写入正文与参考文献表。
+8. **文献支撑（lit-search / lit-verify / cite-manager）**：检测缺少文献支撑的论断（信号词 + 无引用标记，另覆盖陈旧引用与参考文献信息不全）→ 把论点转成英文关键词与布尔检索式（同义词扩展），按多轮策略（宽式 / 精确 / 近五年高引）向公开免密钥数据源检索候选 → 确定性核验（DOI/标题/作者/年份/期刊/卷期页；无证据一律不通过，可选按 DOI/标题联网二次核验）→ 仅把 verified 条目用 `cite-manager` 的 insert 模式写入正文与参考文献表。残缺条目的自动补全走 lit-search `refill`（严格匹配 + 歧义中止 + 计划打标 `auto_filled_with_source`）；引用意图预填走 `cite-intent`（supporting/contrasting 必须逐字锚定被引摘要证据句，否则 fail-closed，结果待作者确认）。
 9. **产出**：润色全文、逐 chunk diff 报告、质量循环报告、docx 回写（段落对齐整段替换，或 token_replacements 外科式替换 + 写后强制回读比对）、result.json（pending/needs_review 状态供人工复核）。
 
 ## 4. Skill 调度表
@@ -60,19 +63,21 @@ coding harness 是执行主体，负责读取 `AGENTS.md` / `SKILL.md`、规划�
 | cn-polish | 中文润色 build/apply 两阶段 | `run(args)` | 同上（cn 侧） |
 | claim-guard | 客观性 / 语域守卫（hype + informal 词库） | `run(args)` | data/lexicon/* |
 | term-check | 术语一致性校验 | `run(args)` | data/terms/* |
-| format-adapter | references chunk 的 DOI / 页码归一 | `run(args)` | 本地规则 |
+| format-adapter | references chunk 的 DOI / 页码归一；`mode=refill_plan` 产出文献补全的 Token 级改写计划（auto_filled_with_source 打标，不改正文） | `run(args)` | 本地规则 |
 | cite-manager | 引用编号管理：audit / apply 映射重排 / renumber 收敛 / pending 待补标记；传 paragraphs 时产出 docx_plan 外科式回写计划 | `run(args)` | 本地规则 |
 | zotero-crossref | Zotero/Word 域审计、清单提取、纯文本引用重绑定、Word 刷新 | `run(args)` | `utils/zotero_crossref`, Word COM, Zotero 本地 API |
-| lit-search | 文献缺口检测（缺引/陈旧/信息不全）+ 免密钥六源多轮检索 + 候选文献卡片 | `run(args)` | config/literature.yaml, utils/web_fetch, utils/citation_check |
+| lit-search | 文献缺口检测（缺引/陈旧/信息不全）+ 免密钥六源多轮检索 + 候选文献卡片；`mode=refill` 把残缺条目升级为"检索→严格匹配（标题相似度/第一作者姓氏/年份±1）→lit-verify→Token 级补全计划"，歧义一律中止 | `run(args)` | config/literature.yaml, utils/web_fetch, utils/citation_check |
 | lit-verify | 候选文献真实性核验门禁（无证据不通过；可在线二次核验） | `run(args)` | utils/citation_check |
 | review-gate | 润色结果复核门禁（内部切换 utils/guardrails 十条确定性规则） | `run(args)` | utils/guardrails, rules.quality_gates |
 | evaluator | 润色质量评测（objectivity / terminology / grammar / fidelity） | `run(args)` | data/eval/* |
-| issue-registry | 问题登记：归一各审计 findings 为 P0-P3 清单（PRD §5 阶段二） | `run(args)` | utils/issue_model, claim-guard, term-check |
+| issue-registry | 问题登记：归一各审计 findings 为 P0-P3 清单（PRD §5 阶段二）；文本模式自动跑全源审计（claim-guard / term-check / cite-manager audit / lit-search gap / consistency-check / stat-check）；`enforce_review_sim_guards` 把 review-sim 来源硬编码为 requires_human | `run(args)` | utils/issue_model, utils/consistency, utils/stat_checks, claim-guard, term-check, cite-manager, lit-search |
 | quality-score | 多维度质量评分卡 0-4 分 + 科学真实性硬门槛（PRD §4） | `run(args)` | utils/issue_model, config/issue-rules.yaml |
 | revision-planner | 修改规划：问题清单 → 可执行任务（PRD §5 阶段三） | `run(args)` | utils/issue_model, config/issue-rules.yaml |
-| optimizer-loop | 由 harness 调用的审计→规划→修改→独立复核工具集，不主动调用模型 | `run(args)` | 上述 Skill 的 `run()` 契约 |
-| batch-processor | 批量 build / apply 调度 | `run(args)` | 上述 Skill 的 `run()` 契约 |
-| submission-audit | 投稿前预审：证据图谱 / 统计 / 图表 / DOCX 渲染 / 人工签核 | `run(args)` | config/submission.yaml |
+| optimizer-loop | 迭代状态机：init/build/apply/decide/deliver 分步 + run-state.json 断点续跑；每轮按计划选择性出作业（only_chunks + focus_issues 批注注入 + chunk_strength），decide 做版本决策与任务级验证；不主动调用模型 | `run(args)` | 上述 Skill 的 `run()` 契约 |
+| batch-processor | 批量 build / apply 调度；支持计划驱动修订参数（only_chunks / focus_issues / chunk_strength） | `run(args)` | 上述 Skill 的 `run()` 契约 |
+| submission-audit | 投稿前预审：证据图谱 / 统计（含 stat-check 重算与 GRIM）/ 图表 / DOCX 渲染 / 期刊合规（`journal=<id>` 逐项 PASS/FAIL）/ 人工签核 | `run(args)` | config/submission.yaml, config/journals/*, utils/stat_checks, utils/journal_compliance |
+| review-sim | 模拟同行评审（章节 × methodology/statistics/domain_expert/novelty 作业包；响应必须逐字锚定原文，fail-closed 校验；意见强制 confidence=low + requires_human，永不自动改写） | `run(args)` | config/review-sim.yaml, prompts/*/review-sim-*.md, utils/sections, issue-registry |
+| cite-intent | 引用证据强度预填：Crossref/OpenAlex 拉被引摘要（+S2 intents 交叉信号）→ 作业包 → supporting/contrasting 必须逐字锚定证据句，否则 fail-closed 降级 unverified；结果为 prefilled_pending_confirmation 待作者确认 | `run(args)` | config/literature.yaml, utils/web_fetch, utils/citation_check |
 
 ## 5. 质量评估体系（对应四大核心特点）
 

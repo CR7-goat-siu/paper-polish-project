@@ -1171,14 +1171,45 @@ def analyze_statistics(package: dict[str, Any], blocks: list[TextBlock], config:
         for entry in critical_entries
         if str(entry.get("verification_status") or "unverified").lower() in VERIFIED_STATES
     )
-    pass_gate = conflict_count == 0 and (
-        not settings.get("require_critical_verified", True)
-        or (bool(critical_entries) and critical_verified == len(critical_entries))
+
+    # 统计报告一致性核查（statcheck + GRIM，纯确定性）：
+    # 从正文抽取 t/F/χ²/Z/r 报告并重算 p 值，GRIM 校验小样本均值颗粒度。
+    inferential: dict[str, Any] = {"enabled": False, "records": [], "findings": [], "summary": {}}
+    if (settings.get("inferential_checks") or {}).get("enabled", True):
+        from utils.stat_checks import check_text
+
+        try:
+            alpha = float((settings.get("inferential_checks") or {}).get("alpha") or 0.05)
+        except (TypeError, ValueError):
+            alpha = 0.05
+        stat_blocks = [
+            block for block in blocks if not REFERENCE_HEADING_RE.match(block.section or "")
+        ]
+        inferential = check_text("\n".join(block.text for block in stat_blocks), alpha=alpha)
+        inferential["enabled"] = True
+        for finding in inferential["findings"]:
+            conflict_count += 1
+            findings.append(
+                {
+                    "severity": "error",
+                    "code": str(finding.get("check")),
+                    "location": str(finding.get("_location") or ""),
+                    "message": f"统计报告不一致：{finding.get('message')}",
+                    "reported": finding.get("found"),
+                }
+            )
+    pass_gate = (
+        conflict_count == 0
+        and (
+            not settings.get("require_critical_verified", True)
+            or (bool(critical_entries) and critical_verified == len(critical_entries))
+        )
     )
     return {
         "registry": normalized_registry,
         "comparisons": comparison_reports,
         "recomputations": recompute_reports,
+        "inferential_checks": inferential,
         "conflict_count": conflict_count,
         "critical_stat_count": len(critical_entries),
         "critical_verified_count": critical_verified,
@@ -2017,6 +2048,7 @@ def build_markdown(report: dict[str, Any]) -> str:
     docx = report["docx"]
     render = report["render"]
     gate = report["gate"]
+    journal_report = report.get("journal_compliance")
     lines = [
         f"# 投稿前预审报告 {report['version']}",
         "",
@@ -2036,11 +2068,21 @@ def build_markdown(report: dict[str, Any]) -> str:
         f"| DOCX 结构 | {'PASS' if docx['pass'] else 'FAIL'} | score={docx['score']}/5 |",
         f"| DOCX 真实渲染 | {'PASS' if render['pass'] else 'FAIL' if render['enabled'] else 'NOT RUN'} | pages={render['page_count']} |",
         f"| 占位符 | {'PASS' if not report['placeholders'] else 'FAIL'} | count={len(report['placeholders'])} |",
-        f"| 人工签核 | REQUIRED | 未执行，不得自动化替代 |",
-        "",
-        "## 输出物",
-        "",
     ]
+    if journal_report is not None:
+        lines.append(
+            f"| 期刊合规（{journal_report.get('journal_name') or journal_report.get('journal_id')}） "
+            f"| {'PASS' if journal_report['pass'] else 'FAIL'} "
+            f"| fails={journal_report['fail_count']}, warns={journal_report['warn_count']} |"
+        )
+    lines.extend(
+        [
+            f"| 人工签核 | REQUIRED | 未执行，不得自动化替代 |",
+            "",
+            "## 输出物",
+            "",
+        ]
+    )
     for name, path in report["files"].items():
         lines.append(f"- {name}: `{path}`")
     lines.extend(
@@ -2078,6 +2120,7 @@ def run_audit(
     render: bool = False,
     config_path: str | Path | None = None,
     version: str = "round-1",
+    journal: str | Path | None = None,
 ) -> dict[str, Any]:
     package = _load_json_source(package_source)
     config = load_config(config_path)
@@ -2109,7 +2152,28 @@ def run_audit(
         "limitations": ["未提供 DOCX 路径"],
     }
     placeholders = find_placeholders(blocks, config)
+
+    # 期刊合规网关（P1-C）：提供 journal 参数时逐项 PASS/FAIL 并入硬门禁
+    journal_report: dict[str, Any] | None = None
+    if journal:
+        from utils.journal_compliance import check_journal_compliance, load_journal_profile
+
+        profile = load_journal_profile(journal)
+        figure_files = [
+            item["source_file_resolved"]
+            for item in (package.get("figures") or [])
+            if isinstance(item, dict) and item.get("source_file_resolved")
+        ]
+        journal_report = check_journal_compliance(
+            "\n".join(block.text for block in blocks),
+            profile,
+            figure_files=figure_files or None,
+        )
     scores = quality_scores(evidence, statistics, figures, docx, render_report, placeholders, config)
+    if journal_report is not None:
+        checked = max(1, int(journal_report.get("checked_count") or 1))
+        failed = int(journal_report.get("fail_count") or 0)
+        scores["journal_format"] = round(5.0 * max(0.0, (checked - failed) / checked), 2)
     thresholds = config.get("thresholds") or {}
     render_required = bool((config.get("docx") or {}).get("require_word_or_pdf_render", True))
     fabrication_codes = {
@@ -2138,6 +2202,8 @@ def run_audit(
         "human_signoff_required": True,
         "human_signoff_completed": False,
     }
+    if journal_report is not None:
+        hard_gates["journal_compliance"] = bool(journal_report.get("pass"))
     automated_pass = all(
         value
         for key, value in hard_gates.items()
@@ -2146,6 +2212,11 @@ def run_audit(
     candidate_ready = automated_pass and hard_gates["human_signoff_required"]
     status = "candidate_ready_for_author_signoff" if candidate_ready else "candidate_with_open_gates"
     risks = build_risk_register(evidence, statistics, figures, docx, render_report, placeholders)
+    if journal_report is not None:
+        for finding in journal_report.get("findings") or []:
+            risk = dict(finding)
+            risk["source"] = "journal-compliance"
+            risks.append(risk)
     files = {
         "evidence_graph": str((output / "evidence-graph.json").resolve()),
         "statistics_registry": str((output / "statistics-registry.json").resolve()),
@@ -2159,6 +2230,8 @@ def run_audit(
         "reproducibility": str((output / "reproducibility.json").resolve()),
         "audit_json": str((output / "submission-audit.json").resolve()),
     }
+    if journal_report is not None:
+        files["journal_compliance"] = str((output / "journal-compliance.json").resolve())
     report = {
         "schema_version": "1.0",
         "version": version,
@@ -2178,6 +2251,7 @@ def run_audit(
         "docx": docx,
         "render": render_report,
         "placeholders": placeholders,
+        "journal_compliance": journal_report,
         "risks": risks,
         "scores": scores,
         "files": files,
@@ -2185,6 +2259,10 @@ def run_audit(
     (output / "evidence-graph.json").write_text(json.dumps(evidence, ensure_ascii=False, indent=2), encoding="utf-8")
     (output / "statistics-registry.json").write_text(json.dumps(statistics, ensure_ascii=False, indent=2), encoding="utf-8")
     (output / "figures-manifest.json").write_text(json.dumps(figures, ensure_ascii=False, indent=2), encoding="utf-8")
+    if journal_report is not None:
+        (output / "journal-compliance.json").write_text(
+            json.dumps(journal_report, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
     (output / "docx-render-report.json").write_text(json.dumps({**docx, "render": render_report}, ensure_ascii=False, indent=2), encoding="utf-8")
     (output / "risk-register.json").write_text(json.dumps(risks, ensure_ascii=False, indent=2), encoding="utf-8")
     (output / "author-confirmation.md").write_text(
