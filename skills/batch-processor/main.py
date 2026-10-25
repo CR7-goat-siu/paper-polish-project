@@ -112,6 +112,49 @@ def _references_text(parsed: dict[str, Any]) -> str:
     )
 
 
+def _focus_issue_comments(focus_issues: list[Any] | None) -> list[dict[str, Any]]:
+    """把审计问题转成锚定批注（走 polish 模板的 {{comments}} 最高优先级通道）。
+
+    这是「计划驱动修订」的注入点：issue-registry 的问题按证据锚定到
+    对应 chunk 后，以审阅人批注形式进入 prompt，与导师批注同通道、
+    同优先级（模板无需变更，锚定匹配与重试持久化自动复用）。
+    """
+    comments: list[dict[str, Any]] = []
+    for position, issue in enumerate(focus_issues or [], start=1):
+        if not isinstance(issue, dict):
+            continue
+        # 锚点优先级：optimizer-loop 片段锚定提供的 anchor_text（跨界证据已
+        # 降级为章节内片段）> 原始证据；两端的窗口省略号剥掉后再锚定
+        anchor = " ".join(
+            str(
+                issue.get("anchor_text")
+                or issue.get("evidence")
+                or issue.get("location")
+                or ""
+            ).split()
+        ).strip("…").strip()
+        if not anchor:
+            continue
+        priority = str(issue.get("priority") or "P2")
+        dimension = str(issue.get("dimension") or "")
+        title = " ".join(str(issue.get("title") or "").split())
+        suggestion = " ".join(str(issue.get("suggestion") or "").split())
+        text = (
+            f"[审计问题 {issue.get('issue_id') or position}][{priority}]"
+            f"{f'[{dimension}]' if dimension else ''} {title}"
+            + (f"；修改建议：{suggestion}" if suggestion else "")
+        )
+        comments.append(
+            {
+                "id": str(issue.get("issue_id") or f"issue-{position:03d}"),
+                "author": "Auto-Audit",
+                "anchor_text": anchor,
+                "text": text,
+            }
+        )
+    return comments
+
+
 def _splice_polished(original: str, polished: str) -> str:
     """把润色文本接回原 chunk 位置，保留原文首尾空白，避免 chunk 间段落粘连。"""
     if not original.strip():
@@ -154,24 +197,46 @@ def _build_one(
     brief = str(extra.get("brief", "") or "")
     jobs: list[dict[str, Any]] = []
     warnings: list[str] = []
+    # 计划驱动修订：只对指定章节出作业（局部补丁），并把审计问题作为
+    # 最高优先级批注注入对应 chunk 的 prompt。
+    only_chunks = {str(c) for c in (extra.get("only_chunks") or [])}
+    focus_comments = _focus_issue_comments(extra.get("focus_issues"))
+    chunk_strength_map = {
+        str(key): str(value)
+        for key, value in (extra.get("chunk_strength") or {}).items()
+    }
+    if focus_comments:
+        warnings.append(
+            f"计划驱动修订：{len(focus_comments)} 条审计问题将按锚定段落注入 prompt"
+        )
+    if only_chunks:
+        selected = [c for c in chunks if str(c.get("id")) in only_chunks]
+        skipped = [str(c.get("id")) for c in chunks if str(c.get("id")) not in only_chunks]
+        warnings.append(
+            f"选择性构建：仅 {len(selected)}/{len(chunks)} 个章节生成作业"
+            f"（依据修改计划，跳过 {skipped}）"
+        )
+        chunks_for_jobs = selected
+    else:
+        chunks_for_jobs = chunks
     if doc_comments:
         warnings.append(
             f"源文档含 {len(doc_comments)} 条批注，已按锚定段落注入对应 chunk 的 prompt"
         )
     prev_tail = ""
-    for chunk in chunks:
+    for chunk in chunks_for_jobs:
         section_type = classify_section(chunk.get("heading", ""), language)
         build_result = run_skill(
             f"{language}-polish",
             {
                 "mode": "build",
                 "text": chunk["content"],
-                "strength": strength,
+                "strength": chunk_strength_map.get(str(chunk.get("id")), strength),
                 "domain": extra.get("domain", "auto"),
                 "title": title,
                 "section_type": section_type,
                 "context": prev_tail,
-                "comments": doc_comments,
+                "comments": doc_comments + focus_comments,
                 "brief": brief,
             },
         )
@@ -183,6 +248,9 @@ def _build_one(
             job["parent_chunk_id"] = chunk["id"]
             job["job_id"] = f"{chunk['id']}-{sub_id}-a{attempt}"
             jobs.append(job)
+        # polish build 的告警（如批注/审计问题未能锚定到本 chunk）必须透出，不能静默丢弃
+        for warning in build_result.get("warnings", []) or []:
+            warnings.append(f"chunk {chunk['id']}: {warning}")
         prev_tail = chunk["content"][-160:]
 
     jobs_path = result_dir / "jobs.json"
@@ -251,11 +319,14 @@ def _build_one(
         "file": str(file_path),
         "status": "built",
         "job_count": len(jobs),
+        "chunk_count": len(chunks_for_jobs),
+        "total_chunk_count": len(chunks),
+        "selected_chunks": [str(c.get("id")) for c in chunks_for_jobs],
+        "focus_issue_count": len(focus_comments),
         "literature": literature_info,
         "jobs_file": str(jobs_path),
         "prompts_dir": str(prompts_dir),
         "responses_dir": str(responses_dir),
-        "chunk_count": len(chunks),
         "warnings": warnings,
         "elapsed_seconds": round(time.time() - started, 3),
         "result_file": str(result_dir / "build.json"),
@@ -432,18 +503,28 @@ def _run_polish_apply(
     if assembly_errors:
         raise RuntimeError("batch-processor 装配完整性校验失败：" + "；".join(assembly_errors))
     warnings.extend(assembly_warnings)
+    # 选择性构建时，计划外章节的 no_jobs 是预期行为，不计入门禁失败
+    only_chunks = {str(c) for c in (extra.get("only_chunks") or [])}
+
+    def _needs_attention(report: dict[str, Any]) -> bool:
+        if not only_chunks or str(report.get("chunk")) in only_chunks:
+            if report.get("gate_verdict") in ("fail", "no_response", "no_jobs"):
+                return True
+        # 外科修复的 chunk：终检虽过，但过程曾被门禁拦截，需人工目检保留句
+        subs = report.get("sub_reports") or [report]
+        return any(str(s.get("fallback") or "") == "surgical" for s in subs if isinstance(s, dict))
+
     step_result = {
         "skill": polish_skill,
         "mode": "apply",
         "chunk_count": len(chunks),
+        "selected_chunks": sorted(only_chunks) if only_chunks else None,
         "polished_text": assembled,
         "chunk_texts": polished_map,
         "chunk_reports": chunk_reports,
         "usage": usage,
         "warnings": warnings,
-        "gate_failed_chunks": [
-            r["chunk"] for r in chunk_reports if r["gate_verdict"] in ("fail", "no_response", "no_jobs")
-        ],
+        "gate_failed_chunks": [r["chunk"] for r in chunk_reports if _needs_attention(r)],
     }
     return assembled, step_result, retry_jobs
 
@@ -609,6 +690,16 @@ def _collect_guardrail_feedback(
                     message = (
                         "[guardrails] 门禁未通过且重试已耗尽，本段已回退为原文。原因："
                         f"{str(sub.get('fallback_reason') or '')[:200]}"
+                    )
+                elif sub.get("fallback") == "surgical":
+                    summary["fallback_chunks"] += 1
+                    repairs = sub.get("surgical_repairs") or {}
+                    message = (
+                        "[guardrails] 门禁未通过且重试已耗尽，本段已按句级外科修复："
+                        f"保留 {repairs.get('kept', '?')}/{repairs.get('total', '?')} 句修改，"
+                        f"回退 {repairs.get('restored', '?')} 句违例"
+                        f"（{'; '.join((repairs.get('restored_sentences') or [])[:3])}）。"
+                        "请人工复核被回退的句子。"
                     )
                 elif verdict == "fail":
                     summary["failed_chunks"] += 1
@@ -987,6 +1078,12 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
                     "literature": bool(args.get("literature", False)),
                     "lit_mode": args.get("lit_mode") or "gap",
                     "lit_args": args.get("lit_args"),
+                    # 计划驱动修订（optimizer-loop / harness 显式传入）：
+                    # only_chunks 限定出作业的章节；focus_issues 注入审计问题批注；
+                    # chunk_strength 按问题优先级逐章节覆盖润色强度。
+                    "only_chunks": args.get("only_chunks"),
+                    "focus_issues": args.get("focus_issues"),
+                    "chunk_strength": args.get("chunk_strength"),
                 },
             )
         return _apply_one(
@@ -1007,6 +1104,8 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
                 "submission_audit_args": args.get("submission_audit_args"),
                 "literature": bool(args.get("literature", False)),
                 "strict_guardrails": bool(args.get("strict_guardrails", False)),
+                # 与 build 阶段一致：选择性构建时计划外章节的 no_jobs 不算门禁失败
+                "only_chunks": args.get("only_chunks"),
             },
         )
 

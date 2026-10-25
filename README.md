@@ -66,6 +66,13 @@ result = run_skill("paper-parser", {
 8. 调用审计、引用、术语和预审能力，整理作者确认项。
 9. 向用户交付候选文件、风险清单和人工签核材料。
 
+迭代式质量优化可改用 `optimizer-loop` 状态机驱动（详见其 SKILL.md 与 `docs/protocol.md`）：
+`stage=init`（全源基线审计）→ `stage=build`（按计划选择性出作业）→
+回填响应 → `stage=apply` → `stage=decide`（独立复核 + 版本决策 + 任务级验证）→
+循环直至停止条件 → `stage=deliver`（五件套 + 终稿 DOCX + submission-audit 预审 +
+双门禁合并状态 + 交付索引，可选真实渲染与根目录交付）；`run-state.json` 支持断点续跑。
+端到端参考运行：`output/e2e-realloop/`（4 轮真实循环，36 → 20 问题自动收敛交付）。
+
 ## 目录结构
 
 ```text
@@ -86,6 +93,11 @@ paper-polish-project/
 │   ├── literature/
 │   ├── eval/
 │   └── baseline/
+├── docs/
+│   ├── protocol.md          # coding harness 协作协议
+│   ├── prd.md               # PRD 定稿（§2-§9 单一事实源）
+│   └── ...
+├── manuscripts/             # 真实手稿历史工作稿与原始输入（不入 git）
 ├── prompts/
 │   ├── cn/
 │   └── en/

@@ -42,7 +42,10 @@ description: Deterministic citation-numbering management for numeric-bracket sty
 - `paragraphs` 传入时：`docx_plan` = {段落下标: {"token_replacements": [...]}}，
   可直接组装为 `write_polished_docx` 的 `replacements`（外科式，含公式段落安全）；
 - `audit` 模式：`cited` / `listed` / `cited_not_listed` / `listed_not_cited` /
-  `duplicated_entries` / `unparsable_markers`；
+  `duplicated_entries` / `unparsable_markers`。条目区按 References/参考文献
+  标题划定（支持 Markdown `#` 前缀与编号前缀，如 `## 参考文献`、`2 参考文献`；
+  区内行首 `[n]` 一律视为条目，GB/T 7714 风格无需含 et al/pp. 等特征）；
+  无标题时退化为"行首 [n] + 文献行特征"识别；
 - `renumber` 模式：`mapping_used` / `removed`；
 - `insert` 模式：`inserted`（锚点/标记/编号/偏移）、`entry_lines`、`entry_formats`
   （每条目的 ieee/apa/gbt7714/bibtex 四种格式）、`formats_file`、`start_number`；

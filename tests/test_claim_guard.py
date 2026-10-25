@@ -68,14 +68,33 @@ class ClaimGuardTests(unittest.TestCase):
         )
         self.assertEqual(report["summary"]["error"], 0)
 
-    def test_occurrences_grouped(self):
+    def test_occurrences_reported_individually(self):
+        """同一词条多处命中逐处上报（各自带上下文指纹），跨轮指纹稳定。"""
         module = skill_module("claim-guard")
+        padding = "Detailed experimental evidence supports each claim in this paragraph. " * 3
         report = module.check_text_local(
-            "This is unprecedented. The result is unprecedented too.", "en"
+            f"This is unprecedented. {padding}The result is unprecedented too.", "en"
         )
         match = [f for f in report["findings"] if f["found"].lower() == "unprecedented"]
-        self.assertEqual(len(match), 1)
-        self.assertEqual(match[0]["occurrences"], 2)
+        self.assertEqual(len(match), 2)
+        self.assertEqual(match[0]["total_occurrences"], 2)
+        # 相距超过上下文窗口的两处命中指纹不同：修掉一处不会让另一处指纹漂移
+        from utils import issue_model
+
+        fps = {
+            issue_model.make_fingerprint("claim-guard", f["issue"], f["found"], f["context_snippet"])
+            for f in match
+        }
+        self.assertEqual(len(fps), 2)
+
+    def test_past_tense_completed_is_not_hype(self):
+        """过去式动词 completed（experiments are completed）不得误报 absolute。"""
+        module = skill_module("claim-guard")
+        report = module.check_text_local(
+            "The experiments are completed under the PyTorch framework.", "en"
+        )
+        absolute = [f for f in report["findings"] if f.get("category") == "absolute"]
+        self.assertEqual(absolute, [], absolute)
 
 
     def test_lexicon_whitelist_escape_hatch(self):

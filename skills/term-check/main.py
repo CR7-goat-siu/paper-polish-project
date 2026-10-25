@@ -20,29 +20,54 @@ logger = get_logger("term-check")
 SNIPPET_LEN = 60
 
 
-def _all_occurrences(text: str, phrase: str, language: str) -> list[str]:
+def _occurrence_positions(text: str, phrase: str, language: str) -> list[int]:
+    """短语在文本中的出现位置（start 下标）。en 侧加词边界防子串误配。"""
     if not phrase:
         return []
     if language == "cn":
-        indexes = [m.start() for m in re.finditer(re.escape(phrase), text)]
-    else:
-        pattern = r"(?<![A-Za-z0-9])" + re.escape(phrase) + r"(?![A-Za-z0-9])"
-        indexes = [m.start() for m in re.finditer(pattern, text, flags=re.IGNORECASE)]
-    snippets = []
-    for start in indexes:
-        left = max(0, start - SNIPPET_LEN // 2)
-        right = min(len(text), start + len(phrase) + SNIPPET_LEN // 2)
-        snippet = text[left:right].replace("\n", " ")
-        if left > 0:
-            snippet = "…" + snippet
-        if right < len(text):
-            snippet = snippet + "…"
-        snippets.append(snippet)
-    return snippets[:5]
+        return [m.start() for m in re.finditer(re.escape(phrase), text)]
+    pattern = r"(?<![A-Za-z0-9])" + re.escape(phrase) + r"(?![A-Za-z0-9])"
+    return [m.start() for m in re.finditer(pattern, text, flags=re.IGNORECASE)]
+
+
+def _all_occurrences(text: str, phrase: str, language: str) -> list[str]:
+    return [
+        _snip(text, start, len(phrase)) for start in _occurrence_positions(text, phrase, language)
+    ][:5]
+
+
+def _snip(text: str, start: int, length: int) -> str:
+    left = max(0, start - SNIPPET_LEN // 2)
+    right = min(len(text), start + length + SNIPPET_LEN // 2)
+    snippet = text[left:right].replace("\n", " ")
+    if left > 0:
+        snippet = "…" + snippet
+    if right < len(text):
+        snippet = snippet + "…"
+    return snippet
+
+
+def _overlaps_any(start: int, length: int, spans: list[tuple[int, int]]) -> bool:
+    """判断 [start, start+length) 是否完全落在任一 span 内（包含关系）。"""
+    return any(cs <= start and start + length <= ce for cs, ce in spans)
+
+
+def _strip_references_region(text: str) -> str:
+    """去掉参考文献区（References / thebibliography）：条目里的论文标题是
+    引用材料的原题，术语一致性检查不适用（与润色跳过 references chunk 同理）。"""
+    region = re.search(
+        r"(?:^References\s*$|^## References\s*$|\\begin\{thebibliography\}).*?(?:\\end\{thebibliography\}|\Z)",
+        text,
+        re.M | re.S | re.IGNORECASE,
+    )
+    if not region:
+        return text
+    return text[: region.start()] + "\n"
 
 
 def check_text_local(text: str, language: str, domain: str | None = None) -> dict[str, Any]:
     language = normalize_language(language)
+    text = _strip_references_region(text)
     terms_data = load_terms(language, domain)
     findings: list[dict[str, Any]] = []
     entries = terms_data.get("entries", [])
@@ -52,13 +77,66 @@ def check_text_local(text: str, language: str, domain: str | None = None) -> dic
         nonstandard = [str(x) for x in entry.get("nonstandard", []) if str(x).strip()]
         if not canonical:
             continue
-        canonical_hits = _all_occurrences(text, canonical, language)
-        alias_hits: list[tuple[str, list[str]]] = []
-        nonstandard_hits: list[tuple[str, list[str]]] = []
+        # 包含关系去歧义：别名与规范词互为子串时（如“注意力”⊂“注意力机制”、
+        # “泛化”⊂“泛化能力”），落在对方出现范围内的匹配不计为独立用法，
+        # 否则每次都会误报 mixed_usage / 假 canonical 命中。
+        alias_positions: dict[str, list[int]] = {}
         for alias in aliases:
-            hits = _all_occurrences(text, alias, language)
+            alias_positions[alias] = _occurrence_positions(text, alias, language)
+        alias_spans = [
+            (start, start + len(alias))
+            for alias, positions in alias_positions.items()
+            for start in positions
+        ]
+        # 英文形态变体：别名若只是规范词的复数（canonical + s/es），
+        # 该处出现计为规范用法而非别名混用（学术文本复数无处不在）。
+        morph_canonical_spans: list[tuple[int, int]] = []
+        if language == "en":
+            for alias, positions in alias_positions.items():
+                lowered = alias.lower()
+                if lowered in (canonical.lower() + "s", canonical.lower() + "es"):
+                    morph_canonical_spans.extend(
+                        (start, start + len(alias)) for start in positions
+                    )
+        canonical_positions = [
+            start
+            for start in _occurrence_positions(text, canonical, language)
+            if not _overlaps_any(start, len(canonical), alias_spans)
+        ]
+        canonical_spans = [
+            (start, start + len(canonical)) for start in canonical_positions
+        ] + morph_canonical_spans
+        canonical_hits = [
+            _snip(text, start, len(canonical)) for start in canonical_positions[:5]
+        ]
+        # 首用定义模式："规范词 (别名)" 或 "别名 (规范词)" —— 这是定义而非混用。
+        defined_alias_spans: list[tuple[int, int]] = []
+        if canonical_positions or morph_canonical_spans:
+            for alias in aliases:
+                for defining, defined in (
+                    (canonical, alias),
+                    (alias, canonical),
+                ):
+                    pattern = re.compile(
+                        re.escape(defining)
+                        + r"\s*\(\s*("
+                        + re.escape(defined)
+                        + r"(?:s|es)?)\s*\)",
+                        re.IGNORECASE if language == "en" else 0,
+                    )
+                    for match in pattern.finditer(text):
+                        defined_alias_spans.append((match.start(1), match.end(1)))
+        alias_hits: list[tuple[str, list[str]]] = []
+        for alias in aliases:
+            hits = [
+                _snip(text, start, len(alias))
+                for start in alias_positions[alias]
+                if not _overlaps_any(start, len(alias), canonical_spans)
+                and not _overlaps_any(start, len(alias), defined_alias_spans)
+            ][:5]
             if hits:
                 alias_hits.append((alias, hits))
+        nonstandard_hits: list[tuple[str, list[str]]] = []
         for bad in nonstandard:
             hits = _all_occurrences(text, bad, language)
             if hits:

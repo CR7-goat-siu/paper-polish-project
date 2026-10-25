@@ -34,13 +34,98 @@ from utils.prompt_renderer import (
     render_terms_text,
 )
 from utils.skill_loader import run_skill
-from utils.token_counter import split_into_chunks
+from utils.token_counter import split_into_chunks, split_sentences
 
 CONTEXT_TAIL_CHARS = 160
 VALID_STRENGTHS = ("light", "deep", "rewrite")
 VALID_MODES = ("build", "apply", "offline")
 # 批注锚定匹配：锚文本被 chunk 边界切断时，退化为前缀匹配的最小前缀长度
 COMMENT_ANCHOR_PREFIX_CHARS = 24
+
+
+def _surgical_enabled(strength_cfg: dict[str, Any]) -> bool:
+    """句级外科回退开关（quality_gates.surgical_fallback，默认开启）。"""
+    return bool((strength_cfg.get("quality_gates") or {}).get("surgical_fallback", True))
+
+
+def _gate_pair(
+    source_text: str,
+    polished_text: str,
+    *,
+    language: str,
+    strength: str,
+    references_text: str,
+) -> dict[str, Any]:
+    return run_skill(
+        "review-gate",
+        {
+            "source_text": source_text,
+            "polished_text": polished_text,
+            "language": language,
+            "strength": strength,
+            "mode": "local",
+            "references_text": references_text,
+        },
+    )
+
+
+def _surgical_repair(
+    source: str,
+    polished: str,
+    *,
+    language: str,
+    strength: str,
+    references_text: str,
+) -> tuple[str, str, dict[str, Any]] | None:
+    """句级外科修复：逐句门禁，只回退违例句，保留块内已过审的修改。
+
+    返回 (修复后文本, 整块终检verdict, 修复统计)；
+    句数无法对齐或整块终检仍 fail 时返回 None（调用方整块回退原文）。
+    """
+    src_sents = split_sentences(source)
+    pol_sents = split_sentences(polished)
+    if not src_sents or len(src_sents) != len(pol_sents):
+        # 句数不一致时逐句 zip 会错位（静默丢句/串句），宁可整块回退
+        return None
+
+    repaired: list[str] = []
+    restored_sentences: list[str] = []
+    kept = 0
+    for src_sent, pol_sent in zip(src_sents, pol_sents):
+        if src_sent == pol_sent:
+            repaired.append(pol_sent)
+            kept += 1
+            continue
+        verdict = _gate_pair(
+            src_sent,
+            pol_sent,
+            language=language,
+            strength=strength,
+            references_text=references_text,
+        )
+        if verdict["verdict"] in ("pass", "warn"):
+            repaired.append(pol_sent)
+            kept += 1
+        else:
+            repaired.append(src_sent)
+            restored_sentences.append(src_sent.strip()[:60])
+    candidate = "".join(repaired)
+    final_gate = _gate_pair(
+        source,
+        candidate,
+        language=language,
+        strength=strength,
+        references_text=references_text,
+    )
+    if final_gate["verdict"] == "fail":
+        return None
+    stats = {
+        "total": len(src_sents),
+        "kept": kept,
+        "restored": len(restored_sentences),
+        "restored_sentences": restored_sentences,
+    }
+    return candidate, final_gate["verdict"], stats
 
 _SENTENCE_REWORK_PREFIX = {
     "cn": (
@@ -460,16 +545,12 @@ def create_skill(config: dict[str, Any]) -> SimpleNamespace:
             if not response_text:
                 warnings.append(f"chunk {block_key} 响应为空，已保留原文")
 
-            gate = run_skill(
-                "review-gate",
-                {
-                    "source_text": source,
-                    "polished_text": polished_part,
-                    "language": language,
-                    "strength": strength,
-                    "mode": "local",
-                    "references_text": references_text or "",
-                },
+            gate = _gate_pair(
+                source,
+                polished_part,
+                language=language,
+                strength=strength,
+                references_text=references_text or "",
             )
             attempts = len(chunk_jobs)
             fail_closed = False
@@ -521,23 +602,58 @@ def create_skill(config: dict[str, Any]) -> SimpleNamespace:
             if gate["verdict"] == "fail":
                 warnings.append(f"chunk {block_key} 门禁未通过，需人工复核: {gate['summary']}")
                 if attempts > max_retries:
-                    # Fail-Closed：重试耗尽，回退原文，未过审文本不进终稿
+                    # Fail-Closed：重试耗尽。优先句级外科修复——只回退违例句，
+                    # 保留块内已通过审查的句子；无法对齐或整块复检仍失败时
+                    # 才整块回退原文（未过审文本绝不流入终稿）。
                     fail_closed = True
-                    polished_part = source
-                    warnings.append(
-                        f"chunk {block_key} 重试已耗尽且门禁仍未通过，已按 Fail-Closed 回退为原文"
-                    )
+                    surgical = None
+                    if _surgical_enabled(ctx["strength_cfg"]):
+                        surgical = _surgical_repair(
+                            source,
+                            polished_part,
+                            language=language,
+                            strength=strength,
+                            references_text=references_text or "",
+                        )
+                    if surgical is not None:
+                        polished_part, final_verdict, repairs = surgical
+                        fallback_mode = "surgical"
+                        warnings.append(
+                            f"chunk {block_key} 重试已耗尽，已按句级外科修复保留 "
+                            f"{repairs['kept']}/{repairs['total']} 句修改、回退 "
+                            f"{repairs['restored']} 句违例（终检 {final_verdict}）"
+                        )
+                    else:
+                        fallback_mode = "source"
+                        polished_part = source
+                        warnings.append(
+                            f"chunk {block_key} 重试已耗尽且门禁仍未通过，已按 Fail-Closed 回退为原文"
+                        )
 
             if fail_closed:
                 chunk_reports.append(
                     {
                         "chunk_id": block_id,
-                        "gate_verdict": "fail",
+                        "gate_verdict": final_verdict
+                        if fallback_mode == "surgical"
+                        else "fail",
                         "gate_summary": gate["summary"],
                         "attempts": attempts,
                         "similarity_ratio": gate["metrics"].get("similarity_ratio"),
-                        "fallback": "source",
+                        "fallback": fallback_mode,
                         "fallback_reason": gate.get("retry_feedback", ""),
+                        **(
+                            {
+                                "surgical_repairs": {
+                                    "total": repairs["total"],
+                                    "kept": repairs["kept"],
+                                    "restored": repairs["restored"],
+                                    "restored_sentences": repairs["restored_sentences"],
+                                }
+                            }
+                            if fallback_mode == "surgical"
+                            else {}
+                        ),
                     }
                 )
                 polished_parts.append(polished_part)

@@ -130,21 +130,21 @@
     },
     {
       "id": "complete",
-      "pattern": "complete(?:ly)?",
+      "pattern": "completely|complete(?!d)",
       "category": "absolute",
       "severity": "warning",
       "requires_data_anchor": true,
       "unanchored_severity": "error",
       "suggestion": "Use 'fully' only with evidence; prefer precise scope.",
-      "note": ""
+      "note": "explicit lookahead: past-tense verb \"completed\" (experiments are completed) is not hype"
     },
     {
       "id": "totally",
-      "pattern": "total(?:ly)?",
+      "pattern": "totally|total(?!\\s*(?:of|number|loss))\b(?=\\s+(?:failure|destruction|collapse))",
       "category": "absolute",
       "severity": "warning",
       "suggestion": "Delete or replace with precise scope.",
-      "note": ""
+      "note": "narrowed: L_total identifiers, \"a total of N\", \"in total\" are legitimate"
     },
     {
       "id": "conclusively",
@@ -212,9 +212,9 @@
       "id": "best",
       "pattern": "the best",
       "category": "hype",
-      "severity": "error",
+      "severity": "warning",
       "suggestion": "Name the comparison and numbers instead of 'the best'.",
-      "note": ""
+      "note": "downgraded: \"Compared with the best baseline\" is a legitimate comparative reference; bare self-superlatives are covered by state-of-the-art / optimal entries"
     },
     {
       "id": "indispensable",

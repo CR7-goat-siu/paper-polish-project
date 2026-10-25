@@ -1363,3 +1363,136 @@ def create_minimal_docx(path: str | Path, paragraphs: list[tuple[str, str]]) -> 
         archive.writestr("_rels/.rels", _ROOT_RELS)
         archive.writestr("word/document.xml", document)
     return path
+
+
+# --------------------------------------------------------------------------- #
+# Markdown → DOCX 交付装配（optimizer-loop deliver 阶段用）
+# --------------------------------------------------------------------------- #
+
+_MD_STYLES_CONTENT_TYPES = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+</Types>
+"""
+
+_MD_STYLES_RELS = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>
+"""
+
+_MD_DOC_RELS = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>
+"""
+
+_MD_STYLES_XML = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults><w:rPrDefault><w:rPr>
+    <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="SimSun"/>
+    <w:sz w:val="24"/><w:szCs w:val="24"/>
+  </w:rPr></w:rPrDefault></w:docDefaults>
+  <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+  <w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/>
+    <w:pPr><w:jc w:val="center"/><w:outlineLvl w:val="0"/></w:pPr>
+    <w:rPr><w:b/><w:sz w:val="32"/><w:szCs w:val="32"/></w:rPr></w:style>
+  <w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/>
+    <w:pPr><w:keepNext/><w:outlineLvl w:val="0"/></w:pPr>
+    <w:rPr><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:style>
+  <w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/>
+    <w:pPr><w:keepNext/><w:outlineLvl w:val="1"/></w:pPr>
+    <w:rPr><w:b/><w:sz w:val="26"/><w:szCs w:val="26"/></w:rPr></w:style>
+  <w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="heading 3"/><w:basedOn w:val="Normal"/>
+    <w:pPr><w:keepNext/><w:outlineLvl w:val="2"/></w:pPr>
+    <w:rPr><w:b/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:style>
+  <w:style w:type="paragraph" w:styleId="Caption"><w:name w:val="Caption"/><w:basedOn w:val="Normal"/>
+    <w:pPr><w:jc w:val="center"/></w:pPr><w:rPr><w:i/></w:rPr></w:style>
+  <w:style w:type="paragraph" w:styleId="TableText"><w:name w:val="Table Text"/><w:basedOn w:val="Normal"/>
+    <w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:style>
+</w:styles>
+"""
+
+_MD_HEADING_RE = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
+_MD_TABLE_SEP_RE = re.compile(r"^\s*\|?[\s:|-]+\|?\s*$")
+_MD_CAPTION_RE = re.compile(r"^\s*(?:图|表|Figure|Fig\.|Table)\s*\d+", re.IGNORECASE)
+
+
+def _md_paragraphs(text: str) -> list[tuple[str, str]]:
+    """Markdown 文本 → [(style, text)]。已知限制（交付时如实记录）：
+    表格按行以等宽样式呈现而非 Word 原生表格；公式/引用块按原文保留。"""
+    paragraphs: list[tuple[str, str]] = []
+    title_used = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        heading = _MD_HEADING_RE.match(stripped)
+        if heading:
+            level = len(heading.group(1))
+            content = heading.group(2).strip()
+            if level == 1 and not title_used:
+                paragraphs.append(("Title", content))
+                title_used = True
+            else:
+                paragraphs.append((f"Heading{min(level, 3)}", content))
+            continue
+        if stripped.startswith("|"):
+            if _MD_TABLE_SEP_RE.match(stripped):
+                continue
+            cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+            paragraphs.append(("TableText", "  |  ".join(cells)))
+            continue
+        if _MD_CAPTION_RE.match(stripped) and len(stripped) < 200:
+            paragraphs.append(("Caption", stripped))
+            continue
+        paragraphs.append(("", stripped))
+    return paragraphs
+
+
+def create_docx_from_markdown(path: str | Path, text: str) -> dict[str, Any]:
+    """把 Markdown 全文装配为交付用 DOCX（标题/章节/图表题注样式齐全）。
+
+    返回 {docx_path, paragraph_count, table_row_count, limitations}。
+    写出失败抛异常，由调用方回退为纯文本交付。
+    """
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    items = _md_paragraphs(text)
+    body_parts: list[str] = []
+    for style, content in items:
+        p_pr = f'<w:pPr><w:pStyle w:val="{style}"/></w:pPr>' if style else ""
+        escaped = (
+            content.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+        )
+        body_parts.append(
+            f"<w:p>{p_pr}<w:r><w:t xml:space=\"preserve\">{escaped}</w:t></w:r></w:p>"
+        )
+    document = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        f"<w:body>{''.join(body_parts)}<w:sectPr>"
+        '<w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" '
+        'w:bottom="1440" w:left="1440"/>'
+        "</w:sectPr></w:body></w:document>"
+    )
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("[Content_Types].xml", _MD_STYLES_CONTENT_TYPES)
+        archive.writestr("_rels/.rels", _MD_STYLES_RELS)
+        archive.writestr("word/_rels/document.xml.rels", _MD_DOC_RELS)
+        archive.writestr("word/styles.xml", _MD_STYLES_XML)
+        archive.writestr("word/document.xml", document)
+    return {
+        "docx_path": str(path),
+        "paragraph_count": len(items),
+        "table_row_count": sum(1 for style, _ in items if style == "TableText"),
+        "limitations": [
+            "Markdown 表格按行以等宽文本呈现（非 Word 原生表格）",
+            "公式与引用块按原文文本保留",
+        ],
+    }

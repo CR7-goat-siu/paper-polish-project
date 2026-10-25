@@ -118,16 +118,27 @@ def _analyze_lines(text: str) -> tuple[list[str], set[int], list[tuple[int, str,
     """切行并识别参考文献条目行。
 
     返回 (lines, 条目行号集合, 条目列表[(编号, 条目正文, 行号)])。
-    优先按 References/参考文献 标题划定条目区；无标题时退化为
+    优先按 References/参考文献 标题划定条目区（标题允许 Markdown # 前缀与
+    编号前缀，如 "## 参考文献" / "2 参考文献"，GB/T 7714 风格条目不含
+    pp./vol./et al 时也只在该区内识别）；无标题时退化为
     “行首 [n] + 参考文献行特征（pp./vol./doi 等）”识别。
+    LaTeX 的 \\bibitem 条目按出现顺序编号（thebibliography 语义）。
     """
     lines = text.split("\n")
     entry_line_indexes: set[int] = set()
     entries: list[tuple[int, str, int]] = []
     in_references = False
+    bibitem_counter = 0
     for index, line in enumerate(lines):
-        if REF_HEADING_RE.match(line.strip()):
+        stripped = re.sub(r"^(?:#{1,6}|\d+(?:\.\d+)*)\s*", "", line.strip())
+        if REF_HEADING_RE.match(stripped) or stripped.startswith("\\begin{thebibliography}"):
             in_references = True
+            continue
+        bibitem_match = re.match(r"\\bibitem(?:\[[^\]]*\])?\{[^}]*\}\s*(.*)$", line.strip())
+        if bibitem_match and in_references:
+            bibitem_counter += 1
+            entry_line_indexes.add(index)
+            entries.append((bibitem_counter, bibitem_match.group(1).rstrip(), index))
             continue
         match = REF_ENTRY_RE.match(line)
         if match and (in_references or REF_HINT_RE.search(line)):
@@ -266,11 +277,15 @@ def _audit(text: str) -> dict[str, Any]:
         if index in entry_line_indexes:
             continue
         for match in IN_TEXT_RE.finditer(line):
-            marker_count += 1
             numbers = _split_group(match.group(1))
             if numbers is None:
                 unparsable.append(match.group(0))
                 continue
+            if min(numbers) == 0:
+                # 引用编号从 1 起：含 0 的方括号组是数学区间记号
+                # （如归一化区间 "[0, 1]"、像素范围 "[0-255]"），不是引用
+                continue
+            marker_count += 1
             for num in numbers:
                 cited[num] = cited.get(num, 0) + 1
     listed = [num for num, _, _ in entries]

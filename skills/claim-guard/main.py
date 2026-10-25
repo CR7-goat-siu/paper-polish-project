@@ -24,6 +24,10 @@ logger = get_logger("claim-guard")
 
 SNIPPET_LEN = 120
 ANCHOR_WINDOW = 60
+# 每个词条最多上报的命中处数：逐处上报（各自带上下文指纹）而不是全文合并
+# 为一条——否则修掉首处命中后，下一处顶替成"首个"，指纹漂移会被迭代闭环的
+# 版本决策误判为"新增问题"而错误回滚（真实红队循环中暴露）。
+MAX_FINDINGS_PER_ENTRY = 5
 
 # 数据锚点：匹配位置附近出现数字 / 百分号 / 倍数 / 表格引用则视为有锚。
 _ANCHOR_RE = re.compile(r"\d|%|％|倍|Table|表\s*\d|Figure|图\s*\d|\\cite|\[\d")
@@ -83,7 +87,6 @@ def check_text_local(text: str, language: str) -> dict[str, Any]:
     """词库驱动的确定性扫描：返回 findings 报告。"""
     language = normalize_language(language)
     findings: list[dict[str, Any]] = []
-    seen: dict[tuple[str, str], dict[str, Any]] = {}
 
     # 白名单逃生口：config/<lang>-rules.yaml -> objectivity.lexicon_whitelist
     # 列出词库条目 id（如 ["chedi"]），被列入的词条不再报 error/warning，
@@ -116,34 +119,30 @@ def check_text_local(text: str, language: str) -> dict[str, Any]:
             matches = list(regex.finditer(text or ""))
             if not matches:
                 continue
-            unanchored = []
-            for match in matches:
-                if requires_anchor and not _has_anchor(text, match.start(), match.end()):
-                    unanchored.append(match)
-            effective_severity = severity
-            if unanchored:
-                escalate = str(entry.get("unanchored_severity", "") or severity)
-                effective_severity = max(severity, escalate, key=_SEVERITY_ORDER.index)
-            first = unanchored[0] if unanchored else matches[0]
-            key = (str(entry.get("id", pattern)), str(first.group(0)).lower())
-            if key in seen:
-                seen[key]["occurrences"] += len(matches)
-                continue
-            finding = {
-                "id": str(entry.get("id", pattern)),
-                "lexicon": kind,
-                "category": str(entry.get("category", kind)),
-                "found": first.group(0),
-                "issue": "unanchored_claim" if unanchored else str(entry.get("category", kind)),
-                "severity": effective_severity,
-                "suggestion": str(entry.get("suggestion", "")),
-                "context_snippet": _context_snippet(text, first.start(), first.end()),
-                "occurrences": len(matches),
-                "requires_data_anchor": requires_anchor,
-                "source": "local",
-            }
-            seen[key] = finding
-            findings.append(finding)
+            effective_matches = matches[:MAX_FINDINGS_PER_ENTRY]
+            for match in effective_matches:
+                unanchored_match = requires_anchor and not _has_anchor(
+                    text, match.start(), match.end()
+                )
+                match_severity = severity
+                if unanchored_match:
+                    escalate = str(entry.get("unanchored_severity", "") or severity)
+                    match_severity = max(severity, escalate, key=_SEVERITY_ORDER.index)
+                finding = {
+                    "id": str(entry.get("id", pattern)),
+                    "lexicon": kind,
+                    "category": str(entry.get("category", kind)),
+                    "found": match.group(0),
+                    "issue": "unanchored_claim" if unanchored_match else str(entry.get("category", kind)),
+                    "severity": match_severity,
+                    "suggestion": str(entry.get("suggestion", "")),
+                    "context_snippet": _context_snippet(text, match.start(), match.end()),
+                    "occurrences": 1,
+                    "total_occurrences": len(matches),
+                    "requires_data_anchor": requires_anchor,
+                    "source": "local",
+                }
+                findings.append(finding)
 
     return _build_report(findings, language, "local")
 

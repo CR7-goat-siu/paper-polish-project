@@ -1,0 +1,66 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath}
+\usepackage{graphicx}
+
+\title{Temporal Frequency Fusion Network for Single-Channel Image Denoising}
+\author{J. Tester}
+\date{October 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Image denoising is a fundamental problem in low-level vision. In this paper, we propose the Temporal Frequency Fusion Network (TFF-Net), which perfectly removes all kinds of noise from single-channel images. The proposed method revolutionary combines a spatial attention encoder with a frequency-domain gating module, achieving state-of-the-art performance. On our benchmark, the proposed method reaches a PSNR of 91.2 percent and removes 99.9 percent of the noise artifacts, which is undoubtedly the best result in the field.
+\end{abstract}
+
+\section{Introduction}
+Image denoising is a basic problem in computer vision and image processing. Basically, everyone knows that noise contamination degrades the performance of downstream tasks such as object detection and segmentation, a lot of research efforts have therefore been devoted to this topic. Classical methods such as BM3D achieve decent performance but are slow. Deep learning methods have totally changed this field in recent years.
+
+In order to solve this problem, we propose TFF-Net. The main contributions are: (1) we for the first time in history combine spatial attention with frequency gating for denoising; (2) we achieve a great improvement over all baselines; (3) our method is very fast.
+
+\section{Related Work}
+\subsection{Classical Methods}
+BM3D exploits non-local self-similarity and remains a strong baseline. It is clearly the best classical method. Wavelet threshold methods are simple but the denoising is not thorough.
+
+\subsection{Deep Learning Methods}
+DnCNN [7] stacks dilated convolutions for blind denoising. The method in [8] designs a residual learning scheme which is better than DnCNN at that time. However, these methods only use a unique scale of features. The datas show that multi-scale architectures perform better on textured images.
+
+\section{Method}
+\subsection{Overall Architecture}
+The network consists of a spatial encoder, a frequency gating module and a reconstruction decoder. The overall loss is
+
+\begin{equation}
+L_{total} = L_{rec} + \lambda L_{freq}
+\end{equation}
+
+where $\lambda = 5$ balances the two terms. The frequency gating module works amazingly well in practice.
+
+\subsection{Frequency Gating Module}
+Given a feature map $F \in \mathbb{R}^{C \times H \times W}$, the gate is computed as
+
+\begin{equation}
+G = \sigma(W_2 \delta(W_1 \mathrm{FFT}(F)))
+\end{equation}
+
+where $\delta$ is ReLU and $\sigma$ is the sigmoid function.
+
+\section{Experiments}
+\subsection{Datasets}
+We conduct experiments on dataset A with 12800 image patches from 32 scenes. The images are divided into training, validation and test sets with a ratio of 8:1:1. The datas are augmented with random crops.
+
+\subsection{Implementation Details}
+We use Adam with an initial learning rate of 0.001 and train for 200 epochs. The batch size is 64. All experiments are completed on one RTX 3090 GPU.
+
+\section{Results}
+Table 1 shows the comparison results. The proposed method achieves a PSNR of 91.2 percent, which is 3.2 points higher than the best baseline method. Obviously, our method is the best among all compared methods. Figure 7 further shows the visual comparison, from which it can be seen that our method recovers sharper edges. The ablation study shows that removing the frequency gating module decreases the PSNR to 89.3 percent.
+
+\section{Conclusion}
+In conclusion, the proposed TFF-Net is undoubtedly the best denoising method and will completely change the research paradigm of image denoising. The experiments show that our method achieves 91.2 percent PSNR on dataset A and 95.8 percent on dataset B. In future work we will extend the method to color images and video denoising.
+
+\begin{thebibliography}{9}
+\bibitem{bm3d} K. Dabov, A. Foi, V. Katkovnik, K. Egiazarian. Image denoising by sparse 3-D transform-domain collaborative filtering. IEEE Transactions on Image Processing, 2007, 16(8): 2080-2095.
+\bibitem{dncnn} K. Zhang, W. Zuo, Y. Chen, D. Meng, L. Zhang. Beyond a Gaussian denoiser: residual learning of deep CNN for image denoising. IEEE Transactions on Image Processing, 2017, 26(7): 3142-3155.
+\bibitem{unet} O. Ronneberger, P. Fischer, T. Brox. U-Net: convolutional networks for biomedical image segmentation. MICCAI, 2015.
+\end{thebibliography}
+
+\end{document}

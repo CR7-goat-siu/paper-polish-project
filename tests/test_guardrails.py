@@ -144,8 +144,14 @@ class FailClosedTests(unittest.TestCase):
                 }
             )
             self.assertIn("91.2%", second["polished_text"], "Fail-Closed 后终稿必须回退为原文")
-            fallback = [r for r in second["chunk_reports"] if r.get("fallback") == "source"]
-            self.assertTrue(fallback, "chunk_reports 应记录 fallback=source")
+            # 单句 chunk：外科修复回退唯一违例句，结果与整块回退等价；
+            # fallback 记录 source（无法对齐/终检失败）或 surgical（句级回退）均可
+            fallback = [
+                r
+                for r in second["chunk_reports"]
+                if r.get("fallback") in ("source", "surgical")
+            ]
+            self.assertTrue(fallback, "chunk_reports 应记录 fallback 来源")
             self.assertIn("91.2%", fallback[0]["fallback_reason"])
 
 

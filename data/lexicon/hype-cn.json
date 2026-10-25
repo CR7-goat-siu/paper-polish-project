@@ -48,11 +48,11 @@
     },
     {
       "id": "jida",
-      "pattern": "极大|极大地|极大提升",
+      "pattern": "极大(?!极?小)(?:地|提升)?",
       "category": "intensifier",
       "severity": "error",
       "suggestion": "以量化结果替代“极大”。",
-      "note": ""
+      "note": "负向前瞻排除标准术语“极大极小博弈”（minimax）"
     },
     {
       "id": "jingren",

@@ -109,10 +109,13 @@ class QualityScoreTests(unittest.TestCase):
         """测试 L：没跑过检查的维度不能打满分。"""
         card = self.module.run({"registry": self.registry, "language": "cn"})
         unscored = card["not_assessed"]
-        self.assertIn("literature_novelty", unscored)
+        # 文本全源审计后 literature_novelty 已由 cite-manager / lit-search 覆盖；
+        # review_risk 仍只有 submission-audit 能覆盖，材料维度缺材料不给分。
         self.assertIn("review_risk", unscored)
+        self.assertIn("method_rigor", unscored)
+        self.assertIn("literature_novelty", card["coverage"]["assessed_dimensions"])
         for dimension in unscored:
-            self.assertIsNone(card["scores"][dimension]["score"])
+            self.assertIsNone(card["scores"][dimension]["score"], dimension)
         self.assertLess(card["coverage_ratio"], 1.0)
 
     def test_material_dimensions_require_materials(self):
@@ -144,12 +147,24 @@ class QualityScoreTests(unittest.TestCase):
                     self.assertIn(key, item, f"{dimension} 的证据缺少 {key}")
 
     def test_clean_text_scores_full_on_covered_dimensions(self):
-        clean = "该方法在基准数据集上的准确率达到 94.2%，如表 1 所示 [1]。训练 20 轮。"
+        """干净的小论文（有参考文献表、表标题，摘要数字与正文一致）在已覆盖维度应得满分。"""
+        clean = (
+            "## 摘要\n\n"
+            "该方法在公开数据集上的准确率达到 94.2%。\n\n"
+            "## 实验结果\n\n"
+            "该方法在公开数据集上的准确率达到 94.2%，如表 1 所示 [1]。训练 20 轮。\n\n"
+            "表 1：性能对比\n\n"
+            "## 参考文献\n\n"
+            "[1] Author A. Sample title. Sample Journal, 2024, 12(1): 1-10.\n"
+        )
         registry = skill_module("issue-registry").run({"text": clean, "language": "cn"})
+        # 允许 P3/info 级启发式噪声（如 venue 抽取不出的 GB/T 条目），不允许 P0-P2
+        blocking_noise = [
+            i for i in registry["issues"] if i["priority"] in ("P0", "P1", "P2")
+        ]
+        self.assertEqual(blocking_noise, [], blocking_noise)
         card = self.module.run({"registry": registry, "language": "cn"})
         for dimension in card["coverage"]["assessed_dimensions"]:
-            if dimension == "scientific_truth":
-                continue
             self.assertEqual(card["scores"][dimension]["score"], 4, dimension)
 
 

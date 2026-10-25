@@ -41,6 +41,37 @@ class CiteManagerAuditTests(unittest.TestCase):
         self.assertEqual(audit["cited"]["3"], 1)  # [2-3] 展开计数
         self.assertEqual(audit["ref_entry_count"], 3)
 
+    def test_math_intervals_are_not_citations(self):
+        """数学区间记号（[0, 1] / [0-255]）不是引用，不得判越界（真实论文误报回归）。"""
+        text = (
+            "Inputs are normalized to [0, 1], pixel ranges span [0-255], "
+            "and prior work [1] established the baseline.\n"
+            "\n"
+            "References\n"
+            "[1] A. Author. First paper. Journal, 2020, pp. 1-10.\n"
+        )
+        audit = self.module.run({"text": text, "mode": "audit"})["audit"]
+        self.assertEqual(audit["cited_not_listed"], [])
+        self.assertEqual(audit["listed_not_cited"], [])
+        self.assertEqual(audit["in_text_marker_count"], 1)
+
+    def test_latex_bibitem_entries_are_numbered_by_order(self):
+        """LaTeX thebibliography 的 \\bibitem 条目按出现顺序编号（真实 LaTeX 稿回归）。"""
+        text = (
+            "Prior work [1] and [2] established baselines. A later method [3] extended them. "
+            "A dangling citation [9] has no entry.\n"
+            "\n"
+            "\\begin{thebibliography}{9}\n"
+            "\\bibitem{bm3d} K. Dabov et al. Image denoising by sparse 3-D transform-domain collaborative filtering. IEEE TIP, 2007.\n"
+            "\\bibitem{dncnn} K. Zhang et al. Beyond a Gaussian denoiser. IEEE TIP, 2017.\n"
+            "\\bibitem{unet} O. Ronneberger et al. U-Net. MICCAI, 2015.\n"
+            "\\end{thebibliography}\n"
+        )
+        audit = self.module.run({"text": text, "mode": "audit"})["audit"]
+        self.assertEqual(audit["listed"], [1, 2, 3])
+        self.assertEqual(audit["cited_not_listed"], [9])
+        self.assertEqual(audit["listed_not_cited"], [])
+
     def test_audit_finds_missing_and_uncited(self):
         text = TEXT + "A new claim cites [9] without an entry.\n"
         result = self.module.run({"text": text, "mode": "audit"})

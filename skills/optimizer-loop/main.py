@@ -1,36 +1,35 @@
 """Optimizer Loop：自主迭代式论文质量优化主循环（PRD §5 / §7 / §8）。
 
-这是 PRD 里缺的最后一块：把「审计 → 规划 → 修改 → 独立复核 → 版本决策 → 停止」
-组成闭环，而不是顺序调用几个提示词。
+把「审计 → 规划 → 修改 → 独立复核 → 版本决策 → 停止」组成可断点续跑的
+状态机（PRD 五个阶段），并以「计划驱动修订」替代全文重写：每轮只对
+问题所在章节出作业（only_chunks），把审计问题作为最高优先级批注注入
+prompt（focus_issues），按问题优先级选强度（chunk_strength）。
 
 闭环逻辑（对应 PRD 五个阶段）：
-  阶段一 建立基线   parse → issue-registry → quality-score → revision-plan，存初始快照
-  阶段二/三 识别排序与规划   由 issue-registry / revision-planner 产出
-  阶段四 执行修改   batch-processor build → 回填响应 → apply（局部补丁，不重写全文）
-  阶段五 独立复核   对新版本重跑 issue-registry + quality-score（确定性，非模型自评）
-  阶段六 版本决策   比较新旧：无新增 P0/P1 且质量不退化才接受，否则拒绝并回滚到历史最佳
-  阶段七 下一轮决策 继续 / 转向 / 收尾，由停止条件判定
+  阶段一 建立基线   init：parse → issue-registry → quality-score → revision-plan
+  阶段二/三 规划     由 issue-registry / revision-planner 产出；build 阶段消费计划
+  阶段四 执行修改   build（选择性作业包）→ coding harness 回填 → apply（门禁+装配）
+  阶段五 独立复核   decide：对新版本重跑全部确定性审计（非模型自评）
+  阶段六 版本决策   无新增 P0/P1 且质量不退化才接受，否则拒绝并回滚到历史最佳；
+                    同时按指纹做任务级验证（fixed / still_open）
+  阶段七 停止条件   无未处理 P0/P1 / 达到质量阈值 / 收益停滞 / 最大轮数
 
-停止条件（PRD §7.1）：
-  - 无未处理的 P0/P1 问题；
-  - 达到配置的最低质量阈值；
-  - 连续 N 轮无有意义净改善（收益停滞）；
-  - 达到最大轮数。
-满足任一条即进入交付，不保证发表。
+两种驱动方式（模型交互始终由 coding harness 完成，本 Skill 不调模型）：
+- 分步模式：run({"stage": "init|build|apply|decide|deliver|status", ...})。
+  build 之后状态为 awaiting_responses，harness 读取 pending_jobs 回填
+  responses/<job_id>.txt，再调用 stage=apply（可随时中断、按 run-state.json 续跑）。
+- 整体模式：不传 stage（或直接调用 run_loop），用 identity 恒等响应离线验证
+  闭环机制本身；responses_dir 提供已回填响应时走真实润色。
 
-交付物（PRD §8）：quality_report.md / evidence_audit.md / iteration_log.json /
-submission_readiness.md（三级状态，不用模糊绿灯）。
-
-响应来源：`responses_dir` 提供已回填响应；`identity` 用恒等响应（用于离线验证
-闭环机制本身，不产生真实润色）。
+停止条件满足只给投稿准备状态，**不保证发表**；作者/通讯作者签核仍是硬门禁。
 """
 
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import sys
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -38,7 +37,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from utils import issue_model  # noqa: E402
+from utils import issue_model, job_io  # noqa: E402
 from utils.config_loader import normalize_language  # noqa: E402
 from utils.logger import get_logger  # noqa: E402
 from utils.skill_loader import run_skill  # noqa: E402
@@ -46,15 +45,20 @@ from utils.skill_loader import run_skill  # noqa: E402
 LOG = get_logger("optimizer-loop")
 
 SCHEMA_VERSION = 1
+STATE_VERSION = 2
+VALID_STAGES = ("init", "audit", "build", "apply", "decide", "deliver", "status")
 
 # 投稿准备状态（PRD §8.5）：只用明确分级，不用模糊绿灯
 READY = "READY_FOR_AUTHOR_REVIEW"
 CONDITIONAL = "CONDITIONALLY_READY"
 BLOCKED = "BLOCKED"
 
+# 与 batch-processor 的 POLISHABLE_KINDS 保持同义的本地副本（跨 Skill 禁止 import 实现）
+_POLISHABLE_KINDS = {"body", "abstract", "appendix", "section"}
+
 
 # --------------------------------------------------------------------------- #
-# 单轮：审计 + 评分 + 规划
+# 基础工具
 # --------------------------------------------------------------------------- #
 def _load_source(text_file: Path) -> tuple[str, Path]:
     """返回 (用于审计的全文文本, 传给 batch-processor 的输入路径)。
@@ -90,6 +94,19 @@ def audit_round(text: str, *, language: str, out_dir: Path) -> dict[str, Any]:
     return {"registry": registry, "scorecard": scorecard, "plan": plan}
 
 
+def _load_audit(audit_dir: Path) -> dict[str, Any]:
+    """从审计目录恢复 {registry, scorecard, plan}（三个 JSON 均已落盘）。"""
+    audit_dir = Path(audit_dir)
+    registry = json.loads(
+        (audit_dir / "issue-registry.json").read_text(encoding="utf-8")
+    )
+    scorecard = json.loads(
+        (audit_dir / "quality-scorecard.json").read_text(encoding="utf-8")
+    )
+    plan = json.loads((audit_dir / "revision-plan.json").read_text(encoding="utf-8"))
+    return {"registry": registry, "scorecard": scorecard, "plan": plan}
+
+
 def _priority_counts(audit: dict[str, Any]) -> dict[str, int]:
     return audit["registry"].get("counts_by_priority") or {}
 
@@ -108,6 +125,15 @@ def _quality_index(audit: dict[str, Any]) -> float:
     return float(value) if value is not None else 0.0
 
 
+def _round_record(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "issue_count": audit["registry"]["issue_count"],
+        "counts_by_priority": _priority_counts(audit),
+        "weighted_index": _quality_index(audit),
+        "hard_gate_pass": audit["scorecard"]["hard_gate"]["pass"],
+    }
+
+
 # --------------------------------------------------------------------------- #
 # 阶段六：版本决策
 # --------------------------------------------------------------------------- #
@@ -121,15 +147,35 @@ def decide(
 
     PRD §5 阶段六：语言更流畅但引入未经支持的主张 → 必须拒绝；
     只在部分指标提升 → 结合问题严重程度与硬约束判断，不简单取分数最高者。
+
+    "新增"按违规种类（source::check::found，上下文无关）判定：issue_id 序号
+    跨轮漂移、指纹上下文窗口会被编辑点附近的改文扫中，二者都不能用于
+    跨轮对比；同类残留实例不算新增，交给下一轮计划继续处理。
     """
     if previous is None:
         return {"decision": "accept", "reason": "首轮基线，作为历史最佳版本"}
 
-    prev_blocking = set(_blocking(previous))
-    curr_blocking = set(_blocking(current))
+    def _blocking_kinds(audit: dict[str, Any]) -> set[str]:
+        """阻断级问题的"种类"集合：source::check::found（上下文无关）。
+
+        指纹含 ±60 字符上下文窗口，编辑点附近的旧问题会因窗口扫到改文而
+        漂移成"新指纹"；版本决策关心的是"是否引入了新的违规种类"，
+        同类残留实例交给下一轮计划处理。
+        """
+        kinds: set[str] = set()
+        for issue in audit["registry"].get("issues", []):
+            if issue.get("priority") not in ("P0", "P1"):
+                continue
+            check = str((issue.get("metadata") or {}).get("check") or "")
+            found = str((issue.get("metadata") or {}).get("found") or issue.get("issue_id"))
+            kinds.add(f"{issue.get('source')}::{check}::{found.lower()}")
+        return kinds
+
+    prev_blocking = _blocking_kinds(previous)
+    curr_blocking = _blocking_kinds(current)
     new_blocking = sorted(curr_blocking - prev_blocking)
 
-    # 硬约束：新增 P0/P1 一律拒绝（PRD 测试 G：修改回归必须被拒绝或回滚）
+    # 硬约束：新增 P0/P1 种类一律拒绝（PRD 测试 G：修改回归必须被拒绝或回滚）
     if new_blocking:
         return {
             "decision": "reject",
@@ -163,6 +209,36 @@ def decide(
     }
 
 
+def _verify_tasks(
+    best_audit: dict[str, Any], candidate_audit: dict[str, Any]
+) -> dict[str, dict[str, Any]]:
+    """任务级验证（PRD §5 阶段五）：按指纹判断每个计划任务的问题是否消失。
+
+    fixed = 该任务全部问题的指纹都不再出现在候选版本登记表中；
+    still_open = 至少一个问题仍在（或按数量部分解决，记录解决比例）。
+    """
+    fp_by_id = {
+        str(issue.get("issue_id")): str(issue.get("fingerprint") or "")
+        for issue in best_audit["registry"].get("issues", [])
+    }
+    candidate_fps = {
+        str(issue.get("fingerprint") or "")
+        for issue in candidate_audit["registry"].get("issues", [])
+    }
+    statuses: dict[str, dict[str, Any]] = {}
+    for task in best_audit["plan"].get("tasks") or []:
+        fingerprints = [
+            fp_by_id[pid] for pid in task.get("problem_ids", []) if fp_by_id.get(pid)
+        ]
+        remaining = [f for f in fingerprints if f in candidate_fps]
+        statuses[str(task.get("task_id"))] = {
+            "status": "fixed" if fingerprints and not remaining else "still_open",
+            "resolved": len(fingerprints) - len(remaining),
+            "total": len(fingerprints),
+        }
+    return statuses
+
+
 # --------------------------------------------------------------------------- #
 # 阶段七：停止条件
 # --------------------------------------------------------------------------- #
@@ -188,9 +264,159 @@ def should_stop(
 
 
 # --------------------------------------------------------------------------- #
-# 主循环
+# 计划驱动修订：问题 → 章节 映射
 # --------------------------------------------------------------------------- #
-def run_loop(
+def _norm_ws(value: Any) -> str:
+    return " ".join(str(value or "").split())
+
+
+def _strip_ellipsis(value: str) -> str:
+    """剥掉证据片段两端的窗口省略号（claim-guard 的 context_snippet 边界标记）。"""
+    return value.strip("…").strip(".").strip()
+
+
+def _map_issues_to_chunks(
+    issues: list[dict[str, Any]], chunks: list[dict[str, Any]], *, title: str
+) -> tuple[dict[str, list[dict[str, Any]]], list[dict[str, Any]]]:
+    """按证据锚定把问题映射到 parsed chunk；返回 (chunk_id -> issues, 未锚定问题)。
+
+    只映射到可润色章节（body/abstract/appendix/section，排除标题与参考文献）；
+    未锚定问题由调用方决定策略（计入告警，不静默丢弃）。
+    """
+    polishable = {
+        str(chunk.get("id"))
+        for chunk in chunks
+        if chunk.get("kind") in _POLISHABLE_KINDS
+        and (chunk.get("heading") or "").strip() != (title or "").strip()
+    }
+    normalized = [
+        (str(chunk.get("id")), _norm_ws(chunk.get("content")))
+        for chunk in chunks
+        if str(chunk.get("id")) in polishable
+    ]
+    mapping: dict[str, list[dict[str, Any]]] = {}
+    unmapped: list[dict[str, Any]] = []
+    for issue in issues:
+        placed = False
+        for probe in (
+            _strip_ellipsis(_norm_ws(issue.get("evidence"))),
+            _norm_ws((issue.get("metadata") or {}).get("found")),
+        ):
+            probe = probe.strip("。；;，, ")
+            if len(probe) < 8:
+                continue
+            chunk_id = _locate_probe(probe[:80], normalized)
+            anchored_text = probe[:80]
+            if chunk_id is None:
+                # 跨章节边界的证据：全文审计的上下文窗口可能横跨两个章节
+                # （如 "…方法 ## 摘要 脑电信号作为…"），按 Markdown 标题切分后
+                # 优先取包含被标记词的片段（问题真正所在），否则取最长片段。
+                fragments = [f.strip() for f in re.split(r"\s##\s", probe) if len(f.strip()) >= 8]
+                found_term = _norm_ws((issue.get("metadata") or {}).get("found"))
+                found_head = found_term[:2] if len(found_term) >= 2 else found_term
+                fragments.sort(
+                    key=lambda frag: (bool(found_head and found_head in frag), len(frag)),
+                    reverse=True,
+                )
+                for fragment in fragments:
+                    chunk_id = _locate_probe(fragment[:80], normalized)
+                    if chunk_id is not None:
+                        anchored_text = fragment[:80]
+                        break
+            if chunk_id is not None:
+                # 跨界证据降级为章节内片段作为批注锚点，避免 polish 层
+                # 前缀兜底把批注挂到相邻章节
+                placement = {**issue, "anchor_text": anchored_text}
+                mapping.setdefault(chunk_id, []).append(placement)
+                placed = True
+                break
+        if not placed:
+            unmapped.append(issue)
+    return mapping, unmapped
+
+
+def _locate_probe(needle: str, normalized: list[tuple[str, str]]) -> str | None:
+    """返回包含 needle 的第一个 chunk id；未命中返回 None。"""
+    for chunk_id, content in normalized:
+        if needle in content:
+            return chunk_id
+    return None
+
+
+def _chunk_strength_map(
+    mapping: dict[str, list[dict[str, Any]]], default_strength: str
+) -> dict[str, str]:
+    """按 chunk 内最高优先级问题查 priority_strength 表；未命中用默认强度。"""
+    planning = (issue_model.load_issue_rules().get("planning") or {})
+    table = {
+        str(key): str(value) for key, value in (planning.get("priority_strength") or {}).items()
+    }
+    fallback = str(planning.get("revision_default_strength") or default_strength)
+    result: dict[str, str] = {}
+    for chunk_id, issues in mapping.items():
+        priorities = [
+            str(issue.get("priority"))
+            for issue in issues
+            if str(issue.get("priority")) in issue_model.PRIORITY_ORDER
+        ]
+        if not priorities:
+            result[chunk_id] = fallback
+            continue
+        top = min(priorities, key=issue_model.PRIORITY_ORDER.index)
+        result[chunk_id] = table.get(top, fallback)
+    return result
+
+
+# --------------------------------------------------------------------------- #
+# 状态机
+# --------------------------------------------------------------------------- #
+def _state_file(out_dir: Path) -> Path:
+    return Path(out_dir) / "run-state.json"
+
+
+def _save_state(out_dir: Path, state: dict[str, Any]) -> None:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    _state_file(out_dir).write_text(
+        json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
+def _load_state(out_dir: Path) -> dict[str, Any] | None:
+    path = _state_file(out_dir)
+    if not path.exists():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _state_view(state: dict[str, Any]) -> dict[str, Any]:
+    """harness 视角的状态摘要：下一步做什么、等哪些响应。"""
+    view = {
+        "stage": state.get("next_stage"),
+        "status": state.get("status"),
+        "round": state.get("round"),
+        "next_stage": state.get("next_stage"),
+        "stop_reason": state.get("stop_reason"),
+        "pending_jobs": state.get("pending_jobs") or [],
+        "selected_chunks": state.get("selected_chunks"),
+        "focus_issue_count": state.get("focus_issue_count"),
+        "unmapped_issue_count": state.get("unmapped_issue_count"),
+        "responses_dir": state.get("responses_dir"),
+        "current_input_file": state.get("current_input_file"),
+        "best": state.get("best"),
+        "rounds": state.get("rounds"),
+        "readiness_status": state.get("readiness_status"),
+        "state_file": state.get("state_file"),
+    }
+    return view
+
+
+def _best_text_suffix(text_file: Path) -> str:
+    """最佳版本文本文件后缀：保留 md/tex 结构；其余统一 .txt。"""
+    suffix = text_file.suffix.lower()
+    return suffix if suffix in (".md", ".markdown", ".tex") else ".txt"
+
+
+def stage_init(
     text_file: Path,
     *,
     language: str,
@@ -200,9 +426,8 @@ def run_loop(
     min_gain: float = 0.2,
     min_index: float = 3.5,
     stagnant_limit: int = 2,
-    responses_dir: Path | None = None,
-    identity: bool = False,
 ) -> dict[str, Any]:
+    """阶段一：解析 → 基线审计 → 建立历史最佳与运行状态。"""
     language = normalize_language(language)
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -212,127 +437,479 @@ def run_loop(
     work.mkdir(parents=True)
 
     current_text, pipeline_input = _load_source(text_file)
-    baseline_audit = audit_round(current_text, language=language, out_dir=work / "round-000")
-    iteration_log: list[dict[str, Any]] = [
-        {
+    baseline_audit = audit_round(
+        current_text, language=language, out_dir=work / "round-000"
+    )
+    # 后续轮的最佳版本文本保留原始结构化后缀（md/tex），否则解析退化成单块 plain 文本
+    text_suffix = _best_text_suffix(text_file)
+    best_text = work / f"best-round-000{text_suffix}"
+    best_text.write_text(current_text, encoding="utf-8")
+    state = {
+        "schema_version": STATE_VERSION,
+        "state_file": str(_state_file(out_dir)),
+        "input_file": str(text_file),
+        "language": language,
+        "strength": strength,
+        "text_suffix": text_suffix,
+        "max_rounds": max_rounds,
+        "min_gain": min_gain,
+        "min_index": min_index,
+        "stagnant_limit": stagnant_limit,
+        "round": 1,
+        "next_stage": "build",
+        "status": "running",
+        "stop_reason": "",
+        "stagnant": 0,
+        "recent_gains": [],
+        "rounds": [
+            {"round": 0, "kind": "baseline", **_round_record(baseline_audit)}
+        ],
+        "baseline_audit_dir": str(work / "round-000"),
+        "best": {
             "round": 0,
-            "kind": "baseline",
-            "issue_count": baseline_audit["registry"]["issue_count"],
-            "counts_by_priority": _priority_counts(baseline_audit),
-            "weighted_index": _quality_index(baseline_audit),
-            "hard_gate_pass": baseline_audit["scorecard"]["hard_gate"]["pass"],
+            "text_file": str(best_text),
+            "input_file": str(pipeline_input),
+            "audit_dir": str(work / "round-000"),
+        },
+        "pending_jobs": [],
+        "selected_chunks": None,
+        "focus_issue_count": 0,
+        "unmapped_issue_count": 0,
+        "readiness_status": None,
+    }
+    _save_state(out_dir, state)
+    return state
+
+
+def stage_reaudit(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
+    """对当前最佳版本重跑全量确定性审计并刷新其计划。
+
+    适用场景：规则 / 词库 / 术语包在轮间被修正后，历史最佳版本上的旧审计
+    已过期——重审计让下一轮 build 消费最新计划，而不是缓存里的陈旧问题。
+    """
+    out_dir = Path(out_dir)
+    text = Path(state["best"]["text_file"]).read_text(encoding="utf-8")
+    audit_dir = out_dir / "work" / f"audit-refresh-{int(state['round']):03d}"
+    audit = audit_round(text, language=state["language"], out_dir=audit_dir)
+    state["best"]["audit_dir"] = str(audit_dir)
+    state["audit_refreshed"] = True
+    _save_state(out_dir, state)
+    return state
+
+
+def stage_build(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
+    """阶段四（上）：按修改计划生成选择性作业包，进入 awaiting_responses。"""
+    out_dir = Path(out_dir)
+    work = out_dir / "work"
+    best = state["best"]
+    if int(state.get("round", 1)) > int(state["max_rounds"]):
+        state["next_stage"] = "deliver"
+        _save_state(out_dir, state)
+        return state
+
+    best_audit = _load_audit(Path(best["audit_dir"]))
+    tasks = best_audit["plan"].get("tasks") or []
+    if not tasks:
+        state["stop_reason"] = (
+            "无可自动执行的修改任务（剩余问题均需人工确认或缺材料），进入交付"
+        )
+        state["next_stage"] = "deliver"
+        state["status"] = "stopped"
+        _save_state(out_dir, state)
+        return state
+
+    input_path = Path(best["input_file"])
+    parsed = run_skill("paper-parser", {"input": str(input_path), "format": "auto"})
+    issues_by_id = {
+        str(issue.get("issue_id")): issue
+        for issue in best_audit["registry"].get("issues", [])
+    }
+    focus_issues: list[dict[str, Any]] = []
+    for task in tasks:
+        for problem_id in task.get("problem_ids", []):
+            if problem_id in issues_by_id:
+                focus_issues.append(issues_by_id[problem_id])
+
+    mapping, unmapped = _map_issues_to_chunks(
+        focus_issues, parsed.get("chunks", []), title=str(parsed.get("title", ""))
+    )
+    if not mapping:
+        # 无一锚定成功：无方向的全文重润违反局部补丁原则，直接进入交付，
+        # 未锚定问题计入告警由作者裁定
+        state["stop_reason"] = (
+            f"修改计划中的 {len(focus_issues)} 个问题均无法锚定到可润色章节，"
+            "无自动修订可执行，进入交付"
+        )
+        state["next_stage"] = "deliver"
+        state["status"] = "stopped"
+        state["unmapped_issue_count"] = len(unmapped)
+        _save_state(out_dir, state)
+        return state
+    chunk_strength = _chunk_strength_map(mapping, state["strength"])
+    only_chunks = sorted(mapping)
+
+    round_index = int(state["round"])
+    round_dir = work / f"round-{round_index:03d}"
+    round_dir.mkdir(parents=True, exist_ok=True)
+    build_result = run_skill(
+        "batch-processor",
+        {
+            "inputs": [str(input_path)],
+            "language": state["language"],
+            "phase": "build",
+            "strength": state["strength"],
+            "out": str(round_dir),
+            "only_chunks": only_chunks,
+            "focus_issues": [issue for cid in only_chunks for issue in mapping[cid]],
+            "chunk_strength": chunk_strength,
+        },
+    )
+    item = (build_result.get("items") or [{}])[0]
+    if item.get("status") != "built":
+        raise RuntimeError(f"round {round_index} 构建失败: {item.get('errors') or item}")
+
+    jobs = job_io.read_jobs(item["jobs_file"])
+    if not jobs:
+        state["stop_reason"] = "选择性构建未产出任何作业（计划问题均无法锚定到可润色章节），进入交付"
+        state["next_stage"] = "deliver"
+        state["status"] = "stopped"
+        _save_state(out_dir, state)
+        return state
+
+    state.update(
+        {
+            "next_stage": "apply",
+            "status": "awaiting_responses",
+            "current_round_dir": str(round_dir),
+            "current_input_file": str(input_path),
+            "jobs_file": str(item["jobs_file"]),
+            "responses_dir": str(Path(item["jobs_file"]).parent / "responses"),
+            "pending_jobs": [str(job.get("job_id")) for job in jobs],
+            "selected_chunks": only_chunks,
+            "focus_issue_count": sum(len(v) for v in mapping.values()),
+            "unmapped_issue_count": len(unmapped),
         }
-    ]
-    best_text = current_text
-    best_audit = baseline_audit
-    recent_gains: list[float] = []
-    stagnant = 0
-    stop_reason = ""
+    )
+    _save_state(out_dir, state)
+    return state
 
-    for round_index in range(1, max_rounds + 1):
-        LOG.info("=== 第 %d 轮 ===", round_index)
-        round_dir = work / f"round-{round_index:03d}"
-        round_dir.mkdir(parents=True, exist_ok=True)
 
-        # 阶段四：执行修改（局部补丁：build → 回填 → apply）
-        run_skill(
-            "batch-processor",
+def stage_apply(
+    state: dict[str, Any],
+    out_dir: Path,
+    *,
+    responses_dir: Path | None = None,
+    identity: bool = False,
+) -> dict[str, Any]:
+    """阶段四（下）：回填响应 → apply（清洗/门禁/装配）→ 产出候选版本。"""
+    out_dir = Path(out_dir)
+    jobs_file = Path(state["jobs_file"])
+    run_root = jobs_file.parent
+    responses = Path(state["responses_dir"])
+    responses.mkdir(parents=True, exist_ok=True)
+
+    jobs = job_io.read_jobs(jobs_file)
+    for job in jobs:
+        if job_io.job_is_ready(job):
+            continue
+        target = responses / f"{job['job_id']}.txt"
+        if responses_dir is not None and (Path(responses_dir) / f"{job['job_id']}.txt").exists():
+            shutil.copy(Path(responses_dir) / f"{job['job_id']}.txt", target)
+        elif identity:
+            target.write_text(str(job.get("chunk_content") or ""), encoding="utf-8")
+
+    round_index = int(state["round"])
+    apply_result = run_skill(
+        "batch-processor",
+        {
+            "inputs": [state["current_input_file"]],
+            "language": state["language"],
+            "phase": "apply",
+            "strength": state["strength"],
+            "out": str(Path(state["current_round_dir"])),
+            "only_chunks": state.get("selected_chunks") or None,
+        },
+    )
+    summary = (apply_result.get("items") or [{}])[0]
+    step_file = run_root / f"step-01-{state['language']}-polish" / "step-result.json"
+    candidate_text = None
+    if step_file.exists():
+        candidate_text = json.loads(step_file.read_text(encoding="utf-8")).get(
+            "polished_text"
+        )
+    if not candidate_text:
+        state["rounds"].append(
             {
-                "inputs": [str(pipeline_input)],
-                "language": language,
-                "phase": "build",
-                "strength": strength,
-                "out": str(round_dir),
-            },
+                "round": round_index,
+                "kind": "round",
+                "status": "error",
+                "reason": "apply 未产出终稿",
+            }
         )
-        stem = text_file.stem
-        run_root = round_dir / stem
-        resp = run_root / "responses"
-        resp.mkdir(parents=True, exist_ok=True)
-        jobs = json.loads((run_root / "jobs.json").read_text(encoding="utf-8"))["jobs"]
-        for job in jobs:
-            target = resp / f"{job['job_id']}.txt"
-            if responses_dir is not None and (responses_dir / f"{job['job_id']}.txt").exists():
-                shutil.copy(responses_dir / f"{job['job_id']}.txt", target)
-            elif identity:
-                target.write_text(job["chunk_content"], encoding="utf-8")
-        apply_result = run_skill(
-            "batch-processor",
-            {
-                "inputs": [str(pipeline_input)],
-                "language": language,
-                "phase": "apply",
-                "strength": strength,
-                "out": str(round_dir),
-            },
-        )
-        step_file = run_root / f"step-01-{language}-polish" / "step-result.json"
-        candidate_text = (
-            json.loads(step_file.read_text(encoding="utf-8")).get("polished_text")
-            if step_file.exists()
-            else None
-        )
-        if not candidate_text:
-            iteration_log.append(
-                {"round": round_index, "kind": "round", "status": "error", "reason": "apply 未产出终稿"}
-            )
-            stop_reason = "apply 未产出终稿，中止迭代"
-            break
+        state["stop_reason"] = "apply 未产出终稿，中止迭代"
+        state["next_stage"] = "deliver"
+        state["status"] = "stopped"
+        _save_state(out_dir, state)
+        return state
 
-        # 阶段五：独立复核（确定性，不读模型自评）
-        candidate_audit = audit_round(
-            candidate_text, language=language, out_dir=round_dir / "audit"
-        )
-        verdict = decide(best_audit, candidate_audit, min_gain=min_gain)
-
-        record = {
-            "round": round_index,
-            "kind": "round",
-            "issue_count": candidate_audit["registry"]["issue_count"],
-            "counts_by_priority": _priority_counts(candidate_audit),
-            "weighted_index": _quality_index(candidate_audit),
-            "hard_gate_pass": candidate_audit["scorecard"]["hard_gate"]["pass"],
-            "decision": verdict["decision"],
-            "reason": verdict["reason"],
+    candidate_file = (
+        out_dir / "work" / f"candidate-round-{round_index:03d}.txt"
+    )
+    candidate_file.write_text(str(candidate_text), encoding="utf-8")
+    state.update(
+        {
+            "next_stage": "decide",
+            "status": "running",
+            "candidate_text_file": str(candidate_file),
+            "candidate_docx_file": str(summary.get("output_docx_file") or "") or None,
+            "candidate_result_file": str(summary.get("result_file") or "") or None,
         }
-        iteration_log.append(record)
+    )
+    _save_state(out_dir, state)
+    return state
 
-        if verdict["decision"] == "reject":
-            LOG.info("拒绝本轮修改：%s", verdict["reason"])
-            stagnant += 1
-            recent_gains.append(0.0)
+
+def stage_decide(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
+    """阶段五/六：独立复核（全量确定性审计）→ 版本决策 → 任务级验证 → 停止判定。"""
+    out_dir = Path(out_dir)
+    work = out_dir / "work"
+    round_index = int(state["round"])
+    candidate_text = Path(state["candidate_text_file"]).read_text(encoding="utf-8")
+    round_dir = Path(state["current_round_dir"])
+    candidate_audit = audit_round(
+        candidate_text, language=state["language"], out_dir=round_dir / "audit"
+    )
+    best_audit = _load_audit(Path(state["best"]["audit_dir"]))
+    verdict = decide(best_audit, candidate_audit, min_gain=float(state["min_gain"]))
+    task_status = _verify_tasks(best_audit, candidate_audit)
+
+    record = {
+        "round": round_index,
+        "kind": "round",
+        **_round_record(candidate_audit),
+        "decision": verdict["decision"],
+        "reason": verdict["reason"],
+        "selected_chunks": state.get("selected_chunks"),
+        "job_count": len(state.get("pending_jobs") or []),
+        "task_status": task_status,
+    }
+    state["rounds"].append(record)
+
+    if verdict["decision"] == "reject":
+        LOG.info("拒绝本轮修改：%s", verdict["reason"])
+        state["stagnant"] = int(state.get("stagnant", 0)) + 1
+        state["recent_gains"] = (state.get("recent_gains") or []) + [0.0]
+    else:
+        candidate_docx = state.get("candidate_docx_file")
+        if candidate_docx and Path(candidate_docx).exists():
+            next_input = str(candidate_docx)
         else:
-            best_text = candidate_text
-            best_audit = candidate_audit
-            current_text = candidate_text
-            gain = float(verdict.get("gain") or 0.0)
-            recent_gains.append(gain)
-            stagnant = stagnant + 1 if abs(gain) < min_gain else 0
-
-        stop, stop_reason = should_stop(
-            audit=best_audit,
-            round_index=round_index,
-            max_rounds=max_rounds,
-            min_index=min_index,
-            stagnant_rounds=stagnant,
-            stagnant_limit=stagnant_limit,
-            recent_gains=recent_gains,
+            best_file = work / f"best-round-{round_index:03d}{state.get('text_suffix') or '.txt'}"
+            best_file.write_text(candidate_text, encoding="utf-8")
+            next_input = str(best_file)
+        state["best"] = {
+            "round": round_index,
+            "text_file": state["candidate_text_file"],
+            "input_file": next_input,
+            "audit_dir": str(round_dir / "audit"),
+        }
+        gain = float(verdict.get("gain") or 0.0)
+        state["recent_gains"] = (state.get("recent_gains") or []) + [gain]
+        state["stagnant"] = (
+            int(state.get("stagnant", 0)) + 1 if abs(gain) < float(state["min_gain"]) else 0
         )
-        if stop:
-            break
 
-    # ---------------- 交付物（PRD §8） ----------------
-    final_audit = best_audit
-    final_text = best_text
+    best_audit_now = _load_audit(Path(state["best"]["audit_dir"]))
+    stop, stop_reason = should_stop(
+        audit=best_audit_now,
+        round_index=round_index,
+        max_rounds=int(state["max_rounds"]),
+        min_index=float(state["min_index"]),
+        stagnant_rounds=int(state.get("stagnant", 0)),
+        stagnant_limit=int(state["stagnant_limit"]),
+        recent_gains=state.get("recent_gains") or [],
+    )
+    if stop:
+        state["stop_reason"] = stop_reason
+        state["next_stage"] = "deliver"
+        state["status"] = "stopped"
+    else:
+        state["round"] = round_index + 1
+        state["next_stage"] = "build"
+    _save_state(out_dir, state)
+    return state
+
+
+def _assemble_final_docx(state: dict[str, Any], final_text: str, out_dir: Path) -> dict[str, Any]:
+    """交付 DOCX 装配：docx 输入直接采用最佳轮次回写稿；文本输入按 Markdown 装配。
+
+    返回 {docx_path, method, limitations}；装配失败回退纯文本并记录（不阻断交付）。
+    """
+    best_input = str(state.get("best", {}).get("input_file") or "")
+    if best_input.lower().endswith((".docx", ".doc")) and Path(best_input).exists():
+        target = out_dir / "final_manuscript.docx"
+        shutil.copy(best_input, target)
+        return {"docx_path": str(target), "method": "best_round_docx", "limitations": []}
+    target = out_dir / "final_manuscript.docx"
+    try:
+        from utils.docx_io import create_docx_from_markdown  # noqa: PLC0415
+
+        built = create_docx_from_markdown(target, final_text)
+        return {
+            "docx_path": built["docx_path"],
+            "method": "markdown_assembly",
+            "limitations": built["limitations"],
+        }
+    except Exception as exc:  # noqa: BLE001 - 装配失败回退纯文本交付
+        LOG.warning("终稿 DOCX 装配失败，回退纯文本交付: %s", exc)
+        return {"docx_path": "", "method": "fallback_text", "limitations": [str(exc)]}
+
+
+def _run_submission_preflight(
+    state: dict[str, Any], out_dir: Path, docx_path: str, *, render: bool = False
+) -> dict[str, Any]:
+    """投稿前预审（submission-audit pipeline）：证据/统计/图表/结构确定性门禁。
+
+    失败不阻断交付，只降级合并状态并记录——预审缺口必须显式可见。
+    render=True 时执行真实 DOCX→PDF→页面图验收（需 Word COM / LibreOffice）。
+    """
+    try:
+        result = run_skill(
+            "submission-audit",
+            {
+                "mode": "pipeline",
+                "input_file": state["best"]["text_file"],
+                "language": state["language"],
+                "docx_path": docx_path,
+                "render": render,
+                "out": str(out_dir / "submission-audit"),
+                "version": f"optimizer-loop-round-{state.get('best', {}).get('round', 0)}",
+            },
+        )
+        gate = result.get("gate") or {}
+        return {
+            "status": "ok",
+            "audit_status": result.get("status"),
+            "automated_pass": bool(gate.get("automated_pass")),
+            "human_signoff_status": gate.get("human_signoff_status"),
+            "final_publication_allowed": bool(gate.get("final_publication_allowed")),
+            "audit_json": (result.get("files") or {}).get("audit_json"),
+            "gate_detail": gate,
+        }
+    except Exception as exc:  # noqa: BLE001
+        LOG.warning("submission-audit 预审失败，交付状态降级为需人工复核: %s", exc)
+        return {"status": "error", "automated_pass": False, "error": str(exc)}
+
+
+def _merge_readiness(
+    prd: dict[str, Any], preflight: dict[str, Any] | None
+) -> dict[str, Any]:
+    """合并 PRD 三级状态与 submission-audit 自动门禁为单一交付状态。"""
+    if prd["status"] == BLOCKED:
+        return {**prd, "delivery_status": BLOCKED}
+    if preflight is None:
+        return {**prd, "delivery_status": prd["status"]}
+    if preflight.get("status") == "error":
+        return {
+            **prd,
+            "status": CONDITIONAL,
+            "delivery_status": CONDITIONAL,
+            "reason": f"{prd['reason']}；投稿预审执行失败（{preflight.get('error')}），需人工复核",
+        }
+    if prd["status"] == READY and preflight.get("automated_pass"):
+        return {**prd, "delivery_status": READY}
+    reason = prd["reason"]
+    if not preflight.get("automated_pass"):
+        reason += "；submission-audit 自动门禁未全部通过（证据绑定/统计/图表/结构存在开放项）"
+    return {**prd, "status": CONDITIONAL, "delivery_status": CONDITIONAL, "reason": reason}
+
+
+def _render_delivery_index(
+    *,
+    stem: str,
+    merged: dict[str, Any],
+    stop_reason: str,
+    docx_info: dict[str, Any],
+    preflight: dict[str, Any] | None,
+    state: dict[str, Any],
+    final_audit: dict[str, Any],
+    root_files: list[str],
+) -> str:
+    counts = _priority_counts(final_audit)
+    lines = [
+        f"# 交付索引 — {stem}",
+        "",
+        f"- **交付状态：{merged['delivery_status']}**（PRD 三级状态与投稿预审门禁合并判定）",
+        f"- 判定依据：{merged['reason']}",
+        f"- 停止原因：{stop_reason or '未记录'}",
+        f"- 迭代轮数：{max((r.get('round', 0) for r in state.get('rounds', [])), default=0)}",
+        f"- 最终问题数：{final_audit['registry']['issue_count']}"
+        f"（P0 {counts.get('P0', 0)} / P1 {counts.get('P1', 0)} / P2 {counts.get('P2', 0)} / P3 {counts.get('P3', 0)}）",
+        f"- 科学真实性硬门槛：{'通过' if final_audit['scorecard']['hard_gate']['pass'] else '未通过'}",
+        "",
+        "## 交付物",
+        "",
+        "- final_manuscript.md（终稿全文）",
+        f"- final_manuscript.docx（{'最佳轮次 DOCX 回写稿' if docx_info.get('method') == 'best_round_docx' else 'Markdown 装配稿'}）"
+        if docx_info.get("docx_path")
+        else "- 终稿 DOCX：装配失败，见 quality_report.md（纯文本交付）",
+        "- quality_report.md / evidence_audit.md / iteration_log.json / submission_readiness.md",
+        f"- submission-audit/（投稿预审完整报告{'; 渲染验收见 docx-render-report.json' if preflight and preflight.get('status') == 'ok' else '；本次未执行或执行失败'}）",
+    ]
+    if docx_info.get("limitations"):
+        lines += ["", "## DOCX 装配限制", ""]
+        lines += [f"- {item}" for item in docx_info["limitations"]]
+    if preflight and preflight.get("status") == "ok":
+        lines += [
+            "",
+            "## 投稿预审门禁",
+            "",
+            f"- 自动门禁：{'通过' if preflight.get('automated_pass') else '未全部通过'}",
+            f"- 人工签核状态：{preflight.get('human_signoff_status') or '-'}",
+            f"- 最终发表许可：{preflight.get('final_publication_allowed')}",
+            "- 完整证据图谱 / 统计登记 / 图表清单见 submission-audit/ 目录",
+        ]
+    lines += [
+        "",
+        "## 人工签核（硬门禁，不可自动化绕过）",
+        "",
+        "- 作者/通讯作者按 submission-audit/human-signoff.md 逐项确认",
+        "- 本候选稿不代表期刊一定录用",
+    ]
+    if root_files:
+        lines += ["", "## 已复制到项目根目录", ""]
+        lines += [f"- {Path(p).name}" for p in root_files]
+    return "\n".join(lines) + "\n"
+
+
+def stage_deliver(
+    state: dict[str, Any],
+    out_dir: Path,
+    *,
+    submission_audit: bool = True,
+    render: bool = False,
+    deliver_to_root: bool = False,
+) -> dict[str, Any]:
+    """阶段八：交付（PRD §8 五件套 + 终稿 DOCX + 投稿预审 + 合并就绪状态 + 交付索引）。
+
+    - submission_audit：是否执行 submission-audit pipeline（确定性预审；默认开）
+    - render：是否真实渲染 DOCX→PDF→页面图（需 Word COM / LibreOffice；默认关）
+    - deliver_to_root：按用户交付偏好把终稿 DOCX、渲染 PDF 与交付索引复制到项目根目录
+    """
+    out_dir = Path(out_dir)
+    final_audit = _load_audit(Path(state["best"]["audit_dir"]))
+    baseline_audit = _load_audit(Path(state["baseline_audit_dir"]))
+    final_text = Path(state["best"]["text_file"]).read_text(encoding="utf-8")
+    stop_reason = str(state.get("stop_reason") or "")
     (out_dir / "final_manuscript.md").write_text(final_text, encoding="utf-8")
     (out_dir / "iteration_log.json").write_text(
         json.dumps(
             {
                 "schema_version": SCHEMA_VERSION,
-                "language": language,
-                "strength": strength,
+                "language": state["language"],
+                "strength": state["strength"],
                 "stop_reason": stop_reason,
-                "rounds": iteration_log,
+                "rounds": state["rounds"],
                 "final": {
                     "issue_count": final_audit["registry"]["issue_count"],
                     "counts_by_priority": _priority_counts(final_audit),
@@ -347,29 +924,93 @@ def run_loop(
     )
 
     readiness = _readiness(final_audit, stop_reason)
+    docx_info = _assemble_final_docx(state, final_text, out_dir)
+    preflight = (
+        _run_submission_preflight(state, out_dir, str(docx_info.get("docx_path") or ""), render=render)
+        if submission_audit
+        else None
+    )
+    merged = _merge_readiness(readiness, preflight)
+
+    state["readiness_status"] = merged["delivery_status"]
+    state["next_stage"] = "done"
+    state["status"] = "delivered"
+    _save_state(out_dir, state)
     (out_dir / "submission_readiness.md").write_text(
-        _render_readiness(readiness, final_audit, stop_reason, iteration_log), encoding="utf-8"
+        _render_readiness(merged, final_audit, stop_reason, state["rounds"]),
+        encoding="utf-8",
     )
     (out_dir / "quality_report.md").write_text(
-        _render_quality_report(baseline_audit, final_audit, iteration_log, stop_reason),
+        _render_quality_report(baseline_audit, final_audit, state["rounds"], stop_reason),
         encoding="utf-8",
     )
     (out_dir / "evidence_audit.md").write_text(
         _render_evidence_audit(final_audit), encoding="utf-8"
     )
 
+    # 根目录交付（用户偏好：最终候选 DOCX / 渲染 PDF / 交付索引复制到项目根目录）
+    root_files: list[str] = []
+    if deliver_to_root:
+        stem = Path(str(state.get("input_file") or "manuscript")).stem
+        try:
+            root = Path(__file__).resolve().parents[2]
+            if docx_info.get("docx_path"):
+                target = root / f"{stem}_final.docx"
+                shutil.copy(docx_info["docx_path"], target)
+                root_files.append(str(target))
+            for candidate in (out_dir / "submission-audit").rglob("*.pdf"):
+                target = root / f"{stem}_final.render.pdf"
+                shutil.copy(candidate, target)
+                root_files.append(str(target))
+                break
+        except Exception as exc:  # noqa: BLE001 - 根目录复制失败不改变交付结论
+            LOG.warning("根目录交付复制失败: %s", exc)
+
+    stem = Path(str(state.get("input_file") or "manuscript")).stem
+    (out_dir / "delivery-index.md").write_text(
+        _render_delivery_index(
+            stem=stem,
+            merged=merged,
+            stop_reason=stop_reason,
+            docx_info=docx_info,
+            preflight=preflight,
+            state=state,
+            final_audit=final_audit,
+            root_files=root_files,
+        ),
+        encoding="utf-8",
+    )
+    if deliver_to_root and docx_info.get("docx_path"):
+        try:
+            root = Path(__file__).resolve().parents[2]
+            index_target = root / f"{stem}_交付索引.md"
+            index_target.write_text(
+                (out_dir / "delivery-index.md").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            root_files.append(str(index_target))
+        except Exception as exc:  # noqa: BLE001
+            LOG.warning("交付索引根目录写入失败: %s", exc)
+
     return {
         "schema_version": SCHEMA_VERSION,
-        "status": readiness["status"],
+        "status": merged["delivery_status"],
         "stop_reason": stop_reason,
         "final_manuscript": str(out_dir / "final_manuscript.md"),
+        "final_docx": str(docx_info.get("docx_path") or "") or None,
+        "docx_method": docx_info.get("method"),
+        "submission_audit": preflight,
+        "delivery_index": str(out_dir / "delivery-index.md"),
+        "root_files": root_files,
         "iteration_log": str(out_dir / "iteration_log.json"),
         "deliverables": [
             "final_manuscript.md",
+            "final_manuscript.docx",
             "quality_report.md",
             "evidence_audit.md",
             "iteration_log.json",
             "submission_readiness.md",
+            "delivery-index.md",
         ],
         "final": {
             "issue_count": final_audit["registry"]["issue_count"],
@@ -380,24 +1021,130 @@ def run_loop(
     }
 
 
-def run(args: dict[str, Any]) -> dict[str, Any]:
-    """coding harness 统一入口。"""
-    raw_input = args.get("text_file") or args.get("input")
-    if not raw_input:
-        raise ValueError("optimizer-loop 需要 text_file 或 input")
-    responses_dir = args.get("responses_dir")
-    return run_loop(
-        Path(str(raw_input)),
-        language=str(args.get("language") or "en"),
-        strength=str(args.get("strength") or "deep"),
-        out_dir=Path(str(args.get("out") or "output/optimizer-loop")),
-        max_rounds=int(args.get("max_rounds") or 3),
-        min_gain=float(args.get("min_gain", 0.2)),
-        min_index=float(args.get("min_index", 3.5)),
-        stagnant_limit=int(args.get("stagnant_limit") or 2),
-        responses_dir=Path(str(responses_dir)) if responses_dir else None,
-        identity=bool(args.get("identity", False)),
+# --------------------------------------------------------------------------- #
+# 驱动入口
+# --------------------------------------------------------------------------- #
+def run_loop(
+    text_file: Path,
+    *,
+    language: str = "en",
+    strength: str = "deep",
+    out_dir: Path = Path("output/optimizer-loop"),
+    max_rounds: int = 3,
+    min_gain: float = 0.2,
+    min_index: float = 3.5,
+    stagnant_limit: int = 2,
+    responses_dir: Path | None = None,
+    identity: bool = False,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """整体模式：内部依次驱动各 stage（identity / responses_dir 自动回填）。
+
+    kwargs 透传交付选项：submission_audit（默认开）/ render / deliver_to_root。
+    """
+    out_dir = Path(out_dir)
+    state = _load_state(out_dir)
+    if state is None:
+        state = stage_init(
+            text_file,
+            language=language,
+            strength=strength,
+            out_dir=out_dir,
+            max_rounds=max_rounds,
+            min_gain=min_gain,
+            min_index=min_index,
+            stagnant_limit=stagnant_limit,
+        )
+    while state.get("next_stage") in ("build", "apply", "decide"):
+        next_stage = state["next_stage"]
+        if next_stage == "build":
+            state = stage_build(state, out_dir)
+        elif next_stage == "apply":
+            state = stage_apply(
+                state, out_dir, responses_dir=responses_dir, identity=identity
+            )
+        else:
+            state = stage_decide(state, out_dir)
+    return stage_deliver(
+        state,
+        out_dir,
+        submission_audit=bool(kwargs.get("submission_audit", True)),
+        render=bool(kwargs.get("render", False)),
+        deliver_to_root=bool(kwargs.get("deliver_to_root", False)),
     )
+
+
+def run(args: dict[str, Any]) -> dict[str, Any]:
+    """coding harness 统一入口：stage 分步驱动或整体自动循环。"""
+    stage = str(args.get("stage") or "").strip().lower()
+    out_dir = Path(str(args.get("out") or args.get("out_dir") or "output/optimizer-loop"))
+    if not stage:
+        # 整体模式（兼容既有契约）：identity 恒等响应或 responses_dir 已回填响应
+        raw_input = args.get("text_file") or args.get("input")
+        if not raw_input:
+            raise ValueError("optimizer-loop 需要 text_file 或 input")
+        responses_dir = args.get("responses_dir")
+        return run_loop(
+            Path(str(raw_input)),
+            language=str(args.get("language") or "en"),
+            strength=str(args.get("strength") or "deep"),
+            out_dir=out_dir,
+            max_rounds=int(args.get("max_rounds") or 3),
+            min_gain=float(args.get("min_gain", 0.2)),
+            min_index=float(args.get("min_index", 3.5)),
+            stagnant_limit=int(args.get("stagnant_limit") or 2),
+            responses_dir=Path(str(responses_dir)) if responses_dir else None,
+            identity=bool(args.get("identity", False)),
+        )
+
+    if stage == "init":
+        raw_input = args.get("text_file") or args.get("input")
+        if not raw_input:
+            raise ValueError("stage=init 需要 text_file 或 input")
+        state = stage_init(
+            Path(str(raw_input)),
+            language=str(args.get("language") or "en"),
+            strength=str(args.get("strength") or "deep"),
+            out_dir=out_dir,
+            max_rounds=int(args.get("max_rounds") or 3),
+            min_gain=float(args.get("min_gain", 0.2)),
+            min_index=float(args.get("min_index", 3.5)),
+            stagnant_limit=int(args.get("stagnant_limit") or 2),
+        )
+        return _state_view(state)
+
+    state = _load_state(out_dir)
+    if state is None:
+        raise ValueError(
+            f"未找到 {out_dir / 'run-state.json'}：请先执行 stage=init 建立运行状态"
+        )
+    if stage == "status":
+        return _state_view(state)
+    if stage == "audit":
+        return _state_view(stage_reaudit(state, out_dir))
+    if stage == "build":
+        return _state_view(stage_build(state, out_dir))
+    if stage == "apply":
+        responses_dir = args.get("responses_dir")
+        return _state_view(
+            stage_apply(
+                state,
+                out_dir,
+                responses_dir=Path(str(responses_dir)) if responses_dir else None,
+                identity=bool(args.get("identity", False)),
+            )
+        )
+    if stage == "decide":
+        return _state_view(stage_decide(state, out_dir))
+    if stage == "deliver":
+        return stage_deliver(
+            state,
+            out_dir,
+            submission_audit=bool(args.get("submission_audit", True)),
+            render=bool(args.get("render", False)),
+            deliver_to_root=bool(args.get("deliver_to_root", False)),
+        )
+    raise ValueError(f"未知 stage: {stage!r}，可选 {VALID_STAGES}")
 
 
 def _readiness(audit: dict[str, Any], stop_reason: str) -> dict[str, Any]:
