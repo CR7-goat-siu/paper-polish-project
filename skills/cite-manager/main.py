@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from utils.anchor_norm import normalize_anchor  # noqa: E402
 from utils.citation_check import format_all_styles, format_reference  # noqa: E402
 from utils.config_loader import normalize_language  # noqa: E402
 from utils.logger import get_logger  # noqa: E402
@@ -291,6 +292,25 @@ def _audit(text: str) -> dict[str, Any]:
     listed = [num for num, _, _ in entries]
     seen: set[int] = set()
     duplicated = [num for num in listed if num in seen or seen.add(num)]
+    # 行级重复（与编号风格无关）：同一文献整行出现两次在任何风格下都是缺陷。
+    # 年份标注式条目（ACL 风格 [2018]，同年多条合法）不进 entries 列表
+    # （REF_ENTRY_RE 只认 1-3 位编号），故单独扫描参考文献区的条目行。
+    duplicated_lines: list[str] = []
+    body_counts: dict[str, int] = {}
+    in_refs_region = False
+    for line in lines:
+        stripped = re.sub(r"^(?:#{1,6}|\d+(?:\.\d+)*)\s*", "", line.strip())
+        if REF_HEADING_RE.match(stripped) or stripped.startswith("\\begin{thebibliography}"):
+            in_refs_region = True
+            continue
+        if not in_refs_region:
+            continue
+        entry_line = line.strip()
+        if re.match(r"^\[\d{1,4}\]\s*\S", entry_line):
+            key = normalize_anchor(entry_line, casefold=True)
+            body_counts[key] = body_counts.get(key, 0) + 1
+            if body_counts[key] == 2:
+                duplicated_lines.append(entry_line[:80])
     return {
         "mode": "audit",
         "text": text,
@@ -303,6 +323,7 @@ def _audit(text: str) -> dict[str, Any]:
             "cited_not_listed": sorted(set(cited) - set(listed)),
             "listed_not_cited": sorted(set(listed) - set(cited)),
             "duplicated_entries": sorted(set(duplicated)),
+            "duplicated_entry_lines": duplicated_lines,
             "unparsable_markers": unparsable,
         },
     }

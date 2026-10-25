@@ -138,6 +138,7 @@ priority_overrides:
   "cite-manager::out_of_bounds": P0
   "cite-manager::uncited_entry": P3
   "cite-manager::duplicated_entry": P2
+  "cite-manager::duplicated_entry_line": P2
   "cite-manager::unparsable_marker": P2
   # 文献支撑缺口（lit-search gap，修复需 lit 管线，登记优先级）
   "lit-search::missing_citation": P2

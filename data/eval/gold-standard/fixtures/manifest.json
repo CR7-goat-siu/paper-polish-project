@@ -51,7 +51,8 @@
     "expected_variants": [
       "abstract_fake_percent",
       "ghost_figure_reference",
-      "hype_injection"
+      "hype_injection",
+      "duplicated_reference"
     ]
   },
   "1912.07095v1-excerpt.md": {
@@ -61,7 +62,8 @@
     "expected_variants": [
       "abstract_fake_percent",
       "ghost_figure_reference",
-      "hype_injection"
+      "hype_injection",
+      "duplicated_reference"
     ]
   },
   "1902.00636v1-excerpt.md": {

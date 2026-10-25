@@ -89,6 +89,17 @@ def _cite_audit_findings(audit: dict[str, Any]) -> list[dict[str, Any]]:
                 "suggestion": "去重并经 cite-manager renumber 重排编号",
             }
         )
+    for snippet in audit.get("duplicated_entry_lines") or []:
+        findings.append(
+            {
+                "check": "duplicated_entry_line",
+                "found": snippet,
+                "severity": "warning",
+                "message": f"参考文献存在整行重复条目：{snippet[:60]}",
+                "context_snippet": snippet,
+                "suggestion": "删除重复条目（年份标注式列表按行内容去重）",
+            }
+        )
     for marker in audit.get("unparsable_markers") or []:
         findings.append(
             {

@@ -1,5 +1,6 @@
 {
   "paper_count": 56,
+  "evaluated_count": 56,
   "domain_count": 4,
   "papers_by_domain": {
     "biomedical-eeg": 32,
@@ -13,8 +14,9 @@
     "nlp": 1.0,
     "time-series": 1.0
   },
-  "negative_control_clean_rate": 1.0,
-  "p0_false_positive_papers": [],
+  "clean_rate_official": 1.0,
+  "p0_rate_all_evaluated": 0.0,
+  "non_official_papers": [],
   "positive_recall_overall": 1.0,
   "positive_recall_by_defect": {
     "citation_out_of_bounds": {
@@ -34,15 +36,16 @@
       "detected": 51
     },
     "duplicated_reference": {
-      "total": 53,
-      "detected": 53
+      "total": 56,
+      "detected": 56
     }
   },
-  "generated_at": "2026-10-25T09:18:02",
+  "generated_at": "2026-10-25T10:18:53",
   "papers": [
     {
       "arxiv_id": "1704.07603v2",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "Surrogate-based artifact removal from single-channel EEG",
       "published": "2017-04-25",
       "chars": 57014,
@@ -102,6 +105,7 @@
     {
       "arxiv_id": "1908.10432v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "EEG Signal Dimensionality Reduction and Classification using Tensor Decomposition and Deep Convolutional Neural Networks",
       "published": "2019-08-27",
       "chars": 32102,
@@ -158,6 +162,7 @@
     {
       "arxiv_id": "1911.04338v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "Active Learning for Black-Box Adversarial Attacks in EEG-Based Brain-Computer Interfaces",
       "published": "2019-11-07",
       "chars": 37618,
@@ -216,6 +221,7 @@
     {
       "arxiv_id": "2009.11662v4",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "EEGdenoiseNet: A benchmark dataset for end-to-end deep learning solutions of EEG denoising",
       "published": "2020-09-24",
       "chars": 55995,
@@ -273,6 +279,7 @@
     {
       "arxiv_id": "2104.08120v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "Orthogonal Features Based EEG Signals Denoising Using Fractional and Compressed One-Dimensional CNN AutoEncoder",
       "published": "2021-04-16",
       "chars": 60653,
@@ -338,6 +345,7 @@
     {
       "arxiv_id": "2110.06634v3",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "End-to-end translation of human neural activity to speech with a dual-dual generative adversarial network",
       "published": "2021-10-13",
       "chars": 57940,
@@ -396,6 +404,7 @@
     {
       "arxiv_id": "2112.00989v2",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "Embedding Decomposition for Artifacts Removal in EEG Signals",
       "published": "2021-12-02",
       "chars": 56179,
@@ -437,6 +446,7 @@
     {
       "arxiv_id": "2202.05170v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "Efficacy of Transformer Networks for Classification of Raw EEG Data",
       "published": "2022-02-08",
       "chars": 36807,
@@ -476,6 +486,7 @@
     {
       "arxiv_id": "2208.02405v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "Transformer Convolutional Neural Networks for Automated Artifact Detection in Scalp EEG",
       "published": "2022-08-04",
       "chars": 26474,
@@ -534,6 +545,7 @@
     {
       "arxiv_id": "2209.11980v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "Removal of Ocular Artifacts in EEG Using Deep Learning",
       "published": "2022-09-24",
       "chars": 32006,
@@ -596,6 +608,7 @@
     {
       "arxiv_id": "2302.10121v2",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "EEG2IMAGE: Image Reconstruction from EEG Brain Signals",
       "published": "2023-02-20",
       "chars": 27501,
@@ -651,6 +664,7 @@
     {
       "arxiv_id": "2401.05589v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "Multi-Dimensional Framework for EEG Signal Processing and Denoising Through Tensor-based Architecture",
       "published": "2024-01-10",
       "chars": 59393,
@@ -716,6 +730,7 @@
     {
       "arxiv_id": "2404.15289v2",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "EEGDiR: Electroencephalogram denoising network for temporal information storage and global modeling through Retentive Network",
       "published": "2024-03-20",
       "chars": 74681,
@@ -778,6 +793,7 @@
     {
       "arxiv_id": "2502.05332v2",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "Removing Neural Signal Artifacts with Autoencoder-Targeted Adversarial Transformers (AT-AT)",
       "published": "2025-02-07",
       "chars": 30570,
@@ -833,6 +849,7 @@
     {
       "arxiv_id": "2502.06438v2",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "FEMBA: Efficient and Scalable EEG Analysis with a Bidirectional Mamba Foundation Model",
       "published": "2025-02-10",
       "chars": 38376,
@@ -901,6 +918,7 @@
     {
       "arxiv_id": "2502.08686v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "EEG Artifact Detection and Correction with Deep Autoencoders",
       "published": "2025-02-12",
       "chars": 58924,
@@ -970,6 +988,7 @@
     {
       "arxiv_id": "2507.22263v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "Deep Learning for Gradient and BCG Artifacts Removal in EEG During Simultaneous fMRI",
       "published": "2025-07-29",
       "chars": 57151,
@@ -1011,6 +1030,7 @@
     {
       "arxiv_id": "2509.04951v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "Detecting Blinks in Healthy and Parkinson's EEG: A Deep Learning Perspective",
       "published": "2025-09-05",
       "chars": 32999,
@@ -1071,6 +1091,7 @@
     {
       "arxiv_id": "2509.14302v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "D4PM: A Dual-branch Driven Denoising Diffusion Probabilistic Model with Joint Posterior Diffusion Sampling for EEG Artifacts Removal",
       "published": "2025-09-17",
       "chars": 25802,
@@ -1128,6 +1149,7 @@
     {
       "arxiv_id": "2509.14665v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "Task-Oriented Learning for Automatic EEG Denoising",
       "published": "2025-09-18",
       "chars": 70501,
@@ -1190,6 +1212,7 @@
     {
       "arxiv_id": "2510.15371v2",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "Cortical-SSM: A Deep State Space Model for Motor Imagery Decoding from EEG Signals",
       "published": "2025-10-17",
       "chars": 79355,
@@ -1240,6 +1263,7 @@
     {
       "arxiv_id": "2510.19829v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "SSL-SE-EEG: A Framework for Robust Learning from Unlabeled EEG Data with Self-Supervised Learning and Squeeze-Excitation Networks",
       "published": "2025-10-07",
       "chars": 35382,
@@ -1299,6 +1323,7 @@
     {
       "arxiv_id": "2510.22257v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "LUNA: Efficient and Topology-Agnostic Foundation Model for EEG Signal Analysis",
       "published": "2025-10-25",
       "chars": 78387,
@@ -1367,6 +1392,7 @@
     {
       "arxiv_id": "2601.05789v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "SAFE: Secure and Accurate Federated Learning for Privacy-Preserving Brain-Computer Interfaces",
       "published": "2026-01-09",
       "chars": 57603,
@@ -1430,6 +1456,7 @@
     {
       "arxiv_id": "2603.19100v2",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "LuMamba: Latent Unified Mamba for Electrode Topology-Invariant and Efficient EEG Modeling",
       "published": "2026-03-19",
       "chars": 32478,
@@ -1488,6 +1515,7 @@
     {
       "arxiv_id": "2603.26716v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "FEMBA on the Edge: Physiologically-Aware Pre-Training, Quantization, and Deployment of a Bidirectional Mamba EEG Foundation Model on an Ultra-low Power Microcontroller",
       "published": "2026-03-18",
       "chars": 78031,
@@ -1560,6 +1588,7 @@
     {
       "arxiv_id": "2604.24428v2",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "BandRouteNet: An Adaptive Band Routing Neural Network for EEG Artifact Removal",
       "published": "2026-04-27",
       "chars": 28578,
@@ -1616,6 +1645,7 @@
     {
       "arxiv_id": "2605.06724v2",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "Enabling Unsupervised Training of Deep EEG Denoisers With Intelligent Partitioning",
       "published": "2026-05-07",
       "chars": 102192,
@@ -1691,6 +1721,7 @@
     {
       "arxiv_id": "2605.18296v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "MEEDAV: A Synchronous Web Viewer for EEG, Eye-Tracking and Speech Data",
       "published": "2026-05-18",
       "chars": 17718,
@@ -1747,6 +1778,7 @@
     {
       "arxiv_id": "2606.08594v2",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "How Much Capacity Does EEG Denoising Need? Ultra-Compact Networks reveal Benchmark Saturation and Metric-Utility Gap",
       "published": "2026-06-07",
       "chars": 74484,
@@ -1808,6 +1840,7 @@
     {
       "arxiv_id": "2606.24087v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "NeuroSonic: Conditional Flow Matching for EEG-to-Speech Reconstruction",
       "published": "2026-06-23",
       "chars": 27905,
@@ -1863,6 +1896,7 @@
     {
       "arxiv_id": "2607.08855v1",
       "domain": "biomedical-eeg",
+      "official": true,
       "title": "Spatial Neighboring Scattering Transform: A Cross-Channel Amplitude Coupling Measure for EEG Connectivity",
       "published": "2026-07-09",
       "chars": 48853,
@@ -1898,6 +1932,7 @@
     {
       "arxiv_id": "1809.01826v1",
       "domain": "computer-vision",
+      "official": true,
       "title": "Connecting Image Denoising and High-Level Vision Tasks via Deep Learning",
       "published": "2018-09-06",
       "chars": 51507,
@@ -1958,6 +1993,7 @@
     {
       "arxiv_id": "1810.05052v1",
       "domain": "computer-vision",
+      "official": true,
       "title": "Deep Learning for Image Denoising: A Survey",
       "published": "2018-10-11",
       "chars": 25243,
@@ -2015,6 +2051,7 @@
     {
       "arxiv_id": "1811.11721v2",
       "domain": "computer-vision",
+      "official": true,
       "title": "CCNet: Criss-Cross Attention for Semantic Segmentation",
       "published": "2018-11-28",
       "chars": 68438,
@@ -2079,6 +2116,7 @@
     {
       "arxiv_id": "1905.11172v1",
       "domain": "computer-vision",
+      "official": true,
       "title": "GRDN:Grouped Residual Dense Network for Real Image Denoising and GAN-based Real-world Noise Modeling",
       "published": "2019-05-27",
       "chars": 31609,
@@ -2141,6 +2179,7 @@
     {
       "arxiv_id": "1907.12273v2",
       "domain": "computer-vision",
+      "official": true,
       "title": "Interlaced Sparse Self-Attention for Semantic Segmentation",
       "published": "2019-07-29",
       "chars": 54372,
@@ -2197,6 +2236,7 @@
     {
       "arxiv_id": "1909.10360v3",
       "domain": "computer-vision",
+      "official": true,
       "title": "RAUNet: Residual Attention U-Net for Semantic Segmentation of Cataract Surgical Instruments",
       "published": "2019-09-23",
       "chars": 24001,
@@ -2259,6 +2299,7 @@
     {
       "arxiv_id": "1911.03975v2",
       "domain": "computer-vision",
+      "official": true,
       "title": "Graph Neural Net using Analytical Graph Filters and Topology Optimization for Image Denoising",
       "published": "2019-11-10",
       "chars": 26862,
@@ -2318,6 +2359,7 @@
     {
       "arxiv_id": "1911.08877v1",
       "domain": "computer-vision",
+      "official": true,
       "title": "Improving Semantic Segmentation of Aerial Images Using Patch-based Attention",
       "published": "2019-11-20",
       "chars": 38305,
@@ -2377,6 +2419,7 @@
     {
       "arxiv_id": "1912.01389v2",
       "domain": "nlp",
+      "official": true,
       "title": "Towards Lingua Franca Named Entity Recognition with BERT",
       "published": "2019-11-19",
       "chars": 40680,
@@ -2419,12 +2462,20 @@
           "expected_check": null,
           "detected": true,
           "evidence": "ISS-23e67156-017 [P1] undoubtedly（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry_line",
+          "detected": true,
+          "evidence": "ISS-4c5ebc70-034 [P2] 参考文献存在整行重复条目：[2018] Akbik, A.; Blythe, D.; and Vollgraf, R. "
         }
       ]
     },
     {
       "arxiv_id": "1912.07095v1",
       "domain": "nlp",
+      "official": true,
       "title": "Robust Named Entity Recognition with Truecasing Pretraining",
       "published": "2019-12-15",
       "chars": 37316,
@@ -2468,12 +2519,20 @@
           "expected_check": null,
           "detected": true,
           "evidence": "ISS-2088c94e-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry_line",
+          "detected": true,
+          "evidence": "ISS-4912074b-025 [P2] 参考文献存在整行重复条目：[2018] Aguilar, G.; Monroy, A. P. L.; González,"
         }
       ]
     },
     {
       "arxiv_id": "2002.08902v1",
       "domain": "nlp",
+      "official": true,
       "title": "Application of Pre-training Models in Named Entity Recognition",
       "published": "2020-02-09",
       "chars": 17133,
@@ -2528,6 +2587,7 @@
     {
       "arxiv_id": "2006.08297v1",
       "domain": "nlp",
+      "official": true,
       "title": "Fine-grained Human Evaluation of Transformer and Recurrent Approaches to Neural Machine Translation for English-to-Chinese",
       "published": "2020-06-15",
       "chars": 40996,
@@ -2571,12 +2631,20 @@
           "expected_check": null,
           "detected": true,
           "evidence": "ISS-9cb2a994-001 [P1] revolutionary（hype）"
+        },
+        {
+          "name": "duplicated_reference",
+          "expected_source": "cite-manager",
+          "expected_check": "duplicated_entry_line",
+          "detected": true,
+          "evidence": "ISS-d85953da-029 [P2] 参考文献存在整行重复条目：[2014] Bahdanau, Dzmitry, Kyunghyun Cho, and Yo"
         }
       ]
     },
     {
       "arxiv_id": "2011.01504v1",
       "domain": "nlp",
+      "official": true,
       "title": "BioNerFlair: biomedical named entity recognition using flair embedding and sequence tagger",
       "published": "2020-11-03",
       "chars": 29212,
@@ -2637,6 +2705,7 @@
     {
       "arxiv_id": "2107.02039v1",
       "domain": "nlp",
+      "official": true,
       "title": "Power Law Graph Transformer for Machine Translation and Representation Learning",
       "published": "2021-06-27",
       "chars": 49688,
@@ -2675,6 +2744,7 @@
     {
       "arxiv_id": "2107.08199v2",
       "domain": "nlp",
+      "official": true,
       "title": "Dynamic Transformer for Efficient Machine Translation on Embedded Devices",
       "published": "2021-07-17",
       "chars": 29509,
@@ -2737,6 +2807,7 @@
     {
       "arxiv_id": "2109.01084v1",
       "domain": "nlp",
+      "official": true,
       "title": "Text Classification for Predicting Multi-level Product Categories",
       "published": "2021-09-02",
       "chars": 52905,
@@ -2801,6 +2872,7 @@
     {
       "arxiv_id": "1902.00636v1",
       "domain": "time-series",
+      "official": true,
       "title": "A Spatial-Temporal Decomposition Based Deep Neural Network for Time Series Forecasting",
       "published": "2019-02-02",
       "chars": 69114,
@@ -2866,6 +2938,7 @@
     {
       "arxiv_id": "1902.05312v2",
       "domain": "time-series",
+      "official": true,
       "title": "Generalisation in fully-connected neural networks for time series forecasting",
       "published": "2019-02-14",
       "chars": 86090,
@@ -2933,6 +3006,7 @@
     {
       "arxiv_id": "1911.08793v1",
       "domain": "time-series",
+      "official": true,
       "title": "A Framework for End-to-End Deep Learning-Based Anomaly Detection in Transportation Networks",
       "published": "2019-11-20",
       "chars": 57397,
@@ -3000,6 +3074,7 @@
     {
       "arxiv_id": "1912.02549v1",
       "domain": "time-series",
+      "official": true,
       "title": "Deep Anomaly Detection in Packet Payload",
       "published": "2019-12-05",
       "chars": 48826,
@@ -3056,6 +3131,7 @@
     {
       "arxiv_id": "2001.09547v2",
       "domain": "time-series",
+      "official": true,
       "title": "A clustering approach to time series forecasting using neural networks: A comparative study on distance-based vs. feature-based clustering methods",
       "published": "2020-01-27",
       "chars": 51803,
@@ -3123,6 +3199,7 @@
     {
       "arxiv_id": "2004.03722v1",
       "domain": "time-series",
+      "official": true,
       "title": "Challenges in Vessel Behavior and Anomaly Detection: From Classical Machine Learning to Deep Learning",
       "published": "2020-04-07",
       "chars": 57120,
@@ -3188,6 +3265,7 @@
     {
       "arxiv_id": "2009.00945v1",
       "domain": "time-series",
+      "official": true,
       "title": "LAVARNET: Neural Network Modeling of Causal Variable Relationships for Multivariate Time Series Forecasting",
       "published": "2020-09-02",
       "chars": 56460,
@@ -3259,6 +3337,7 @@
     {
       "arxiv_id": "2012.02364v2",
       "domain": "time-series",
+      "official": true,
       "title": "Deep Learning for Medical Anomaly Detection -- A Survey",
       "published": "2020-12-04",
       "chars": 174064,

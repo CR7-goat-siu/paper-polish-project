@@ -335,19 +335,30 @@ def plant_variants(text: str) -> list[dict[str, Any]]:
         )
 
     # 5) 重复文献条目：复制第一条参考文献。
-    #    仅限顺序编号文献表（[1] 起始）：年份标注式（ACL 风格 [2018]，同年
-    #    多条合法）不存在"重复编号"缺陷语义，植入即产生错误金标。
+    #    顺序编号（[1] 起始）→ 编号重复 + 行重复双重可检；
+    #    年份标注式（ACL 风格 [2018]，同年多条合法，无编号重复语义）→
+    #    行级重复检测（duplicated_entry_line）负责，2026-10-25 起恢复植入。
     ref_match = re.search(r"(## References\n\n)\[(\d+)\][^\n]+", text)
-    if ref_match and ref_match.group(2) == "1":
+    if ref_match:
         full_match = re.search(r"(## References\n\n)(\[\d+\][^\n]+)", text)
-        variants.append(
-            {
-                "name": "duplicated_reference",
-                "text": text[: full_match.end(2)] + "\n\n" + full_match.group(2) + text[full_match.end(2) :],
-                "expected_source": "cite-manager",
-                "expected_check": "duplicated_entry",
-            }
-        )
+        if ref_match.group(2) == "1":
+            variants.append(
+                {
+                    "name": "duplicated_reference",
+                    "text": text[: full_match.end(2)] + "\n\n" + full_match.group(2) + text[full_match.end(2) :],
+                    "expected_source": "cite-manager",
+                    "expected_check": "duplicated_entry",
+                }
+            )
+        elif re.fullmatch(r"(19|20)\d{2}", ref_match.group(2)):
+            variants.append(
+                {
+                    "name": "duplicated_reference",
+                    "text": text[: full_match.end(2)] + "\n\n" + full_match.group(2) + text[full_match.end(2) :],
+                    "expected_source": "cite-manager",
+                    "expected_check": "duplicated_entry_line",
+                }
+            )
     return variants
 
 
@@ -433,6 +444,8 @@ def derive_fixtures(out_root: Path, per_domain: int = FIXTURES_PER_DOMAIN) -> Pa
     papers = json.loads((out_root / "gold.json").read_text(encoding="utf-8"))
     taken_per_domain: dict[str, int] = {}
     for paper in papers:
+        if not paper.get("official", True):
+            continue  # 夹具只从官方集派生
         domain = str(paper.get("domain") or "unknown")
         if taken_per_domain.get(domain, 0) >= per_domain:
             continue
@@ -492,36 +505,71 @@ def _reject_file(corpus_dir: Path, candidates_dir: Path, arxiv_id: str) -> str:
     return target.name
 
 
-def build(out_root: Path = ROOT / "output" / "gold-standard", target: int | None = None) -> dict[str, Any]:
-    """按领域配额构建评测集；corpus/ 只保留入选论文，淘汰稿移入 candidates/。
+def _load_rejection_ledger(candidates_dir: Path) -> dict[str, Any]:
+    """跨运行合并的淘汰账本：{arxiv_id: {reasons: [首个原因为主], domain, first_at}}。"""
+    path = candidates_dir / "rejections.json"
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
 
-    target 为总篇数上限（按领域配额等比缩放）；默认取 DOMAINS 配额之和。
+
+def _record_rejection(ledger: dict[str, Any], arxiv_id: str, domain: str, reason: str) -> None:
+    entry = ledger.get(arxiv_id)
+    if entry is None:
+        ledger[arxiv_id] = {
+            "reasons": [reason],
+            "domain": domain,
+            "first_at": datetime.now().isoformat(timespec="seconds"),
+        }
+    elif reason not in entry["reasons"]:
+        # 首个原因保持为主（防止重抓后的偶然原因覆盖真实原因）
+        entry["reasons"].append(reason)
+
+
+def build(out_root: Path = ROOT / "output" / "gold-standard", target: int | None = None) -> dict[str, Any]:
+    """按领域配额构建评测集；官方集（阴性对照干净）与全部评测论文双账本。
+
+    文件管理：
+    - corpus/ 只保留官方集（official=true：阴性对照无 P0）；
+    - 淘汰稿移入 candidates/，且抓取前先查 candidates/ 二级缓存（不重抓，
+      淘汰原因因此跨运行稳定，不再被重抓噪声洗掉）；
+    - candidates/rejections.json 跨运行合并累积每篇的淘汰原因；
+    - summary 同时报 clean_rate_official（选择后）与 p0_rate_all_evaluated
+      （含抽取工件的真实假阳性口径）——前者供回归门槛，后者供诚实披露。
     """
     out_root.mkdir(parents=True, exist_ok=True)
     corpus_dir = out_root / "corpus"
     corpus_dir.mkdir(exist_ok=True)
     candidates_dir = out_root / "candidates"
     candidates_dir.mkdir(exist_ok=True)
+    rejection_ledger = _load_rejection_ledger(candidates_dir)
 
     scale = 1.0 if target is None else target / TARGET_PAPERS
     seen: set[str] = set()
     papers: list[dict[str, Any]] = []
-    rejected: list[dict[str, Any]] = []
+    stale_moved: list[dict[str, Any]] = []
 
     for domain, domain_cfg in DOMAINS.items():
         domain_target = max(1, round(domain_cfg["target"] * scale))
-        if len([p for p in papers if p.get("domain") == domain]) >= domain_target:
+        if len([p for p in papers if p.get("domain") == domain and p.get("official")]) >= domain_target:
             continue
         print(f"[{domain}] 候选检索：{len(domain_cfg['queries'])} 条检索式")
         candidates = collect_candidates(domain_cfg["queries"], seen)
-        print(f"[{domain}] 候选 {len(candidates)} 篇，目标 {domain_target} 篇可评测全文")
+        print(f"[{domain}] 候选 {len(candidates)} 篇，官方集目标 {domain_target} 篇")
         for paper in candidates:
-            if len([p for p in papers if p.get("domain") == domain]) >= domain_target:
+            if len([p for p in papers if p.get("domain") == domain and p.get("official")]) >= domain_target:
                 break
             arxiv_id = paper["arxiv_id"]
             cache_file = corpus_dir / f"{arxiv_id.replace('/', '-')}.md"
+            candidate_cache = candidates_dir / f"{arxiv_id.replace('/', '-')}.md"
             if cache_file.exists():
                 text = cache_file.read_text(encoding="utf-8")
+            elif candidate_cache.exists():
+                # 二级缓存：淘汰稿不重抓，原因保持稳定
+                text = candidate_cache.read_text(encoding="utf-8")
             else:
                 try:
                     fetched = web_fetch.fetch_text(HTML_ENDPOINT.format(arxiv_id=arxiv_id))
@@ -536,47 +584,43 @@ def build(out_root: Path = ROOT / "output" / "gold-standard", target: int | None
             ref_count = len(re.findall(r"^\[\d+\]", text.split("## References")[-1], re.M))
             if ref_count < MIN_REFERENCES:
                 print(f"  跳过 {arxiv_id}: 参考文献不足 ({ref_count})")
-                rejected.append(
-                    {"arxiv_id": arxiv_id, "domain": domain, "reason": f"references_lt_{MIN_REFERENCES}",
-                     "file": _reject_file(corpus_dir, candidates_dir, arxiv_id)}
-                )
+                _record_rejection(rejection_ledger, arxiv_id, domain, f"references_lt_{MIN_REFERENCES}")
+                _reject_file(corpus_dir, candidates_dir, arxiv_id)
                 continue
             print(f"  评测 {arxiv_id} ({len(text)} chars, {ref_count} refs) — {paper['title'][:50]}")
             record = evaluate_paper({**paper, "domain": domain}, text)
             if record["negative_control"]["p0_count"]:
-                # 阴性对照不干净 = 抽取工件（HTML→Markdown 引用错位等），不入官方集
-                print(f"  淘汰 {arxiv_id}: 阴性对照出现 P0（抽取工件）")
-                rejected.append(
-                    {"arxiv_id": arxiv_id, "domain": domain, "reason": "negative_control_p0",
-                     "file": _reject_file(corpus_dir, candidates_dir, arxiv_id),
-                     "p0": record["negative_control"]["p0_details"][:3]}
-                )
+                # 阴性对照不干净 = 抽取工件（HTML→Markdown 引用错位等）。
+                # 该论文保留在 gold.json（official=false，计入真实假阳性口径），
+                # 但不进官方集 / 夹具 / 回归门槛。
+                print(f"  记录 {arxiv_id}: 阴性对照 P0（抽取工件，official=false）")
+                record["official"] = False
+                _record_rejection(rejection_ledger, arxiv_id, domain, "negative_control_p0")
+                _reject_file(corpus_dir, candidates_dir, arxiv_id)
+                papers.append(record)
                 continue
+            record["official"] = True
             papers.append(record)
 
     (out_root / "gold.json").write_text(
         json.dumps(papers, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    # 收尾清扫：corpus/ 里不属于官方集的旧缓存全部移入 candidates/；
-    # candidates/ 里历史遗留文件也登记进清单（标记 previous_run_candidate）。
-    official = {f"{p['arxiv_id'].replace('/', '-')}.md" for p in papers}
+    # 收尾清扫：corpus/ 里不属于官方集的旧缓存移入 candidates/ 并记账
+    official = {f"{p['arxiv_id'].replace('/', '-')}.md" for p in papers if p.get("official")}
     for stale in corpus_dir.glob("*.md"):
         if stale.name not in official:
-            rejected.append(
-                {"arxiv_id": stale.stem, "domain": "", "reason": "not_selected_stale_cache",
-                 "file": _reject_file(corpus_dir, candidates_dir, stale.stem)}
-            )
-    listed_files = {item.get("file") for item in rejected}
-    for existing in sorted(candidates_dir.glob("*.md")):
-        if existing.name not in listed_files:
-            rejected.append(
-                {"arxiv_id": existing.stem, "domain": "", "reason": "previous_run_candidate",
-                 "file": existing.name}
-            )
+            _record_rejection(rejection_ledger, stale.stem, "", "not_selected_stale_cache")
+            _reject_file(corpus_dir, candidates_dir, stale.stem)
+            stale_moved.append(stale.name)
+    (candidates_dir / "rejections.json").write_text(
+        json.dumps(rejection_ledger, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    official_papers = [p for p in papers if p.get("official")]
     index = {
-        "schema_version": 2,
+        "schema_version": 3,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
-        "paper_count": len(papers),
+        "paper_count": len(official_papers),
+        "evaluated_count": len(papers),
         "papers": [
             {
                 "arxiv_id": p["arxiv_id"],
@@ -587,14 +631,18 @@ def build(out_root: Path = ROOT / "output" / "gold-standard", target: int | None
                 "reference_count": p["reference_count"],
                 "file": f"corpus/{p['arxiv_id'].replace('/', '-')}.md",
             }
-            for p in papers
+            for p in official_papers
         ],
-        "candidate_count": len(rejected),
-        "candidates": rejected,
+        "non_official_evaluated": [
+            {"arxiv_id": p["arxiv_id"], "domain": p.get("domain", ""), "p0": p["negative_control"]["p0_details"][:3]}
+            for p in papers
+            if not p.get("official")
+        ],
+        "rejection_ledger": rejection_ledger,
         "layout": {
-            "corpus/": "官方评测集全文（gold.json 收录论文，且仅这些）",
-            "candidates/": "已抓取未入选的候选全文（含淘汰原因，可作缓存复用）",
-            "gold.json": "逐篇金标判定（阴性对照 + 5 类阳性对照）",
+            "corpus/": "官方评测集全文（official=true 论文，且仅这些）",
+            "candidates/": "未入选候选全文 + rejections.json 跨运行淘汰账本",
+            "gold.json": "逐篇金标判定（含 official=false 的抽取工件记录）",
             "index.json": "本清单",
         },
     }
@@ -609,6 +657,7 @@ def build(out_root: Path = ROOT / "output" / "gold-standard", target: int | None
         {
             "arxiv_id": p["arxiv_id"],
             "domain": p.get("domain", ""),
+            "official": bool(p.get("official")),
             "title": p["title"],
             "published": p["published"],
             "chars": p["chars"],
@@ -627,8 +676,10 @@ def build(out_root: Path = ROOT / "output" / "gold-standard", target: int | None
 
 def summarize(papers: list[dict[str, Any]], out_root: Path) -> dict[str, Any]:
     total = len(papers)
-    clean = [p for p in papers if p["negative_control"]["p0_count"] == 0]
-    all_positives = [v for p in papers for v in p["positives"]]
+    official = [p for p in papers if p.get("official", True)]
+    clean = [p for p in official if p["negative_control"]["p0_count"] == 0]
+    non_official = [p for p in papers if not p.get("official", True)]
+    all_positives = [v for p in official for v in p["positives"]]
     detected = [v for v in all_positives if v["detected"]]
     by_name: dict[str, dict[str, int]] = {}
     for v in all_positives:
@@ -636,25 +687,31 @@ def summarize(papers: list[dict[str, Any]], out_root: Path) -> dict[str, Any]:
         bucket["total"] += 1
         bucket["detected"] += 1 if v["detected"] else 0
     by_domain: dict[str, dict[str, int]] = {}
-    for p in papers:
+    for p in official:
         domain = str(p.get("domain") or "unknown")
         bucket = by_domain.setdefault(domain, {"papers": 0, "positives": 0, "detected": 0})
         bucket["papers"] += 1
         bucket["positives"] += len(p["positives"])
         bucket["detected"] += sum(1 for v in p["positives"] if v["detected"])
     summary = {
-        "paper_count": total,
+        "paper_count": len(official),
+        "evaluated_count": total,
         "domain_count": len(by_domain),
         "papers_by_domain": {domain: bucket["papers"] for domain, bucket in by_domain.items()},
         "recall_by_domain": {
             domain: round(bucket["detected"] / bucket["positives"], 3) if bucket["positives"] else None
             for domain, bucket in by_domain.items()
         },
-        "negative_control_clean_rate": round(len(clean) / total, 3) if total else None,
-        "p0_false_positive_papers": [
-            {"arxiv_id": p["arxiv_id"], "p0": p["negative_control"]["p0_details"]}
-            for p in papers
-            if p["negative_control"]["p0_count"]
+        # 两个口径必须同时报告：
+        # clean_rate_official —— 官方集（阴性对照 P0 的论文已被排除），
+        #   供回归门槛使用；它是选择结果，不是误报率。
+        # p0_rate_all_evaluated —— 全部评测论文（含抽取工件）上的 P0 率，
+        #   这才是审计器在真实抽取文本上的诚实假阳性口径。
+        "clean_rate_official": round(len(clean) / len(official), 3) if official else None,
+        "p0_rate_all_evaluated": round(len(non_official) / total, 3) if total else None,
+        "non_official_papers": [
+            {"arxiv_id": p["arxiv_id"], "p0": p["negative_control"]["p0_details"][:3]}
+            for p in non_official
         ],
         "positive_recall_overall": round(len(detected) / len(all_positives), 3)
         if all_positives
@@ -670,12 +727,14 @@ def render_report(papers: list[dict[str, Any]], summary: dict[str, Any]) -> str:
     lines = [
         "# 真实论文黄金标准评测报告",
         "",
-        f"- 论文数：{summary['paper_count']}（arXiv 原生 HTML 全文，公开免密钥）",
+        f"- 官方集：{summary['paper_count']} 篇（共评测 {summary['evaluated_count']} 篇；arXiv 原生 HTML，公开免密钥）",
         f"- 领域数：{summary.get('domain_count', 1)}（"
         + ", ".join(f"{k}={v}" for k, v in summary.get("papers_by_domain", {}).items())
         + "）",
-        f"- 阴性对照干净率（真实论文全源审计无 P0）：{summary['negative_control_clean_rate']}",
-        f"- 阳性对照总召回（5 类植入缺陷）：{summary['positive_recall_overall']}",
+        f"- 阴性对照干净率（官方集口径，选择结果）：{summary['clean_rate_official']}",
+        f"- 全评测口径 P0 率（含抽取工件，诚实假阳性）：{summary['p0_rate_all_evaluated']}"
+        f"（{len(summary.get('non_official_papers', []))} 篇因阴性对照 P0 未入官方集）",
+        f"- 阳性对照总召回（5 类植入缺陷，官方集）：{summary['positive_recall_overall']}",
         "",
         "## 分领域召回",
         "",
@@ -694,16 +753,17 @@ def render_report(papers: list[dict[str, Any]], summary: dict[str, Any]) -> str:
     ]
     for name, bucket in summary["positive_recall_by_defect"].items():
         lines.append(f"| {name} | {bucket['detected']}/{bucket['total']} |")
-    lines += ["", "## P0 误报明细（真实论文）", ""]
-    if not summary["p0_false_positive_papers"]:
+    lines += ["", "## 未入官方集的评测论文（抽取工件记录）", ""]
+    if not summary.get("non_official_papers"):
         lines.append("无。")
-    for item in summary["p0_false_positive_papers"]:
+    for item in summary.get("non_official_papers", []):
         lines.append(f"- {item['arxiv_id']}: {item['p0']}")
     lines += ["", "## 逐篇结果", ""]
     for p in papers:
+        tag = "官方" if p.get("official", True) else "非官方"
         pos = ", ".join(f"{v['name']}={'√' if v['detected'] else '×'}" for v in p["positives"])
         lines.append(
-            f"- [{p.get('domain', '?')}] {p['arxiv_id']} {p['title'][:48]}："
+            f"- [{tag}|{p.get('domain', '?')}] {p['arxiv_id']} {p['title'][:44]}："
             f"P0={p['negative_control']['p0_count']} P1={p['negative_control']['p1_count']} | {pos}"
         )
     return "\n".join(lines) + "\n"
