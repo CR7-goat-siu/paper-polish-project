@@ -4,6 +4,8 @@ schema_version: 1
 id: springer-generic
 name: Springer Nature (generic)
 publisher: Springer Nature
+# 溯源字段：对照期刊官方 Author Guide 核对后填写 "<url> (<日期>)"；为空则网关持续 WARN
+verified_against: ""
 language: en
 
 word_limits:

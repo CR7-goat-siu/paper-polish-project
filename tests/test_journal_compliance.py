@@ -277,6 +277,28 @@ class ComplianceChecksTests(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             load_journal_profile("no-such-journal")
 
+    def test_unverified_profile_warns_prominently(self):
+        # S11：阈值未溯源的档案必须持续 WARN，阻止把未验证 PASS 当投稿依据
+        result = check_journal_compliance(_COMPLIANT_TEXT, self.profile)
+        items = {item["check"]: item for item in result["items"]}
+        self.assertIn("profile_verification", items)
+        self.assertEqual(items["profile_verification"]["status"], "WARN")
+        self.assertIn("verified_against", items["profile_verification"]["detail"])
+
+    def test_verified_profile_passes_verification_gate(self):
+        profile = dict(self.profile)
+        profile["verified_against"] = "https://example.org/guide (2026-10-25)"
+        result = check_journal_compliance(_COMPLIANT_TEXT, profile)
+        items = {item["check"]: item for item in result["items"]}
+        self.assertEqual(items["profile_verification"]["status"], "PASS")
+        # 三份仓库档案当前均未溯源：WARN 必然出现
+        for journal_id in ("ieee-trans", "elsevier-bspc", "springer-generic"):
+            unverified = load_journal_profile(journal_id)
+            self.assertFalse(
+                str(unverified.get("verified_against") or "").strip(),
+                f"{journal_id} 档案在人工核对前不应携带 verified_against",
+            )
+
 
 class RunAuditJournalIntegrationTests(unittest.TestCase):
     """run_audit(journal=...) 的集成：硬门禁、报告与产物文件。"""

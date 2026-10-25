@@ -4,6 +4,8 @@ schema_version: 1
 id: ieee-trans
 name: IEEE Transactions (generic)
 publisher: IEEE
+# 溯源字段：对照期刊官方 Author Guide 核对后填写 "<url> (<日期>)"；为空则网关持续 WARN
+verified_against: ""
 language: en
 
 word_limits:

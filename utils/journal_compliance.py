@@ -343,6 +343,29 @@ def check_journal_compliance(
                 }
             )
 
+    # 0) 档案溯源：阈值未经官方 Author Guide 核对的档案持续 WARN（不 FAIL——
+    #    WARN 的存在本身阻止把未验证 PASS 当作投稿依据；作者对照官网核对后
+    #    在档案填写 verified_against: "<url> (<date>)" 解除）
+    verified_against = str(profile.get("verified_against") or "").strip()
+    if verified_against:
+        _add(
+            "profile_verification",
+            "PASS",
+            f"档案阈值已对照官方指南核对：{verified_against}",
+            expected="verified_against 已填",
+            actual=verified_against,
+        )
+    else:
+        _add(
+            "profile_verification",
+            "WARN",
+            "期刊档案阈值未经官方 Author Guide 核对（verified_against 为空）；"
+            "各项判定仅供预检参考，投稿前请以期刊官网为准并回填溯源字段",
+            expected="verified_against: <url> (<date>)",
+            actual="(empty)",
+            severity="warning",
+        )
+
     # 1) 摘要与正文字数
     word_limits = profile.get("word_limits") or {}
     abstract_max = word_limits.get("abstract_max_words")
