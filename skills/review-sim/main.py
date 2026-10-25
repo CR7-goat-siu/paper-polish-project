@@ -181,13 +181,21 @@ def build_jobs(
     parsed: dict[str, Any] | None = None,
     config: dict[str, Any] | None = None,
     out_dir: str | Path = "output/review-sim",
+    only_sections: list[str] | None = None,
 ) -> dict[str, Any]:
-    """按 章节 × 角色（+ 可选跨节视图）渲染评审作业包并落盘。"""
+    """按 章节 × 角色（+ 可选跨节视图）渲染评审作业包并落盘。
+
+    only_sections：只给这些 section_id 出作业（对抗闭环按改动章节评审）；
+    跨节视图不受其限制（全文交叉比对始终可看全局）。
+    """
     config = config or load_config()
     language = normalize_language(language)
     sections = split_sections(text, language=language, parsed=parsed)
     if not sections:
         raise ValueError("论文为空，无法生成评审作业包")
+    if only_sections:
+        allowed = {str(item) for item in only_sections}
+        sections = [section for section in sections if section["section_id"] in allowed]
     outline = _build_outline(sections)
     out_root = Path(out_dir)
     prompts_dir = out_root / "prompts"
@@ -331,6 +339,26 @@ def _assemble_cross_text(
         if total >= cap_total:
             break
     return "\n\n".join(parts)
+
+
+def diff_sections(
+    old_text: str, new_text: str, *, language: str = "en"
+) -> dict[str, Any]:
+    """对比两版文本的章节集合，返回需要评审的 section_id（改动 + 新增）。
+
+    供 optimizer-loop 对抗闭环做「只评审改动章节」的确定性切分；
+    section_id 与 build_jobs 完全同源（同一 split_sections），保证可过滤。
+    """
+    old = {s["section_id"]: s["text"] for s in split_sections(old_text, language=language)}
+    new = {s["section_id"]: s["text"] for s in split_sections(new_text, language=language)}
+    changed = sorted(sid for sid, text in new.items() if old.get(sid) != text)
+    removed = sorted(sid for sid in old if sid not in new)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "changed": changed,
+        "removed": removed,
+        "review_sections": changed,
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -553,8 +581,16 @@ def register_findings(
 
 def run(args: dict[str, Any]) -> dict[str, Any]:
     mode = str(args.get("mode") or "build").lower()
-    config = load_config(args.get("config"))
+    raw_config = args.get("config")
+    config = raw_config if isinstance(raw_config, dict) else load_config(raw_config)
     language = normalize_language(str(args.get("language") or "en"))
+
+    if mode == "diff_sections":
+        old_text = str(args.get("old_text") or "")
+        new_text = str(args.get("new_text") or "")
+        if not old_text.strip() or not new_text.strip():
+            raise ValueError("review-sim diff_sections 需要 old_text 与 new_text")
+        return diff_sections(old_text, new_text, language=language)
 
     if mode == "build":
         input_file = args.get("input_file") or args.get("input") or args.get("text_file")
@@ -579,6 +615,7 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
             parsed=parsed,
             config=config,
             out_dir=args.get("out") or "output/review-sim",
+            only_sections=args.get("only_sections"),
         )
 
     if mode == "apply":

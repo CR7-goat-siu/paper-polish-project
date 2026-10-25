@@ -38,15 +38,17 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from utils import issue_model, job_io  # noqa: E402
-from utils.config_loader import normalize_language  # noqa: E402
+from utils.config_loader import PROJECT_ROOT, load_yaml_file, normalize_language  # noqa: E402
 from utils.logger import get_logger  # noqa: E402
 from utils.skill_loader import run_skill  # noqa: E402
 
 LOG = get_logger("optimizer-loop")
 
 SCHEMA_VERSION = 1
-STATE_VERSION = 2
-VALID_STAGES = ("init", "audit", "build", "apply", "decide", "deliver", "status")
+STATE_VERSION = 3
+VALID_STAGES = ("init", "audit", "build", "apply", "decide", "review", "deliver", "status")
+
+REVIEW_SIM_CONFIG_PATH = PROJECT_ROOT / "config" / "review-sim.yaml"
 
 # 投稿准备状态（PRD §8.5）：只用明确分级，不用模糊绿灯
 READY = "READY_FOR_AUTHOR_REVIEW"
@@ -73,11 +75,22 @@ def _load_source(text_file: Path) -> tuple[str, Path]:
     return text_file.read_text(encoding="utf-8-sig"), text_file
 
 
-def audit_round(text: str, *, language: str, out_dir: Path) -> dict[str, Any]:
-    """对新版本文本做一次完整确定性审计，返回 registry / scorecard / plan。"""
-    registry = run_skill(
-        "issue-registry", {"text": text, "language": language, "out": str(out_dir)}
-    )
+def audit_round(
+    text: str,
+    *,
+    language: str,
+    out_dir: Path,
+    extra_sources: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """对新版本文本做一次完整确定性审计，返回 registry / scorecard / plan。
+
+    extra_sources：追加的审计来源（对抗闭环注入 review-sim 评审意见），
+    与确定性审计同场登记，保证跨轮计数、计划与 readiness 口径一致。
+    """
+    registry_args: dict[str, Any] = {"text": text, "language": language, "out": str(out_dir)}
+    if extra_sources:
+        registry_args["extra_sources"] = extra_sources
+    registry = run_skill("issue-registry", registry_args)
     scorecard = run_skill(
         "quality-score",
         {"registry": registry, "language": language, "out": str(out_dir)},
@@ -264,6 +277,359 @@ def should_stop(
 
 
 # --------------------------------------------------------------------------- #
+# 对抗闭环：review-sim 接入 decide 轮（R1）
+# --------------------------------------------------------------------------- #
+def _load_review_sim_config() -> dict[str, Any]:
+    if REVIEW_SIM_CONFIG_PATH.exists():
+        return load_yaml_file(REVIEW_SIM_CONFIG_PATH)
+    return {}
+
+
+def _review_settings(enabled: bool | None = None) -> dict[str, Any]:
+    """从 config/review-sim.yaml 解析闭环参数；enabled 覆盖文件默认。"""
+    data = _load_review_sim_config()
+    loop = data.get("loop") or {}
+    settings = {
+        "enabled": bool(loop.get("enabled", False)),
+        "review_changed_only": bool(loop.get("review_changed_only", True)),
+        "include_cross": bool(loop.get("include_cross", True)),
+        "max_review_cycles": int(loop.get("max_review_cycles", 8)),
+        "stagnation_rotate_after": int(loop.get("stagnation_rotate_after", 2)),
+        "stagnation_stop_after": int(loop.get("stagnation_stop_after", 4)),
+        "alternate_roles": [str(r) for r in (loop.get("alternate_roles") or [])],
+        "guidance_injection": bool(loop.get("guidance_injection", True)),
+        "roles": data.get("roles") or {},
+        "cross_view": data.get("cross_view") or {},
+        "config": data,
+    }
+    if enabled is not None:
+        settings["enabled"] = bool(enabled)
+    return settings
+
+
+def _review_finding_key(finding: dict[str, Any]) -> str:
+    """跨评审周期的意见去重键：section + 类别 + 引文前缀。
+
+    issue_model 指纹含 found（评审模型复述文本，跨轮会改写）与 ±60 字符
+    上下文窗口，都不适合做意见级跨轮同一性；引文锚点 + 类别才是稳定信号。
+    """
+    section = _norm_ws(finding.get("section_id"))
+    category = _norm_ws(finding.get("check")).lower()
+    quote = _norm_ws(finding.get("context_snippet"))[:60]
+    return f"{section}::{category}::{quote}"
+
+
+def _review_extra_sources(active: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """把活跃评审意见还原为 issue-registry extra_sources 形态。"""
+    if not active:
+        return []
+    return [{"skill": "review-sim", "result": {"findings": [r["finding"] for r in active]}}]
+
+
+def _review_pseudo_issues(active: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """活跃评审意见 → 锚定伪问题（走 _map_issues_to_chunks 与批注通道）。
+
+    _comment_label/_comment_author 让 batch-processor 把这批批注标为
+    「评审意见」（区别于确定性「审计问题」）；意见本身永不直接改写正文，
+    只作为最高优先级批注引导下一轮修订，结果仍受全部门禁与 decide 管辖。
+    """
+    issues: list[dict[str, Any]] = []
+    for index, record in enumerate(active, start=1):
+        finding = record.get("finding") or {}
+        summary = _norm_ws(finding.get("message") or finding.get("found") or "")
+        issues.append(
+            {
+                "issue_id": f"REVIEW-{index:03d}",
+                "priority": "P2",
+                "dimension": "review_risk",
+                "title": summary,
+                "evidence": _norm_ws(finding.get("context_snippet") or ""),
+                "suggestion": _norm_ws(finding.get("suggestion") or ""),
+                "metadata": {"found": _norm_ws(finding.get("found") or "")},
+                "_comment_label": "评审意见",
+                "_comment_author": "Review-Sim",
+            }
+        )
+    return issues
+
+
+def _review_stagnation_step(
+    stagnant: int, new_count: int, resolved_count: int, review_cfg: dict[str, Any]
+) -> tuple[int, str]:
+    """评审周期止损（纯函数，ARIS 纪律：2 轮空转换方向，4 轮叫人）。"""
+    if new_count or resolved_count:
+        return 0, "progress"
+    stagnant += 1
+    rotate_after = int(review_cfg.get("stagnation_rotate_after", 2))
+    stop_after = int(review_cfg.get("stagnation_stop_after", 4))
+    if stagnant >= stop_after:
+        return stagnant, "stop"
+    if stagnant >= rotate_after and (review_cfg.get("alternate_roles") or []) and not review_cfg.get("rotated"):
+        return stagnant, "rotate_roles"
+    return stagnant, "monitor"
+
+
+def _emit_review_cycle(
+    state: dict[str, Any], out_dir: Path, prev_text_file: str
+) -> None:
+    """对当前最佳版本发射一轮评审作业（只评改动章节），进入 awaiting_review_sim。"""
+    review = state["review_sim"]
+    cycle_index = len(state.get("review_history") or []) + 1
+    cycle_dir = Path(out_dir) / "work" / f"review-cycle-{cycle_index:03d}"
+    new_text = Path(state["best"]["text_file"]).read_text(encoding="utf-8")
+    only_sections: list[str] | None = None
+    if (
+        review.get("review_changed_only", True)
+        and prev_text_file
+        and Path(prev_text_file).exists()
+        and str(prev_text_file) != str(state["best"]["text_file"])
+    ):
+        diff = run_skill(
+            "review-sim",
+            {
+                "mode": "diff_sections",
+                "old_text": Path(prev_text_file).read_text(encoding="utf-8"),
+                "new_text": new_text,
+                "language": state["language"],
+            },
+        )
+        only_sections = diff.get("review_sections") or None
+
+    build_config = dict(review.get("config") or {})
+    roles = build_config.get("roles") or {}
+    current = review.get("roles_current") or sorted(roles)
+    build_config["roles"] = {key: value for key, value in roles.items() if key in set(current)}
+    cross_view = dict(build_config.get("cross_view") or {})
+    cross_view["enabled"] = bool(review.get("include_cross", True))
+    build_config["cross_view"] = cross_view
+
+    result = run_skill(
+        "review-sim",
+        {
+            "mode": "build",
+            "text": new_text,
+            "language": state["language"],
+            "out": str(cycle_dir),
+            "only_sections": only_sections,
+            "config": build_config,
+        },
+    )
+    if not int(result.get("job_count") or 0):
+        # 改动章节过滤后无作业（如角色-章节矩阵不覆盖改动）：跳过本轮评审，
+        # 如实记录，不计停滞
+        state["review_history"] = (state.get("review_history") or []) + [
+            {
+                "cycle": cycle_index,
+                "skipped": "no_review_jobs",
+                "only_sections": only_sections,
+                "strategy": "skipped",
+            }
+        ]
+        state["review_cycle"] = None
+        state["next_stage"] = "build"
+        return
+    state["review_cycle"] = {
+        "cycle": cycle_index,
+        "dir": str(cycle_dir),
+        "jobs_file": str(cycle_dir / "review-jobs.json"),
+        "responses_dir": str(cycle_dir / "responses"),
+        "job_count": int(result.get("job_count") or 0),
+        "only_sections": only_sections,
+    }
+    state["next_stage"] = "review"
+    state["status"] = "awaiting_review_sim"
+
+
+def stage_review(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
+    """对抗闭环消费阶段：回填评审响应 → fail-closed 校验 → 意见生命周期 → 止损。
+
+    响应不齐（pending）时保持 awaiting_review_sim 幂等返回，由 harness
+    继续回填（或执行桥 stage=backfill）；全部就绪后 apply + 登记。
+    """
+    out_dir = Path(out_dir)
+    cycle = state.get("review_cycle") or {}
+    if not cycle:
+        state["next_stage"] = "build"
+        _save_state(out_dir, state)
+        return state
+    cycle_dir = Path(cycle["dir"])
+    cycle_n = int(cycle["cycle"])
+    apply_result = run_skill(
+        "review-sim",
+        {
+            "mode": "apply",
+            "jobs_file": cycle["jobs_file"],
+            "responses_dir": cycle["responses_dir"],
+        },
+    )
+    (cycle_dir / "apply-result.json").write_text(
+        json.dumps(apply_result, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    pending = apply_result.get("pending_jobs") or []
+    if pending:
+        state["status"] = "awaiting_review_sim"
+        state["review_pending_jobs"] = pending
+        state["next_stage"] = "review"
+        _save_state(out_dir, state)
+        return state
+    state["review_pending_jobs"] = []
+
+    jobs_payload = json.loads(Path(cycle["jobs_file"]).read_text(encoding="utf-8"))
+    covered = {str(job.get("section_id")) for job in jobs_payload.get("jobs") or []}
+    if "cross" in covered:
+        covered.add("__all__")
+
+    active = state.get("review_findings") or []
+    flagged: dict[str, dict[str, Any]] = {}
+    new_count = still_count = 0
+    for finding in apply_result.get("findings") or []:
+        key = _review_finding_key(finding)
+        flagged[key] = finding
+        record = next((r for r in active if r["key"] == key), None)
+        if record is not None:
+            record["last_cycle"] = cycle_n
+            record["times_seen"] = int(record.get("times_seen", 1)) + 1
+            still_count += 1
+        else:
+            active.append(
+                {
+                    "key": key,
+                    "finding": finding,
+                    "first_cycle": cycle_n,
+                    "last_cycle": cycle_n,
+                    "times_seen": 1,
+                }
+            )
+            new_count += 1
+    resolved: list[dict[str, Any]] = []
+    for record in active:
+        if record["key"] in flagged:
+            continue
+        section_id = str((record.get("finding") or {}).get("section_id") or "")
+        if section_id in covered or "__all__" in covered:
+            resolved.append(record)
+    if resolved:
+        resolved_keys = {r["key"] for r in resolved}
+        active = [r for r in active if r["key"] not in resolved_keys]
+    state["review_findings"] = active
+
+    review_cfg = state.get("review_sim") or {}
+    stagnant, strategy = _review_stagnation_step(
+        int(state.get("review_stagnant", 0)), new_count, len(resolved), review_cfg
+    )
+    state["review_stagnant"] = stagnant
+    history_entry = {
+        "cycle": cycle_n,
+        "applied": int(apply_result.get("applied_count") or 0),
+        "rejected": int(apply_result.get("rejected_count") or 0),
+        "new": new_count,
+        "still_open": still_count,
+        "resolved": len(resolved),
+        "unmatched_responses": len(apply_result.get("unmatched_responses") or []),
+        "strategy": strategy,
+    }
+    state["review_history"] = (state.get("review_history") or []) + [history_entry]
+    (cycle_dir / "review-findings.json").write_text(
+        json.dumps(
+            {
+                "active": state["review_findings"],
+                "resolved_keys": [r["key"] for r in resolved],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    if strategy == "rotate_roles":
+        review_cfg["roles_current"] = list(review_cfg.get("alternate_roles") or [])
+        review_cfg["rotated"] = True
+    if strategy == "stop":
+        state["stop_reason"] = (
+            f"评审平台期止损：连续 {stagnant} 轮评审无新增意见且无收敛，"
+            "按对抗循环纪律升级人工复核"
+        )
+        state["next_stage"] = "deliver"
+        state["status"] = "stopped"
+        _save_state(out_dir, state)
+        return state
+
+    # 刷新最佳版本审计：活跃意见作为 extra_sources 同场登记，
+    # 下一轮计划 / readiness / 跨轮计数全部基于合并口径
+    best_text = Path(state["best"]["text_file"]).read_text(encoding="utf-8")
+    audit_dir = out_dir / "work" / f"audit-review-{cycle_n:03d}"
+    refreshed = audit_round(
+        best_text,
+        language=state["language"],
+        out_dir=audit_dir,
+        extra_sources=_review_extra_sources(active),
+    )
+    state["best"]["audit_dir"] = str(audit_dir)
+    state["rounds"].append(
+        {
+            "round": int(state["round"]),
+            "kind": "review",
+            "cycle": cycle_n,
+            **_round_record(refreshed),
+            "new_findings": new_count,
+            "resolved_findings": len(resolved),
+        }
+    )
+    state["next_stage"] = "build"
+    state["status"] = "running"
+    state["review_cycle"] = None
+    _save_state(out_dir, state)
+    return state
+
+
+def _identity_fill_review(state: dict[str, Any]) -> None:
+    """整体模式 identity 离线验证：为评审作业回填空意见响应。"""
+    cycle = state.get("review_cycle") or {}
+    payload = json.loads(Path(cycle["jobs_file"]).read_text(encoding="utf-8"))
+    responses = Path(cycle["responses_dir"])
+    responses.mkdir(parents=True, exist_ok=True)
+    for job in payload.get("jobs") or []:
+        target = responses / f"{job.get('job_id')}.txt"
+        if target.exists():
+            continue
+        target.write_text(
+            json.dumps(
+                {
+                    "job_id": job.get("job_id"),
+                    "role": job.get("role"),
+                    "section_id": job.get("section_id"),
+                    "findings": [],
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+
+
+def _skip_review_cycle(state: dict[str, Any], out_dir: Path, *, reason: str) -> dict[str, Any]:
+    """fail-closed 跳过本轮评审（整体模式无回填通道时）：如实记录，不计停滞。
+
+    评审不可达不等于质量平台期——跳过轮不喂停滞计数器，避免虚假止损。
+    """
+    cycle = state.get("review_cycle") or {}
+    state["review_history"] = (state.get("review_history") or []) + [
+        {
+            "cycle": int(cycle.get("cycle") or 0),
+            "skipped": reason,
+            "new": 0,
+            "resolved": 0,
+            "strategy": "skipped",
+        }
+    ]
+    state["review_cycle"] = None
+    state["review_pending_jobs"] = []
+    state["next_stage"] = "build"
+    state["status"] = "running"
+    _save_state(Path(out_dir), state)
+    return state
+
+
+# --------------------------------------------------------------------------- #
 # 计划驱动修订：问题 → 章节 映射
 # --------------------------------------------------------------------------- #
 def _norm_ws(value: Any) -> str:
@@ -390,6 +756,7 @@ def _load_state(out_dir: Path) -> dict[str, Any] | None:
 
 def _state_view(state: dict[str, Any]) -> dict[str, Any]:
     """harness 视角的状态摘要：下一步做什么、等哪些响应。"""
+    review = state.get("review_sim") or {}
     view = {
         "stage": state.get("next_stage"),
         "status": state.get("status"),
@@ -406,8 +773,28 @@ def _state_view(state: dict[str, Any]) -> dict[str, Any]:
         "rounds": state.get("rounds"),
         "readiness_status": state.get("readiness_status"),
         "state_file": state.get("state_file"),
+        "review_enabled": bool(review.get("enabled")),
+        "review_pending_jobs": state.get("review_pending_jobs") or [],
+        "review_active_findings": len(state.get("review_findings") or []),
+        "review_stagnant": state.get("review_stagnant", 0),
+        "review_cycles_done": len(state.get("review_history") or []),
+        "guidance_chunk_count": state.get("guidance_chunk_count", 0),
     }
     return view
+
+
+def _migrate_state(state: dict[str, Any]) -> dict[str, Any]:
+    """旧 run-state 的向后兼容：补齐对抗闭环字段（旧运行视为未启用）。"""
+    review = state.get("review_sim")
+    if not isinstance(review, dict) or not review:
+        state["review_sim"] = {**_review_settings(enabled=False), "roles_current": [], "rotated": False}
+    state.setdefault("review_findings", [])
+    state.setdefault("review_history", [])
+    state.setdefault("review_stagnant", 0)
+    state.setdefault("review_cycle", None)
+    state.setdefault("review_pending_jobs", [])
+    state.setdefault("guidance_chunk_count", 0)
+    return state
 
 
 def _best_text_suffix(text_file: Path) -> str:
@@ -426,8 +813,12 @@ def stage_init(
     min_gain: float = 0.2,
     min_index: float = 3.5,
     stagnant_limit: int = 2,
+    review_sim: bool | None = None,
 ) -> dict[str, Any]:
-    """阶段一：解析 → 基线审计 → 建立历史最佳与运行状态。"""
+    """阶段一：解析 → 基线审计 → 建立历史最佳与运行状态。
+
+    review_sim：对抗闭环开关（None 时读 config/review-sim.yaml loop.enabled）。
+    """
     language = normalize_language(language)
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -444,6 +835,9 @@ def stage_init(
     text_suffix = _best_text_suffix(text_file)
     best_text = work / f"best-round-000{text_suffix}"
     best_text.write_text(current_text, encoding="utf-8")
+    review = _review_settings(enabled=review_sim)
+    review["roles_current"] = sorted(review.get("roles") or {})
+    review["rotated"] = False
     state = {
         "schema_version": STATE_VERSION,
         "state_file": str(_state_file(out_dir)),
@@ -476,6 +870,13 @@ def stage_init(
         "focus_issue_count": 0,
         "unmapped_issue_count": 0,
         "readiness_status": None,
+        "review_sim": review,
+        "review_findings": [],
+        "review_history": [],
+        "review_stagnant": 0,
+        "review_cycle": None,
+        "review_pending_jobs": [],
+        "guidance_chunk_count": 0,
     }
     _save_state(out_dir, state)
     return state
@@ -533,6 +934,22 @@ def stage_build(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
     mapping, unmapped = _map_issues_to_chunks(
         focus_issues, parsed.get("chunks", []), title=str(parsed.get("title", ""))
     )
+    # 对抗闭环 guidance 注入：活跃评审意见按锚定并入修订映射——有自动任务
+    # 的章节追加批注；只有评审意见的章节产生 guidance 驱动作业。意见本身
+    # 永不直接改写正文（requires_human 保持，作者确认后才算解决）。
+    guidance_chunks: dict[str, list[dict[str, Any]]] = {}
+    review_findings = state.get("review_findings") or []
+    if review_findings and (state.get("review_sim") or {}).get("guidance_injection", True):
+        review_mapping, review_unmapped = _map_issues_to_chunks(
+            _review_pseudo_issues(review_findings),
+            parsed.get("chunks", []),
+            title=str(parsed.get("title", "")),
+        )
+        unmapped = unmapped + review_unmapped
+        for chunk_id, issues in review_mapping.items():
+            mapping.setdefault(chunk_id, []).extend(issues)
+            guidance_chunks[chunk_id] = issues
+    state["guidance_chunk_count"] = len(guidance_chunks)
     if not mapping:
         # 无一锚定成功：无方向的全文重润违反局部补丁原则，直接进入交付，
         # 未锚定问题计入告警由作者裁定
@@ -670,14 +1087,21 @@ def stage_apply(
 
 
 def stage_decide(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
-    """阶段五/六：独立复核（全量确定性审计）→ 版本决策 → 任务级验证 → 停止判定。"""
+    """阶段五/六：独立复核（全量确定性审计）→ 版本决策 → 任务级验证 → 停止判定。
+
+    对抗闭环：候选审计同场登记历史活跃评审意见（计数口径一致）；接受且
+    未停机时对最佳版本发射评审周期（只评改动章节），进入 awaiting_review_sim。
+    """
     out_dir = Path(out_dir)
     work = out_dir / "work"
     round_index = int(state["round"])
     candidate_text = Path(state["candidate_text_file"]).read_text(encoding="utf-8")
     round_dir = Path(state["current_round_dir"])
     candidate_audit = audit_round(
-        candidate_text, language=state["language"], out_dir=round_dir / "audit"
+        candidate_text,
+        language=state["language"],
+        out_dir=round_dir / "audit",
+        extra_sources=_review_extra_sources(state.get("review_findings") or []),
     )
     best_audit = _load_audit(Path(state["best"]["audit_dir"]))
     verdict = decide(best_audit, candidate_audit, min_gain=float(state["min_gain"]))
@@ -695,6 +1119,7 @@ def stage_decide(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
     }
     state["rounds"].append(record)
 
+    prev_text_file = str((state.get("best") or {}).get("text_file") or "")
     if verdict["decision"] == "reject":
         LOG.info("拒绝本轮修改：%s", verdict["reason"])
         state["stagnant"] = int(state.get("stagnant", 0)) + 1
@@ -735,7 +1160,17 @@ def stage_decide(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
         state["status"] = "stopped"
     else:
         state["round"] = round_index + 1
-        state["next_stage"] = "build"
+        review = state.get("review_sim") or {}
+        cycles_done = len(state.get("review_history") or [])
+        if (
+            review.get("enabled")
+            and verdict["decision"] != "reject"
+            and cycles_done < int(review.get("max_review_cycles", 8))
+        ):
+            # 版本被接受才评审：被拒绝的候选已回滚，评它只会制造虚假停滞
+            _emit_review_cycle(state, out_dir, prev_text_file)
+        else:
+            state["next_stage"] = "build"
     _save_state(out_dir, state)
     return state
 
@@ -910,6 +1345,10 @@ def stage_deliver(
                 "strength": state["strength"],
                 "stop_reason": stop_reason,
                 "rounds": state["rounds"],
+                "review": {
+                    "cycles": state.get("review_history") or [],
+                    "active_findings": state.get("review_findings") or [],
+                },
                 "final": {
                     "issue_count": final_audit["registry"]["issue_count"],
                     "counts_by_priority": _priority_counts(final_audit),
@@ -1024,6 +1463,20 @@ def stage_deliver(
 # --------------------------------------------------------------------------- #
 # 驱动入口
 # --------------------------------------------------------------------------- #
+def _optional_bool(value: Any) -> bool | None:
+    """run 参数的三态布尔：None / 未传 → 配置默认；字符串兼容 true/false。"""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text in ("1", "true", "yes", "on"):
+        return True
+    if text in ("0", "false", "no", "off"):
+        return False
+    return None
+
+
 def run_loop(
     text_file: Path,
     *,
@@ -1036,6 +1489,7 @@ def run_loop(
     stagnant_limit: int = 2,
     responses_dir: Path | None = None,
     identity: bool = False,
+    review_sim: bool | None = None,
     **kwargs: Any,
 ) -> dict[str, Any]:
     """整体模式：内部依次驱动各 stage（identity / responses_dir 自动回填）。
@@ -1054,8 +1508,10 @@ def run_loop(
             min_gain=min_gain,
             min_index=min_index,
             stagnant_limit=stagnant_limit,
+            review_sim=review_sim,
         )
-    while state.get("next_stage") in ("build", "apply", "decide"):
+    state = _migrate_state(state)
+    while state.get("next_stage") in ("build", "apply", "decide", "review"):
         next_stage = state["next_stage"]
         if next_stage == "build":
             state = stage_build(state, out_dir)
@@ -1063,8 +1519,19 @@ def run_loop(
             state = stage_apply(
                 state, out_dir, responses_dir=responses_dir, identity=identity
             )
+        elif next_stage == "review":
+            state = stage_review(state, out_dir)
+            if state.get("status") == "awaiting_review_sim":
+                if identity:
+                    _identity_fill_review(state)
+                    state = stage_review(state, out_dir)
+                else:
+                    # 整体模式无评审回填通道：fail-closed 跳过本轮评审（如实记录）
+                    state = _skip_review_cycle(state, out_dir, reason="reviewer_unavailable")
         else:
             state = stage_decide(state, out_dir)
+        if state.get("status") in ("stopped", "delivered"):
+            break
     return stage_deliver(
         state,
         out_dir,
@@ -1095,6 +1562,7 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
             stagnant_limit=int(args.get("stagnant_limit") or 2),
             responses_dir=Path(str(responses_dir)) if responses_dir else None,
             identity=bool(args.get("identity", False)),
+            review_sim=_optional_bool(args.get("review_sim")),
         )
 
     if stage == "init":
@@ -1110,11 +1578,12 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
             min_gain=float(args.get("min_gain", 0.2)),
             min_index=float(args.get("min_index", 3.5)),
             stagnant_limit=int(args.get("stagnant_limit") or 2),
+            review_sim=_optional_bool(args.get("review_sim")),
         )
         return _state_view(state)
 
-    state = _load_state(out_dir)
-    if state is None:
+    state = _migrate_state(_load_state(out_dir) or {})
+    if not state:
         raise ValueError(
             f"未找到 {out_dir / 'run-state.json'}：请先执行 stage=init 建立运行状态"
         )
@@ -1134,6 +1603,8 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
                 identity=bool(args.get("identity", False)),
             )
         )
+    if stage == "review":
+        return _state_view(stage_review(state, out_dir))
     if stage == "decide":
         return _state_view(stage_decide(state, out_dir))
     if stage == "deliver":

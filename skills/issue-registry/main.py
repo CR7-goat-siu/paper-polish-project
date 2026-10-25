@@ -342,6 +342,12 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("issue-registry 需要 sources 或 text_file/text")
         source_list = _collect_from_text(str(text), language)
 
+    # extra_sources：文本模式审计结果的追加来源（如 review-sim 评审意见），
+    # 与确定性审计同场登记，保证跨轮计数与计划口径一致
+    extra = [s for s in (args.get("extra_sources") or []) if isinstance(s, dict)]
+    if extra:
+        source_list = source_list + extra
+
     registry = build_registry(source_list, rules=rules)
 
     if output:

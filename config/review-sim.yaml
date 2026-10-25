@@ -61,3 +61,24 @@ validation:
   severity_map:
     major: warning
     minor: info
+
+# 对抗闭环（optimizer-loop decide 轮接入，R1）
+loop:
+  # decide 接受修订后自动对最佳版本发射评审周期
+  enabled: true
+  # 只评审相对上一轮有改动的章节（diff_sections 确定性切分）
+  review_changed_only: true
+  # 每个评审周期附带全文交叉比对作业
+  include_cross: true
+  # 评审周期总数上限
+  max_review_cycles: 8
+  # ARIS 止损纪律：连续 N 轮评审无新增且无收敛 → 切换角色组合
+  stagnation_rotate_after: 2
+  # 连续 N 轮无进展 → 停止循环、升级人工复核
+  stagnation_stop_after: 4
+  # 角色轮换后备组合
+  alternate_roles:
+    - methodology
+    - statistics
+  # 评审意见作为批注注入下一轮修订（永不直接改写正文，requires_human 保持）
+  guidance_injection: true

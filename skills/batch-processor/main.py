@@ -139,15 +139,19 @@ def _focus_issue_comments(focus_issues: list[Any] | None) -> list[dict[str, Any]
         dimension = str(issue.get("dimension") or "")
         title = " ".join(str(issue.get("title") or "").split())
         suggestion = " ".join(str(issue.get("suggestion") or "").split())
+        # 来源标签可覆写：确定性审计问题标"审计问题"，review-sim 评审
+        # 意见标"评审意见"（永不自动改写，仅作为批注引导下一轮修订）
+        label = str(issue.get("_comment_label") or "审计问题")
+        author = str(issue.get("_comment_author") or "Auto-Audit")
         text = (
-            f"[审计问题 {issue.get('issue_id') or position}][{priority}]"
+            f"[{label} {issue.get('issue_id') or position}][{priority}]"
             f"{f'[{dimension}]' if dimension else ''} {title}"
             + (f"；修改建议：{suggestion}" if suggestion else "")
         )
         comments.append(
             {
                 "id": str(issue.get("issue_id") or f"issue-{position:03d}"),
-                "author": "Auto-Audit",
+                "author": author,
                 "anchor_text": anchor,
                 "text": text,
             }
