@@ -1,7 +1,10 @@
 """统一配置加载器。
 
-优先使用 PyYAML；未安装时回退到内置的轻量 YAML 解析器（支持本项目 YAML
-所用到的缩进映射、标量列表与注释，不支持锚点 / 别名 / 多行折叠标量）。
+优先使用 PyYAML；未安装时回退到内置的轻量 YAML 解析器。回退实现覆盖本项目
+YAML 用到的全部语法：缩进块映射 / 块列表、行内流式列表 `[a, b]` 与流式映射
+`{k: v}`、列表内联映射（`- key: value` + 缩进续行）、引号键与引号标量、注释。
+不支持锚点 / 别名 / 多行折叠标量。两套实现的输出在本项目配置语法子集上保持
+一致（tests/test_yaml_parser.py 含逐语法回归 + 全仓库配置冒烟）。
 """
 
 from __future__ import annotations
@@ -55,7 +58,19 @@ def _indent_of(raw: str) -> int:
     return len(leading)
 
 
+def _unquote(text: str) -> str:
+    """剥掉成对的引号（键名与流式项共用；与 PyYAML 键处理一致）。"""
+    text = text.strip()
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in ('"', "'"):
+        return text[1:-1]
+    return text
+
+
 def _split_key_value(text: str) -> tuple[str | None, str]:
+    """按第一个“冒号+空格”（或行尾冒号）切分键值；引号内的冒号不计。
+
+    与 YAML 规范一致：`a:1` 是标量而非映射，URL 中的 `://` 不会误切。
+    """
     quote: str | None = None
     for i, ch in enumerate(text):
         if quote:
@@ -65,10 +80,26 @@ def _split_key_value(text: str) -> tuple[str | None, str]:
         if ch in ('"', "'"):
             quote = ch
         elif ch == ":":
-            key = text[:i].strip()
-            if not key:
-                raise ConfigError(f"无效的映射行: {text!r}")
-            return key, text[i + 1 :].strip()
+            if i + 1 == len(text) or text[i + 1] in (" ", "\t"):
+                key = _unquote(text[:i])
+                if not key:
+                    raise ConfigError(f"无效的映射行: {text!r}")
+                return key, text[i + 1 :].strip()
+    return None, ""
+
+
+def _split_flow_key_value(text: str) -> tuple[str | None, str]:
+    """流式映射项 `k: v`：按第一个引号外冒号切分（流上下文不强制冒号后空格）。"""
+    quote: str | None = None
+    for i, ch in enumerate(text):
+        if quote:
+            if ch == quote:
+                quote = None
+            continue
+        if ch in ('"', "'"):
+            quote = ch
+        elif ch == ":":
+            return text[:i].strip(), text[i + 1 :].strip()
     return None, ""
 
 
@@ -94,19 +125,102 @@ def _parse_scalar(raw: str) -> Any:
     return raw
 
 
+def _split_flow_items(text: str) -> list[str]:
+    """流式序列按顶层逗号切分；引号内与嵌套 `[]`/`{}` 内的逗号不计。"""
+    items: list[str] = []
+    buf: list[str] = []
+    quote: str | None = None
+    depth = 0
+    for ch in text:
+        if quote:
+            buf.append(ch)
+            if ch == quote:
+                quote = None
+            continue
+        if ch in ('"', "'"):
+            quote = ch
+            buf.append(ch)
+        elif ch in "[{":
+            depth += 1
+            buf.append(ch)
+        elif ch in "]}":
+            depth -= 1
+            buf.append(ch)
+        elif ch == "," and depth == 0:
+            items.append("".join(buf).strip())
+            buf = []
+        else:
+            buf.append(ch)
+    tail = "".join(buf).strip()
+    if tail:
+        items.append(tail)
+    return items
+
+
+def _parse_flow_value(text: str) -> Any:
+    """解析行内值：流式列表 / 流式映射 / 标量。"""
+    raw = text.strip()
+    if not raw:
+        return None
+    if raw[0] in "[{" and raw[-1] in "]}":
+        if raw[0] == "[" and raw[-1] != "]" or raw[0] == "{" and raw[-1] != "}":
+            raise ConfigError(f"行内流式值括号不配对: {text!r}")
+        inner = raw[1:-1].strip()
+        if raw[0] == "[":
+            return [_parse_flow_value(item) for item in _split_flow_items(inner)] if inner else []
+        if not inner:
+            return {}
+        mapping: dict[str, Any] = {}
+        for item in _split_flow_items(inner):
+            key, value = _split_flow_key_value(item)
+            if key is None:
+                raise ConfigError(f"行内映射项缺少冒号: {item!r}")
+            mapping[_unquote(key)] = _parse_flow_value(value)
+        return mapping
+    if raw[0] in "[{":
+        raise ConfigError(f"行内流式值括号不配对: {text!r}")
+    return _parse_scalar(raw)
+
+
+def _is_list_item(text: str) -> bool:
+    return text == "-" or text.startswith("- ")
+
+
 def _parse_list(tokens: list[tuple[int, str]], index: int, indent: int) -> tuple[list[Any], int]:
     items: list[Any] = []
     while index < len(tokens):
         cur_indent, text = tokens[index]
-        if cur_indent != indent or not text.startswith("- "):
+        if cur_indent != indent or not _is_list_item(text):
             break
-        rest = text[2:].strip()
-        if not rest:
-            raise ConfigError("轻量 YAML 解析器不支持列表嵌套（第 {index} 项为空）")
-        if _split_key_value(rest)[0] is not None:
-            raise ConfigError("轻量 YAML 解析器不支持“列表内联映射”，请改写为命名映射")
-        items.append(_parse_scalar(rest))
+        rest = "" if text == "-" else text[2:].strip()
         index += 1
+        if not rest:
+            # 空列表项：更深缩进 = 嵌套块；否则为 null 项
+            if index < len(tokens) and tokens[index][0] > indent:
+                nested_indent = tokens[index][0]
+                if _is_list_item(tokens[index][1]):
+                    value, index = _parse_list(tokens, index, nested_indent)
+                else:
+                    value, index = _parse_map(tokens, index, nested_indent)
+                items.append(value)
+            else:
+                items.append(None)
+            continue
+        if _split_key_value(rest)[0] is not None:
+            # 列表内联映射：rest 是首个键值对，后面所有更深缩进行同属该映射
+            body: list[tuple[int, str]] = [(indent + 2, rest)]
+            while index < len(tokens) and tokens[index][0] > indent:
+                body.append(tokens[index])
+                index += 1
+            if len(body) > 1:
+                # 对齐到实际子键缩进（规范 YAML 中续行与首键同列）
+                body[0] = (body[1][0], rest)
+            value, consumed = _parse_map(body, 0, body[0][0])
+            if consumed != len(body):
+                raise ConfigError(f"列表项内出现无法归组的内容: {body[consumed][1]!r}")
+            items.append(value)
+            continue
+        items.append(_parse_flow_value(rest))
     return items, index
 
 
@@ -118,7 +232,7 @@ def _parse_map(tokens: list[tuple[int, str]], index: int, indent: int) -> tuple[
             break
         if cur_indent != indent:
             raise ConfigError(f"意外的缩进层级: {text!r}")
-        if text.startswith("- "):
+        if _is_list_item(text):
             raise ConfigError(f"映射位置出现了列表项: {text!r}")
         key, rest = _split_key_value(text)
         if key is None:
@@ -127,14 +241,14 @@ def _parse_map(tokens: list[tuple[int, str]], index: int, indent: int) -> tuple[
         if rest == "":
             if index < len(tokens) and tokens[index][0] > indent:
                 child_indent = tokens[index][0]
-                if tokens[index][1].startswith("- "):
+                if _is_list_item(tokens[index][1]):
                     result[key], index = _parse_list(tokens, index, child_indent)
                 else:
                     result[key], index = _parse_map(tokens, index, child_indent)
             else:
                 result[key] = None
         else:
-            result[key] = _parse_scalar(rest)
+            result[key] = _parse_flow_value(rest)
     return result, index
 
 
@@ -151,7 +265,7 @@ def _minimal_yaml_load(text: str) -> Any:
     first_indent = tokens[0][0]
     if first_indent != 0:
         raise ConfigError("YAML 顶层内容必须从第 0 列开始")
-    if tokens[0][1].startswith("- "):
+    if _is_list_item(tokens[0][1]):
         raise ConfigError("本项目 YAML 顶层必须是映射")
     value, index = _parse_map(tokens, 0, first_indent)
     if index < len(tokens):
