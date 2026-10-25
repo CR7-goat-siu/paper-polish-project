@@ -30,6 +30,7 @@ import json
 import re
 import shutil
 import sys
+from datetime import datetime, timezone
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
@@ -576,8 +577,12 @@ def stage_review(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
         int(state.get("review_stagnant", 0)), new_count, len(resolved), review_cfg
     )
     state["review_stagnant"] = stagnant
+    # 评审证据绑定版本（三轮评审第 1 条）：记录本轮评审对象的文本哈希；
+    # release 校验要求它与最终稿哈希一致，skipped 周期不计入最终评审
+    state["reviewed_text_sha256"] = _sha256_file(state["best"]["text_file"])
     history_entry = {
         "cycle": cycle_n,
+        "reviewed_text_sha256": state["reviewed_text_sha256"],
         "applied": int(apply_result.get("applied_count") or 0),
         "rejected": int(apply_result.get("rejected_count") or 0),
         "new": new_count,
@@ -913,6 +918,7 @@ def _migrate_state(state: dict[str, Any]) -> dict[str, Any]:
     state.setdefault("review_cycle", None)
     state.setdefault("review_pending_jobs", [])
     state.setdefault("review_pending_deliver", False)
+    state.setdefault("reviewed_text_sha256", "")
     state.setdefault("guidance_chunk_count", 0)
     return state
 
@@ -996,6 +1002,7 @@ def stage_init(
         "review_stagnant": 0,
         "review_cycle": None,
         "review_pending_jobs": [],
+        "reviewed_text_sha256": "",
         "guidance_chunk_count": 0,
     }
     _save_state(out_dir, state)
@@ -1016,6 +1023,16 @@ def stage_reaudit(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
     state["audit_refreshed"] = True
     _save_state(out_dir, state)
     return state
+
+
+def _sha256_file(path: str | Path) -> str:
+    import hashlib
+
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _final_review_or_deliver(
@@ -1213,11 +1230,10 @@ def stage_apply(
                 "reason": "apply 未产出终稿",
             }
         )
-        state["stop_reason"] = "apply 未产出终稿，中止迭代"
-        state["next_stage"] = "deliver"
-        state["status"] = "stopped"
-        _save_state(out_dir, state)
-        return state
+        # 三轮评审第 2 条：apply 异常停机同样先评后交付（评审对象是历史最佳）
+        return _final_review_or_deliver(
+            state, out_dir, stop_reason="apply 未产出终稿，中止迭代"
+        )
 
     candidate_file = (
         out_dir / "work" / f"candidate-round-{round_index:03d}.txt"
@@ -1502,31 +1518,71 @@ def _render_delivery_index(
 RELEASE_WAIVABLE = ("final_review", "precision_gate")
 
 
+def _normalize_waivers(
+    raw: list[Any] | None,
+) -> dict[str, dict[str, Any]]:
+    """把 release_waivers 归一为 {check: 签核记录}（三轮评审第 4 条）。
+
+    有效豁免必须是带作者署名的工件：`{"check": ..., "author": ..., "reason": ...}`；
+    纯字符串形式不再生效（无法证明是作者本人作出的决定），记录告警并忽略。
+    """
+    normalized: dict[str, dict[str, Any]] = {}
+    for item in raw or []:
+        if isinstance(item, dict):
+            check = str(item.get("check") or "").strip()
+            author = str(item.get("author") or "").strip()
+            reason = str(item.get("reason") or "").strip()
+            if check in RELEASE_WAIVABLE and author and reason:
+                normalized[check] = {
+                    "check": check,
+                    "author": author,
+                    "reason": reason,
+                    "date": str(item.get("date") or datetime.now(timezone.utc).isoformat(timespec="seconds")),
+                }
+            else:
+                LOG.warning("忽略无效豁免（须为 {check, author, reason} 且 check 合法）: %s", item)
+        else:
+            LOG.warning(
+                "忽略字符串形式豁免 %r——豁免必须提供作者与原因（可审计签核工件）", item
+            )
+    return normalized
+
+
 def _release_requirements(
     state: dict[str, Any],
     merged: dict[str, Any],
     preflight: dict[str, Any] | None,
     *,
     allow_conditional_release: bool,
-    waivers: set[str],
+    waivers: dict[str, dict[str, Any]],
     ledger_path: str | Path | None,
 ) -> dict[str, Any]:
-    """Release Protocol（架构评审 2026-10-25 二轮）：正式交付的四条件。
+    """Release Protocol（架构评审 2026-10-25 二/三轮）：正式交付的四条件。
 
     ① deterministic_audit：合并状态 READY，或 CONDITIONAL 且显式放行；
-    ② final_review：评审启用且至少一个评审周期已完成、无未决周期
-      （评审未启用的运行不得 release，除非作者显式 waive）；
+    ② final_review：评审启用、存在**非 skipped** 的已完成周期、无未决周期，
+      且 `reviewed_text_sha256` == 最终稿文本哈希（评审证据绑定最终稿版本；
+      评审后稿件再被改动而未复审 → 哈希不一致 → 阻断）；
+      豁免须为带 author/reason 的签核工件；
     ③ submission_audit：预审已执行且 automated_pass——**不可豁免**；
-    ④ precision_gate：人工裁决账本达标（可 waive，作者接管）。
+    ④ precision_gate：人工裁决账本达标（唯一 issue_id、非空 adjudicator、
+      ≥2 来源、绑定当前稿件哈希、已裁决 ≥5 且 precision ≥ 0.8）；
+      豁免同样须为签核工件。
     """
     review = state.get("review_sim") or {}
-    cycles_done = len(state.get("review_history") or [])
+    cycles = state.get("review_history") or []
+    completed = [c for c in cycles if not c.get("skipped")]
     final_review_ok = bool(
         review.get("enabled")
-        and cycles_done >= 1
+        and completed
         and not state.get("review_cycle")
         and not (state.get("review_pending_jobs") or [])
     )
+    if final_review_ok:
+        final_sha = str(state.get("reviewed_text_sha256") or "")
+        best_file = str((state.get("best") or {}).get("text_file") or "")
+        current_sha = _sha256_file(best_file) if best_file and Path(best_file).exists() else ""
+        final_review_ok = bool(final_sha and current_sha and final_sha == current_sha)
     if "final_review" in waivers:
         final_review_ok = True
 
@@ -1536,15 +1592,22 @@ def _release_requirements(
         and preflight.get("automated_pass")
     )
 
-    ledger = ledger_path or (None)
-    precision = None
-    if "precision_gate" not in waivers:
-        precision = adjudication.precision_gate(ledger) if ledger else {
+    expected_sha = ""
+    best_file = str((state.get("best") or {}).get("text_file") or "")
+    if best_file and Path(best_file).exists():
+        expected_sha = _sha256_file(best_file)
+    precision: dict[str, Any]
+    if "precision_gate" in waivers:
+        precision = {"pass": True, "reason": "作者显式豁免（签核工件见 waiver-record）", "waived": True}
+    elif ledger_path:
+        precision = adjudication.precision_gate(
+            ledger_path, expected_manuscript_sha256=expected_sha or None
+        )
+    else:
+        precision = {
             "pass": False,
             "reason": "未提供裁决账本（adjudication_ledger）",
         }
-    else:
-        precision = {"pass": True, "reason": "作者显式豁免", "waived": True}
 
     deterministic_ok = merged["delivery_status"] == READY or (
         merged["delivery_status"] == CONDITIONAL and allow_conditional_release
@@ -1556,33 +1619,27 @@ def _release_requirements(
         "precision_gate": bool(precision.get("pass")),
     }
     reasons = {
-        "deterministic_audit": (
-            "合并状态未达 READY"
-            if not deterministic_ok
-            else ""
-        ),
+        "deterministic_audit": "合并状态未达 READY" if not deterministic_ok else "",
         "final_review": (
-            "评审未启用或未完成（waive 需显式 release_waivers=['final_review']）"
+            "评审未启用/未完成/被跳过，或评审后稿件已变更未复审（reviewed_text_sha256 不一致）"
             if not final_review_ok
             else ""
         ),
         "submission_audit": (
-            "投稿预审未执行或未全部通过（此条件不可豁免）"
-            if not preflight_ok
-            else ""
+            "投稿预审未执行或未全部通过（此条件不可豁免）" if not preflight_ok else ""
         ),
         "precision_gate": (
-            str(precision.get("reason") or "未达标")
-            if not precision.get("pass")
-            else ""
+            str(precision.get("reason") or "未达标") if not precision.get("pass") else ""
         ),
     }
     return {
         "checks": checks,
         "reasons": {k: v for k, v in reasons.items() if v},
         "precision_detail": precision,
+        "waivers_applied": waivers,
         "all_pass": all(checks.values()),
     }
+
 
 
 def stage_deliver(
@@ -1675,10 +1732,27 @@ def stage_deliver(
     # Release Protocol（架构评审 2026-10-25 二轮第 2/3 条）：四条件聚合，
     # submission-audit 不可豁免；预审未执行的 READY 只能是诊断包
     ledger = adjudication_ledger or (out_dir / "adjudication-ledger.csv")
-    waivers = {str(item) for item in (release_waivers or []) if str(item) in RELEASE_WAIVABLE}
-    invalid_waivers = {str(item) for item in (release_waivers or [])} - waivers
-    if invalid_waivers:
-        LOG.warning("忽略非法豁免项（仅支持 %s）: %s", RELEASE_WAIVABLE, sorted(invalid_waivers))
+    waivers = _normalize_waivers(release_waivers)
+    # 豁免签核工件落盘（三轮评审第 4 条）：可审计的作者决定记录
+    if waivers:
+        best_file = str((state.get("best") or {}).get("text_file") or "")
+        record = {
+            "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "waived_checks": sorted(waivers),
+            "entries": [waivers[k] for k in sorted(waivers)],
+            "manuscript_sha256": _sha256_file(best_file) if best_file and Path(best_file).exists() else "",
+            "merged_status": merged["delivery_status"],
+            "run_state": str(_state_file(out_dir)),
+        }
+        waiver_file = out_dir / "waiver-record.json"
+        existing = []
+        if waiver_file.exists():
+            try:
+                existing = json.loads(waiver_file.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                existing = []
+        existing.append(record)
+        waiver_file.write_text(json.dumps(existing, ensure_ascii=False, indent=2), encoding="utf-8")
     release_req = _release_requirements(
         state,
         merged,
@@ -1865,7 +1939,7 @@ def run_loop(
         render=bool(kwargs.get("render", False)),
         deliver_to_root=bool(kwargs.get("deliver_to_root", False)),
         allow_conditional_release=bool(kwargs.get("allow_conditional_release", False)),
-        release_waivers=[str(item) for item in (kwargs.get("release_waivers") or [])],
+        release_waivers=kwargs.get("release_waivers"),
         adjudication_ledger=kwargs.get("adjudication_ledger"),
         root_dir=kwargs.get("root_dir"),
     )
@@ -1971,7 +2045,7 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
             render=bool(args.get("render", False)),
             deliver_to_root=bool(args.get("deliver_to_root", False)),
             allow_conditional_release=bool(args.get("allow_conditional_release", False)),
-            release_waivers=[str(item) for item in (args.get("release_waivers") or [])],
+            release_waivers=args.get("release_waivers"),
             adjudication_ledger=args.get("adjudication_ledger"),
             root_dir=args.get("root_dir"),
         )

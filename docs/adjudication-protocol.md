@@ -23,12 +23,20 @@
 ## 3. 账本格式
 
 `adjudication-ledger.csv`，列：
-`issue_id, source, check, priority, evidence_snippet, adjudication(TP/FP/UNCLEAR), note, adjudicator, date`。
+`issue_id, source, check, priority, evidence_snippet, adjudication(TP/FP/UNCLEAR), note, adjudicator, date, manuscript_sha256`。
 首批种子由运行产物自动导出（见各运行目录 `adjudication-ledger.csv`）。
+
+**有效性审计（已进入代码，`utils/adjudication.load_ledger`）**：issue_id 重复 →
+门禁 fail-closed；adjudicator 空白 → 该行无效证据；已裁决来源 < 2 → 拒绝；
+manuscript_sha256 与当前稿件哈希不一致或缺失 → 拒绝（裁决对象必须是本稿
+本版本）。
 
 ## 4. precision 的计算与用途
 
 - `precision(source) = TP / (TP + FP)`，分母不含 UNCLEAR；UNCLEAR 占比单独报告。
+- 门禁通过条件（`utils/adjudication.precision_gate`，全部满足）：账本存在、
+  issue_id 无重复、无空白署名裁决、绑定当前稿件哈希、来源 ≥ 2、
+  已裁决 ≥ 5、整体 precision ≥ 0.8。
 - 用途一（规则调阈）：某 source 的 FP 集中于特定 check 时，优先调整
   `config/issue-rules.yaml` 对应 `priority_overrides` / 阈值，而不是全局放宽。
 - 用途二（放行条件，已进入代码）：`utils/adjudication.precision_gate` 读取

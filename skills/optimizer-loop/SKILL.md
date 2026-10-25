@@ -23,7 +23,9 @@ run({"stage": "backfill", "out": "<目录>",
 run({"stage": "deliver", "out": "<目录>",
      "render": True, "deliver_to_root": True,
      "allow_conditional_release": False,
-     "release_waivers": [],                  # 可豁免条件：final_review / precision_gate
+     "release_waivers": [                    # 豁免=签核工件（dict 形式，str 不生效）：
+        {"check": "final_review",            #   {"check, author, reason}——
+         "author": "作者名", "reason": "…"}], #   落盘 waiver-record.json 可审计
      "adjudication_ledger": "<csv>", "root_dir": None})  # 交付（预审默认开）
 run({"stage": "status", "out": "<目录>"})       # 只读状态视图（断点观测）
 
@@ -44,7 +46,7 @@ run_loop(text_file, language="cn", strength="deep", out_dir=<目录>,
 | decide | 独立复核（重跑全量确定性审计 + 活跃评审意见同场登记）→ 版本决策（**新 P0/P1 按指纹判定**）→ 任务级验证 → 停止判定；**接受且启用评审时对改动章节发射评审周期（R1）**；停机路径上最终版本也先评后交付 | 接受则更新 best；next=review / build / deliver |
 | review | **R1 对抗闭环消费**：apply 校验评审响应（fail-closed 锚定）→ 意见生命周期（new / still_open / resolved_by_reReview）→ 活跃意见刷新进最佳版本审计 → 平台期止损（连续 2 轮无进展换角色组合，4 轮停止升级人工）；响应未齐保持 awaiting_review_sim 幂等返回 | `work/review-cycle-XXX/`；next=build 或 deliver |
 | backfill | **R7 免密钥执行桥**：按状态把待回填作业交给 config/executor-bridge.yaml 配置的通道（CLI argv / 回环 HTTP），响应写 responses/<job_id>.txt，调用写穿 `bridge-log.jsonl`；失败作业保持 pending（fail-closed） | 回填报告 `{attempted, filled, skipped, failed}` |
-| deliver | PRD §8 五件套 + **终稿 DOCX** + **submission-audit 预审**（默认开）+ **双门禁合并状态** + `delivery-index.md`；**Release Protocol 四条件（二轮评审第 1/2/3 条）**——release 需全部满足：①确定性审计（READY 或 CONDITIONAL+`allow_conditional_release`）②最终语义评审完成（**所有停机路径先评后交付**，含 build 无任务/无锚定/轮数超限；评审未启用的运行不得 release，除非显式 waive）③submission-audit 已执行且 automated_pass（**不可豁免**）④人工 precision 门禁（`utils/adjudication` 读裁决账本：已裁决 ≥5 且 precision ≥ 0.8；可 waive 接管）。任一未满足 → 诊断包（`*_诊断包.docx` / `*_诊断索引.md`，索引附条件状态表）；`root_dir` 覆盖根目录（测试用）；结果含 `delivery_tier` / `release_requirements` / `prd_readiness` | 状态=delivered |
+| deliver | PRD §8 五件套 + **终稿 DOCX** + **submission-audit 预审**（默认开）+ **双门禁合并状态** + `delivery-index.md`；**Release Protocol 四条件（二轮评审第 1/2/3 条）**——release 需全部满足：①确定性审计（READY 或 CONDITIONAL+`allow_conditional_release`）②最终语义评审完成（**所有停机路径先评后交付**，含 build 无任务/无锚定/轮数超限/**apply 异常**；`reviewed_text_sha256` 必须等于最终稿哈希——评审后稿件被改动未复审即阻断，skipped 周期不计；评审未启用的运行不得 release，除非签核豁免）③submission-audit 已执行且 automated_pass（**不可豁免**）④人工 precision 门禁（`utils/adjudication` 读裁决账本：issue_id 唯一、adjudicator 署名非空、≥2 来源、manuscript_sha256 绑定当前稿件、已裁决 ≥5 且 precision ≥ 0.8）。任一未满足 → 诊断包（`*_诊断包.docx` / `*_诊断索引.md`，索引附条件状态表）；`root_dir` 覆盖根目录（测试用）；结果含 `delivery_tier` / `release_requirements` / `prd_readiness` | 状态=delivered |
 
 - 计划无可自动执行任务（全部 requires_human / 缺材料 / 无锚定）时，build 直接转 deliver，不空转。
 - requires_human 来源（lit-verify / lit-search / cite-manager / consistency-check / review-sim）

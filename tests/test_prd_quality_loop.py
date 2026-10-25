@@ -454,13 +454,114 @@ class DeliveryTierTests(unittest.TestCase):
             "test-manuscripts/cn-clean-draft.md",
             submission_audit=True,
             allow_conditional_release=True,
-            release_waivers=["final_review", "precision_gate"],
+            release_waivers=[
+                {"check": "final_review", "author": "测试作者", "reason": "单元测试豁免"},
+                {"check": "precision_gate", "author": "测试作者", "reason": "单元测试豁免"},
+            ],
         )
         self.assertEqual(result2["delivery_tier"], "staging")
         checks = result2["release_requirements"]["checks"]
         self.assertTrue(checks["final_review"])
         self.assertTrue(checks["precision_gate"])
         self.assertFalse(checks["submission_audit"], "预审未通过必须挡住 release")
+
+
+class ReleaseBoundaryE2ETests(unittest.TestCase):
+    """H5：四条件 release 的端到端边界（三轮评审第 5 条）。
+
+    诚实边界：submission-audit 的 evidence 门要求参考文献核验与作者材料
+    （draft_unverified），离线无法合法变绿——这正是该门禁的设计目的。
+    因此端到端能证明的是：其余三个条件全绿时，release 仍被材料轴挡住；
+    以及伪造账本必须被拒绝。四条件全绿 → release 的判定由单元级钉死。
+    """
+
+    @staticmethod
+    def _signed_waiver(check):
+        return {"check": check, "author": "测试作者", "reason": "E2E 边界测试"}
+
+    def _full_run(self, ledger_rows, **extra):
+        import hashlib
+
+        loop = skill_module("optimizer-loop")
+        out_dir = Path(tempfile.mkdtemp(prefix="relboundary-"))
+        self.addCleanup(shutil.rmtree, out_dir, ignore_errors=True)
+        fixture = Path("test-manuscripts/cn-clean-draft.md")
+        # 干净稿无任务 → best 恒为 round-000（与输入同内容），哈希可预知
+        expected_sha = hashlib.sha256(fixture.read_bytes()).hexdigest()
+        header = [
+            "issue_id", "source", "check", "priority", "evidence_snippet",
+            "adjudication", "note", "adjudicator", "date", "manuscript_sha256",
+        ]
+        ledger = out_dir / "adjudication-ledger.csv"
+        import csv as _csv
+
+        with ledger.open("w", newline="", encoding="utf-8-sig") as handle:
+            writer = _csv.writer(handle)
+            writer.writerow(header)
+            for row in ledger_rows(expected_sha):
+                writer.writerow(row)
+        payload = {
+            "text_file": str(fixture),
+            "language": "cn",
+            "identity": True,
+            "review_sim": True,
+            "max_rounds": 1,
+            "out": str(out_dir),
+            "submission_audit": True,
+            "deliver_to_root": False,
+            "adjudication_ledger": str(ledger),
+        }
+        payload.update(extra)
+        return loop.run(payload), out_dir
+
+    def test_valid_evidence_blocked_only_by_materials(self):
+        """有效评审哈希 + 有效账本 + 放行 CONDITIONAL：release 仍被
+        submission-audit 的材料门挡住（且仅被它挡住）。"""
+        def rows(sha):
+            data = [
+                ("i1", "claim-guard", "TP", "作者甲"),
+                ("i2", "consistency-check", "TP", "作者甲"),
+                ("i3", "claim-guard", "TP", "作者乙"),
+                ("i4", "lit-search", "TP", "作者乙"),
+                ("i5", "consistency-check", "FP", "作者甲"),
+            ]
+            return [
+                [iid, src, "hype", "P1", "证据", verdict, "", author, "2026-10-25", sha]
+                for iid, src, verdict, author in data
+            ]
+
+        result, out_dir = self._full_run(
+            rows,
+            allow_conditional_release=True,
+            release_waivers=[self._signed_waiver("final_review")],
+        )
+        checks = result["release_requirements"]["checks"]
+        self.assertTrue(checks["deterministic_audit"])
+        self.assertTrue(checks["precision_gate"], "有效账本（哈希绑定/多来源/署名）必须通过")
+        self.assertTrue(checks["final_review"], "评审哈希绑定后必须通过（或被有效豁免）")
+        self.assertFalse(checks["submission_audit"], "材料门必须挡住 release")
+        self.assertEqual(result["delivery_tier"], "staging")
+        index = (out_dir / "delivery-index.md").read_text(encoding="utf-8")
+        self.assertIn("submission_audit", index)
+        # 豁免签核工件落盘
+        waiver = json.loads((out_dir / "waiver-record.json").read_text(encoding="utf-8"))
+        self.assertEqual(waiver[-1]["waived_checks"], ["final_review"])
+        self.assertEqual(waiver[-1]["entries"][0]["author"], "测试作者")
+
+    def test_forged_ledger_rejected_e2e(self):
+        """评审者反例端到端：伪造账本（重复 id + 空署名）→ precision_gate 拒绝。"""
+
+        def rows(sha):
+            return [
+                ["same-id", "claim-guard", "hype", "P1", "证据", "TP", "", "", "2026-10-25", sha]
+            ] * 5
+
+        result, out_dir = self._full_run(rows)
+        checks = result["release_requirements"]["checks"]
+        self.assertFalse(checks["precision_gate"])
+        reason = result["release_requirements"]["reasons"].get("precision_gate", "")
+        self.assertTrue("不唯一" in reason or "署名" in reason, reason)
+        self.assertEqual(result["delivery_tier"], "staging")
 
 
 class OptimizerLoopTests(unittest.TestCase):
