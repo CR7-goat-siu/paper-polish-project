@@ -63,6 +63,18 @@
 - `load_skill` 按路径加载不注册 sys.modules，测试工具无法枚举 Skill 模块
   —— 新增 `loaded_skills()` 注册表。
 
+### 变更
+
+- **宪章收窄：唯一硬红线 = 零 API Key**（用户 2026-10-24 指令）——
+  "零第三方依赖、零内置模型执行器"从红线降级为默认纪律：标准库仍优先，
+  允许在收益明确时引入第三方依赖（不得接触密钥，网络流量仍必须走
+  `utils/web_fetch`）；模型交互默认仍走作业包契约，新增**可选免密钥执行桥**
+  形态（本地推理服务 / 用户已登录 CLI，凭据由通道自持、调用写穿同一套
+  jobs / responses / 审计文件）。人工签核、fail-closed、默认写 `output/`
+  等纪律不变。AGENTS.md / README / docs/prd / docs/current-status /
+  docs/roadmap 同步修订；`test_no_api_keys` 重新表述为红线执行机制
+  （禁直连网络模块与密钥型 SDK），守护范围不变。
+
 ### 工程纪律
 
 - 分支规则：功能开发走 feature 分支 + 自审 PR，不再直推 main（AGENTS.md §6）。
