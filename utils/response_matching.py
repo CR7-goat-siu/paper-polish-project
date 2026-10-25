@@ -190,6 +190,7 @@ def match_files(
                 unmatched.append({"file": path.name, "reason": "ambiguous_content_anchor"})
             else:
                 unmatched.append({"file": path.name, "reason": "no_anchor_match"})
+        remaining_files = [p for p in remaining_files if p not in claimed]
     for path in remaining_files:
         if not any(item["file"] == path.name for item in unmatched):
             unmatched.append({"file": path.name, "reason": "no_matching_job"})

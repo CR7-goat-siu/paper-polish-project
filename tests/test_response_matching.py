@@ -55,11 +55,11 @@ def _finding(quote: str) -> dict:
     }
 
 
-def _review_response(job_id: str, section_id: str, quote: str) -> str:
+def _review_response(job_id: str, section_id: str, quote: str, role: str = "methodology") -> str:
     return json.dumps(
         {
             "job_id": job_id,
-            "role": "methodology",
+            "role": role,
             "section_id": section_id,
             "findings": [_finding(quote)],
         },
@@ -100,7 +100,7 @@ class MatchFilesTests(unittest.TestCase):
         ]
         # 文件名与 job_id 无关，载荷 job_id 回显错误，但 role+section_id 正确
         (self.tmp / "response-alpha.txt").write_text(
-            _review_response("totally-wrong-id", "introduction", "degrades accuracy by 4.2"),
+            _review_response("totally-wrong-id", "introduction", "degrades accuracy by 4.2", role="novelty"),
             encoding="utf-8",
         )
         result = match_files(jobs, self.tmp, identity_fields=["role", "section_id"], anchor_field="section_text", quote_field="exact_source_quote")
