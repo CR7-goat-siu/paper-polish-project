@@ -236,10 +236,11 @@ class ApplyValidationTests(unittest.TestCase):
 
     def test_identity_mismatch_and_invalid_intent_rejected(self):
         jobs = json.loads(json.dumps(self.jobs))
+        # claim_id 回显也不符：身份凭据（claim_id+reference_id）不成立 → 拒收
         jobs["jobs"][0]["response"] = json.dumps(
             {
                 "job_id": "other-job",
-                "claim_id": "C001",
+                "claim_id": "C999",
                 "reference_id": "R1",
                 "intent": "supporting",
                 "verbatim_evidence_sentence": ABSTRACT,

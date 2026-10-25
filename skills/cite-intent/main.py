@@ -27,6 +27,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from utils.anchor_norm import normalize_anchor  # noqa: E402
+from utils import response_matching  # noqa: E402
 from utils.citation_check import (  # noqa: E402
     clean_text,
     doi_normalize,
@@ -523,6 +524,16 @@ def apply_intent_responses(
         payload = jobs_or_path
     jobs = [job for job in payload.get("jobs") or [] if isinstance(job, dict)]
     response_root = Path(responses_dir) if responses_dir else None
+    match_result = {"assignments": {}, "unmatched_files": [], "warnings": []}
+    if response_root is not None:
+        match_result = response_matching.match_files(
+            jobs,
+            response_root,
+            identity_fields=["claim_id", "reference_id"],
+            anchor_field="source_abstract",
+            quote_field="verbatim_evidence_sentence",
+        )
+    warnings: list[str] = list(match_result["warnings"])
 
     prefilled: list[dict[str, Any]] = []
     rejected: list[dict[str, Any]] = []
@@ -536,9 +547,9 @@ def apply_intent_responses(
 
         raw_response = str(job.get("response") or "")
         if not raw_response and response_root is not None:
-            response_file = response_root / f"{job_id}.txt"
-            if response_file.exists():
-                raw_response = response_file.read_text(encoding="utf-8-sig")
+            assigned = match_result["assignments"].get(job_id)
+            if assigned:
+                raw_response = Path(assigned).read_text(encoding="utf-8-sig")
         if not raw_response.strip():
             pending.append(job_id)
             continue
@@ -547,9 +558,14 @@ def apply_intent_responses(
         except (ValueError, json.JSONDecodeError) as exc:
             rejected.append({"job_id": job_id, "reason": f"invalid_json: {exc}"})
             continue
-        if str(result.get("job_id") or "") != job_id:
-            rejected.append({"job_id": job_id, "reason": "job_id_mismatch"})
-            continue
+        echoed_id = str(result.get("job_id") or "")
+        if echoed_id != job_id:
+            # job_id 回显不可靠是异构执行器实测失败模式；身份凭据降级为
+            # claim_id + reference_id 回显一致，证据句锚定门禁兜底。
+            if not response_matching.identity_matches(result, job, ["claim_id", "reference_id"]):
+                rejected.append({"job_id": job_id, "reason": "job_id_mismatch"})
+                continue
+            warnings.append(f"job_id_relabel_accepted: {job_id} (echoed {echoed_id!r})")
         if str(result.get("claim_id") or "") != claim_id or str(result.get("reference_id") or "") != reference_id:
             rejected.append({"job_id": job_id, "reason": "identity_mismatch"})
             continue
@@ -606,6 +622,8 @@ def apply_intent_responses(
         "prefilled": prefilled,
         "rejected": rejected,
         "pending_jobs": pending,
+        "warnings": warnings,
+        "unmatched_responses": match_result["unmatched_files"],
         "prefilled_count": len(prefilled),
         "pending_confirmation_count": confirmed,
         "downgraded_count": sum(1 for item in prefilled if item["final_intent"] == "unverified"),
