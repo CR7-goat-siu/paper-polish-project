@@ -38,7 +38,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from utils import executor_bridge, issue_model, job_io  # noqa: E402
+from utils import adjudication, executor_bridge, issue_model, job_io  # noqa: E402
 from utils.anchor_norm import normalize_anchor  # noqa: E402
 from utils.config_loader import PROJECT_ROOT, load_yaml_file, normalize_language  # noqa: E402
 from utils.logger import get_logger  # noqa: E402
@@ -186,18 +186,22 @@ def _reanchor_exempt(
 
     指纹含 ±60 字符上下文窗口：编辑点附近的改文会把旧问题的窗口扫成新指纹。
     判定（确定性）：与任一**已消失**的同 kind 旧问题相比——
-    - location 完全一致；或
-    - 归一上下文的 difflib 相似度 ≥ min_ratio（窗口滑动会保留大部分上下文；
-      出现在别处的真新实例相似度低）。
-    保守原则：无上下文可比（双侧均空）时不豁免，按真新增处理。
+    - 双侧上下文都非空时，difflib 相似度 ≥ min_ratio（窗口滑动会保留大部分
+      上下文；出现在别处的真新实例相似度低）；
+    - location 一致且任一侧上下文为空（无凭据可比）时豁免。
+    架构评审（2026-10-25 二轮第 4 条）收紧：location 一致但两侧上下文都有且
+    不相似时**不**豁免——同段内替换成另一个新问题不该被当成漂移。
+    保守原则：无任何凭据可比（location 空 + 任一侧上下文空）时不豁免。
     """
     new_ctx = _issue_context(new_issue)
     new_loc = str(new_issue.get("location") or "")
     for old in disappeared:
-        if new_loc and str(old.get("location") or "") == new_loc:
-            return True
         old_ctx = _issue_context(old)
-        if new_ctx and old_ctx and SequenceMatcher(None, new_ctx, old_ctx).ratio() >= min_ratio:
+        if new_ctx and old_ctx:
+            if SequenceMatcher(None, new_ctx, old_ctx).ratio() >= min_ratio:
+                return True
+            continue  # 两侧都有上下文：仅 location 一致不足以豁免
+        if new_loc and str(old.get("location") or "") == new_loc:
             return True
     return False
 
@@ -1014,26 +1018,52 @@ def stage_reaudit(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
     return state
 
 
+def _final_review_or_deliver(
+    state: dict[str, Any], out_dir: Path, *, stop_reason: str
+) -> dict[str, Any]:
+    """提前停机路径的统一出口：评审启用且预算未用尽时先评后交付。
+
+    架构评审（2026-10-25 二轮第 1 条）：stage_build 的"无任务 / 无锚定 /
+    轮数超限"三个提前交付路径此前直接转 deliver，干净稿 + review_sim=True
+    会得到 review_cycles=0——最终语义评审被绕过。所有停机路径都必须走这里。
+    """
+    state["stop_reason"] = stop_reason
+    review = state.get("review_sim") or {}
+    cycles_done = len(state.get("review_history") or [])
+    if (
+        review.get("enabled")
+        and cycles_done < int(review.get("max_review_cycles", 8))
+        and not state.get("review_cycle")
+    ):
+        prev = str((state.get("best") or {}).get("text_file") or "")
+        # 最终评审对全部章节发射（best 与 prev 相同 → diff 为空 → 不过滤）
+        state["review_pending_deliver"] = True
+        _emit_review_cycle(state, out_dir, prev)
+        return state
+    state["next_stage"] = "deliver"
+    state["status"] = "stopped"
+    _save_state(out_dir, state)
+    return state
+
+
 def stage_build(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
     """阶段四（上）：按修改计划生成选择性作业包，进入 awaiting_responses。"""
     out_dir = Path(out_dir)
     work = out_dir / "work"
     best = state["best"]
     if int(state.get("round", 1)) > int(state["max_rounds"]):
-        state["next_stage"] = "deliver"
-        _save_state(out_dir, state)
-        return state
+        return _final_review_or_deliver(
+            state, out_dir, stop_reason=f"达到最大迭代轮数 {state['max_rounds']}"
+        )
 
     best_audit = _load_audit(Path(best["audit_dir"]))
     tasks = best_audit["plan"].get("tasks") or []
     if not tasks:
-        state["stop_reason"] = (
-            "无可自动执行的修改任务（剩余问题均需人工确认或缺材料），进入交付"
+        return _final_review_or_deliver(
+            state,
+            out_dir,
+            stop_reason="无可自动执行的修改任务（剩余问题均需人工确认或缺材料），进入交付",
         )
-        state["next_stage"] = "deliver"
-        state["status"] = "stopped"
-        _save_state(out_dir, state)
-        return state
 
     input_path = Path(best["input_file"])
     parsed = run_skill("paper-parser", {"input": str(input_path), "format": "auto"})
@@ -1073,11 +1103,15 @@ def stage_build(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
             f"修改计划中的 {len(focus_issues)} 个问题均无法锚定到可润色章节，"
             "无自动修订可执行，进入交付"
         )
-        state["next_stage"] = "deliver"
-        state["status"] = "stopped"
         state["unmapped_issue_count"] = len(unmapped)
-        _save_state(out_dir, state)
-        return state
+        return _final_review_or_deliver(
+            state,
+            out_dir,
+            stop_reason=(
+                f"修改计划中的 {len(focus_issues)} 个问题均无法锚定到可润色章节，"
+                "无自动修订可执行，进入交付"
+            ),
+        )
     chunk_strength = _chunk_strength_map(mapping, state["strength"])
     only_chunks = sorted(mapping)
 
@@ -1103,11 +1137,11 @@ def stage_build(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
 
     jobs = job_io.read_jobs(item["jobs_file"])
     if not jobs:
-        state["stop_reason"] = "选择性构建未产出任何作业（计划问题均无法锚定到可润色章节），进入交付"
-        state["next_stage"] = "deliver"
-        state["status"] = "stopped"
-        _save_state(out_dir, state)
-        return state
+        return _final_review_or_deliver(
+            state,
+            out_dir,
+            stop_reason="选择性构建未产出任何作业（计划问题均无法锚定到可润色章节），进入交付",
+        )
 
     state.update(
         {
@@ -1397,18 +1431,32 @@ def _render_delivery_index(
     final_audit: dict[str, Any],
     root_files: list[str],
     delivery_tier: str = "staging",
+    release_requirements: dict[str, Any] | None = None,
 ) -> str:
     counts = _priority_counts(final_audit)
     tier_line = (
-        "- **交付层级：正式交付（release）**——已通过门禁，仍需作者签核后方可作为送审候选"
+        "- **交付层级：正式交付（release）**——Release Protocol 四条件全部满足，仍需作者签核后方可作为送审候选"
         if delivery_tier == "release"
-        else "- **交付层级：诊断包（staging）**——存在未裁决阻断项，不构成送审候选正式交付"
+        else "- **交付层级：诊断包（staging）**——Release Protocol 条件未全部满足，不构成送审候选正式交付"
     )
     lines = [
         f"# 交付索引 — {stem}",
         "",
         tier_line,
         f"- **交付状态：{merged['delivery_status']}**（PRD 三级状态与投稿预审门禁合并判定）",
+    ]
+    if release_requirements is not None and delivery_tier != "release":
+        lines += [
+            "",
+            "## Release Protocol 条件状态",
+            "",
+            "| 条件 | 满足 | 未满足原因 |",
+            "| --- | --- | --- |",
+        ]
+        reasons = release_requirements.get("reasons") or {}
+        for key, passed in (release_requirements.get("checks") or {}).items():
+            lines.append(f"| {key} | {'是' if passed else '否'} | {reasons.get(key, '')} |")
+    lines += [
         f"- 判定依据：{merged['reason']}",
         f"- 停止原因：{stop_reason or '未记录'}",
         f"- 迭代轮数：{max((r.get('round', 0) for r in state.get('rounds', [])), default=0)}",
@@ -1451,6 +1499,92 @@ def _render_delivery_index(
     return "\n".join(lines) + "\n"
 
 
+RELEASE_WAIVABLE = ("final_review", "precision_gate")
+
+
+def _release_requirements(
+    state: dict[str, Any],
+    merged: dict[str, Any],
+    preflight: dict[str, Any] | None,
+    *,
+    allow_conditional_release: bool,
+    waivers: set[str],
+    ledger_path: str | Path | None,
+) -> dict[str, Any]:
+    """Release Protocol（架构评审 2026-10-25 二轮）：正式交付的四条件。
+
+    ① deterministic_audit：合并状态 READY，或 CONDITIONAL 且显式放行；
+    ② final_review：评审启用且至少一个评审周期已完成、无未决周期
+      （评审未启用的运行不得 release，除非作者显式 waive）；
+    ③ submission_audit：预审已执行且 automated_pass——**不可豁免**；
+    ④ precision_gate：人工裁决账本达标（可 waive，作者接管）。
+    """
+    review = state.get("review_sim") or {}
+    cycles_done = len(state.get("review_history") or [])
+    final_review_ok = bool(
+        review.get("enabled")
+        and cycles_done >= 1
+        and not state.get("review_cycle")
+        and not (state.get("review_pending_jobs") or [])
+    )
+    if "final_review" in waivers:
+        final_review_ok = True
+
+    preflight_ok = bool(
+        preflight is not None
+        and preflight.get("status") == "ok"
+        and preflight.get("automated_pass")
+    )
+
+    ledger = ledger_path or (None)
+    precision = None
+    if "precision_gate" not in waivers:
+        precision = adjudication.precision_gate(ledger) if ledger else {
+            "pass": False,
+            "reason": "未提供裁决账本（adjudication_ledger）",
+        }
+    else:
+        precision = {"pass": True, "reason": "作者显式豁免", "waived": True}
+
+    deterministic_ok = merged["delivery_status"] == READY or (
+        merged["delivery_status"] == CONDITIONAL and allow_conditional_release
+    )
+    checks = {
+        "deterministic_audit": deterministic_ok,
+        "final_review": final_review_ok,
+        "submission_audit": preflight_ok,
+        "precision_gate": bool(precision.get("pass")),
+    }
+    reasons = {
+        "deterministic_audit": (
+            "合并状态未达 READY"
+            if not deterministic_ok
+            else ""
+        ),
+        "final_review": (
+            "评审未启用或未完成（waive 需显式 release_waivers=['final_review']）"
+            if not final_review_ok
+            else ""
+        ),
+        "submission_audit": (
+            "投稿预审未执行或未全部通过（此条件不可豁免）"
+            if not preflight_ok
+            else ""
+        ),
+        "precision_gate": (
+            str(precision.get("reason") or "未达标")
+            if not precision.get("pass")
+            else ""
+        ),
+    }
+    return {
+        "checks": checks,
+        "reasons": {k: v for k, v in reasons.items() if v},
+        "precision_detail": precision,
+        "all_pass": all(checks.values()),
+    }
+
+
 def stage_deliver(
     state: dict[str, Any],
     out_dir: Path,
@@ -1459,22 +1593,26 @@ def stage_deliver(
     render: bool = False,
     deliver_to_root: bool = False,
     allow_conditional_release: bool = False,
+    release_waivers: list[str] | None = None,
+    adjudication_ledger: str | Path | None = None,
     root_dir: str | Path | None = None,
 ) -> dict[str, Any]:
     """阶段八：交付（PRD §8 五件套 + 终稿 DOCX + 投稿预审 + 合并就绪状态 + 交付索引）。
 
     交付分两层（架构评审 2026-10-25 第 4 条）：
     - **诊断包（staging）**：所有运行都产出到 out_dir；复制到根目录时命名
-      `*_诊断包.docx` / `*_诊断索引.md`——BLOCKED 或未显式放行的 CONDITIONAL
-      都属于这一层，索引首行明示"不构成送审候选正式交付"；
-    - **正式交付（release）**：merged = READY，或 CONDITIONAL 且调用方显式传
-      `allow_conditional_release=True` 时，根目录命名 `*_可投稿候选.docx` /
-      `*_交付索引.md`。release 仍只是送审候选，`final_publication_allowed`
-      恒为 false，人工签核门禁不变。
+      `*_诊断包.docx` / `*_诊断索引.md`——任何 release 条件未满足都属于这一层；
+    - **正式交付（release，Release Protocol 四条件全部满足）**：
+      ①确定性审计通过（READY 或 CONDITIONAL+显式放行）②最终语义评审完成
+      ③submission-audit 已执行且通过（不可豁免）④人工 precision 门禁达标。
+      ②④可由作者显式 `release_waivers`（'final_review' / 'precision_gate'）
+      接管；根目录命名 `*_可投稿候选.docx` / `*_交付索引.md`。release 仍只是
+      送审候选，`final_publication_allowed` 恒为 false，人工签核门禁不变。
 
     - submission_audit：是否执行 submission-audit pipeline（确定性预审；默认开）
     - render：是否真实渲染 DOCX→PDF→页面图（需 Word COM / LibreOffice；默认关）
     - deliver_to_root：按用户交付偏好把终稿 DOCX、渲染 PDF 与交付索引复制到根目录
+    - adjudication_ledger：人工裁决账本路径（默认探测 out_dir/adjudication-ledger.csv）
     - root_dir：根目录覆盖（默认项目根；测试可指向临时目录）
     """
     out_dir = Path(out_dir)
@@ -1534,14 +1672,22 @@ def stage_deliver(
     )
 
     # 根目录交付（用户偏好：最终候选 DOCX / 渲染 PDF / 交付索引复制到项目根目录）
-    # 交付层级判定（架构评审 2026-10-25 第 4 条）：BLOCKED 或未放行的
-    # CONDITIONAL 只是诊断包；READY 或显式放行的 CONDITIONAL 才是正式交付
-    delivery_tier = (
-        "release"
-        if merged["delivery_status"] == READY
-        or (merged["delivery_status"] == CONDITIONAL and allow_conditional_release)
-        else "staging"
+    # Release Protocol（架构评审 2026-10-25 二轮第 2/3 条）：四条件聚合，
+    # submission-audit 不可豁免；预审未执行的 READY 只能是诊断包
+    ledger = adjudication_ledger or (out_dir / "adjudication-ledger.csv")
+    waivers = {str(item) for item in (release_waivers or []) if str(item) in RELEASE_WAIVABLE}
+    invalid_waivers = {str(item) for item in (release_waivers or [])} - waivers
+    if invalid_waivers:
+        LOG.warning("忽略非法豁免项（仅支持 %s）: %s", RELEASE_WAIVABLE, sorted(invalid_waivers))
+    release_req = _release_requirements(
+        state,
+        merged,
+        preflight,
+        allow_conditional_release=allow_conditional_release,
+        waivers=waivers,
+        ledger_path=ledger,
     )
+    delivery_tier = "release" if release_req["all_pass"] else "staging"
     docx_label = "可投稿候选" if delivery_tier == "release" else "诊断包"
     index_label = "交付索引" if delivery_tier == "release" else "诊断索引"
 
@@ -1574,6 +1720,7 @@ def stage_deliver(
             final_audit=final_audit,
             root_files=root_files,
             delivery_tier=delivery_tier,
+            release_requirements=release_req,
         ),
         encoding="utf-8",
     )
@@ -1593,6 +1740,7 @@ def stage_deliver(
         "schema_version": SCHEMA_VERSION,
         "status": merged["delivery_status"],
         "delivery_tier": delivery_tier,
+        "release_requirements": release_req,
         # PRD §8.5 三级状态（submission-audit 合并前）：READY 只表示自动检查
         # 全部通过且无 requires_human 事项；合并状态会因证据绑定等材料门槛
         # 降级为 CONDITIONAL——两级分开暴露，成功路径才可被验收测试断言
@@ -1717,6 +1865,8 @@ def run_loop(
         render=bool(kwargs.get("render", False)),
         deliver_to_root=bool(kwargs.get("deliver_to_root", False)),
         allow_conditional_release=bool(kwargs.get("allow_conditional_release", False)),
+        release_waivers=[str(item) for item in (kwargs.get("release_waivers") or [])],
+        adjudication_ledger=kwargs.get("adjudication_ledger"),
         root_dir=kwargs.get("root_dir"),
     )
 
@@ -1732,7 +1882,8 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("optimizer-loop 需要 text_file 或 input")
         responses_dir = args.get("responses_dir")
         # 交付选项（F3）：整体模式也要透传 submission_audit / render /
-        # deliver_to_root / allow_conditional_release / root_dir 到 stage_deliver
+        # deliver_to_root / allow_conditional_release / release_waivers /
+        # adjudication_ledger / root_dir 到 stage_deliver
         delivery_kwargs = {
             key: args[key]
             for key in (
@@ -1740,6 +1891,8 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
                 "render",
                 "deliver_to_root",
                 "allow_conditional_release",
+                "release_waivers",
+                "adjudication_ledger",
                 "root_dir",
             )
             if key in args
@@ -1818,6 +1971,8 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
             render=bool(args.get("render", False)),
             deliver_to_root=bool(args.get("deliver_to_root", False)),
             allow_conditional_release=bool(args.get("allow_conditional_release", False)),
+            release_waivers=[str(item) for item in (args.get("release_waivers") or [])],
+            adjudication_ledger=args.get("adjudication_ledger"),
             root_dir=args.get("root_dir"),
         )
     raise ValueError(f"未知 stage: {stage!r}，可选 {VALID_STAGES}")

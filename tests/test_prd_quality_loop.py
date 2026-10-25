@@ -288,12 +288,25 @@ class DecideFingerprintTests(unittest.TestCase):
         verdict = self.decide(prev, curr, min_gain=0.2)
         self.assertIn(verdict["decision"], ("accept", "accept_no_gain"))
 
-    def test_same_location_exempt(self):
+    def test_same_location_dissimilar_context_not_exempt(self):
+        """G4 收紧：同 location 但两侧上下文都有且不相似 → 不豁免（同段新问题）。"""
         prev = self._audit(
-            [self._issue("aaaa1111", context="上下文窗口完全被改文替换的情形甲", location="p:12")]
+            [self._issue("aaaa1111", context="上下文窗口完全被改文替换的情形甲种写法表述完全不同", location="p:12")]
         )
         curr = self._audit(
-            [self._issue("bbbb2222", context="完全不同的新窗口内容乙与旧窗口无重叠", location="p:12")],
+            [self._issue("bbbb2222", context="完全不同的新窗口内容乙与旧窗口毫无重叠且指向另一处缺陷", location="p:12")],
+            index=2.2,
+        )
+        verdict = self.decide(prev, curr, min_gain=0.2)
+        self.assertEqual(verdict["decision"], "reject")
+
+    def test_same_location_no_context_exempt(self):
+        """location 一致且一侧上下文为空（无凭据可比）→ 豁免（防误拒）。"""
+        prev = self._audit(
+            [self._issue("aaaa1111", context="", location="p:12")]
+        )
+        curr = self._audit(
+            [self._issue("bbbb2222", context="窗口被改文完全重写无法比对", location="p:12")],
             index=2.2,
         )
         verdict = self.decide(prev, curr, min_gain=0.2)
@@ -349,7 +362,8 @@ class CleanManuscriptReadyPathTests(unittest.TestCase):
             self.assertTrue((out_dir / name).exists(), name)
 
     def test_clean_manuscript_review_cycle_resolves_clean(self):
-        """干净稿 + 对抗闭环开启：评审无意见可报（无锚定缺陷），仍达 PRD READY。"""
+        """干净稿 + 对抗闭环开启：无任务停机路径也必须先评后交付（G1），
+        评审无意见可报，仍达 PRD READY。"""
         loop = skill_module("optimizer-loop")
         out_dir = Path(tempfile.mkdtemp(prefix="readyreview-"))
         self.addCleanup(shutil.rmtree, out_dir, ignore_errors=True)
@@ -365,6 +379,10 @@ class CleanManuscriptReadyPathTests(unittest.TestCase):
             }
         )
         self.assertEqual(result["prd_readiness"], "READY_FOR_AUTHOR_REVIEW")
+        log = json.loads((out_dir / "iteration_log.json").read_text(encoding="utf-8"))
+        cycles = [c for c in log.get("review", {}).get("cycles", []) if not c.get("skipped")]
+        self.assertGreaterEqual(len(cycles), 1, "无任务停机路径必须先评后交付（G1）")
+        self.assertTrue(all(c.get("new", 0) == 0 for c in cycles), "干净稿评审不得报锚定缺陷")
 
 
 class DeliveryTierTests(unittest.TestCase):
@@ -407,32 +425,42 @@ class DeliveryTierTests(unittest.TestCase):
         else:
             self.assertEqual(result["delivery_tier"], "release")
 
-    def test_ready_delivery_is_release_tier(self):
+    def test_ready_without_preflight_cannot_release(self):
+        """G2：PRD READY 但预审未执行 → 只能诊断包（release 不许绕过 submission-audit）。"""
         result, out_dir, root_dir = self._deliver(
-            "test-manuscripts/cn-clean-draft.md"
+            "test-manuscripts/cn-clean-draft.md", submission_audit=False
         )
         self.assertEqual(result["prd_readiness"], "READY_FOR_AUTHOR_REVIEW")
-        self.assertEqual(result["delivery_tier"], "release")
-        self.assertTrue((root_dir / "cn-clean-draft_可投稿候选.docx").exists())
-        index = (root_dir / "cn-clean-draft_交付索引.md").read_text(encoding="utf-8")
-        self.assertIn("正式交付（release）", index)
-        self.assertIn("仍需作者签核", index)
+        self.assertEqual(result["delivery_tier"], "staging")
+        checks = result["release_requirements"]["checks"]
+        self.assertTrue(checks["deterministic_audit"])
+        self.assertFalse(checks["submission_audit"])
+        self.assertTrue((root_dir / "cn-clean-draft_诊断包.docx").exists())
+        index = (root_dir / "cn-clean-draft_诊断索引.md").read_text(encoding="utf-8")
+        self.assertIn("诊断包（staging）", index)
+        self.assertIn("submission_audit", index)
 
-    def test_conditional_release_requires_explicit_allow(self):
-        """CONDITIONAL 默认是诊断包；显式 allow_conditional_release 才升级 release。"""
+    def test_preflight_not_passed_blocks_release_even_waived(self):
+        """G2：预审执行但 automated_pass=False 时，放行 CONDITIONAL 并豁免其余
+        两项也仍是诊断包——submission_audit 条件不可豁免。"""
         result, out_dir, root_dir = self._deliver(
             "test-manuscripts/cn-clean-draft.md", submission_audit=True
         )
-        # submission-audit 证据绑定门槛使合并状态为 CONDITIONAL
+        # 纯文本稿件的证据绑定门禁使 automated_pass=False（设计使然）
         self.assertEqual(result["status"], "CONDITIONALLY_READY")
         self.assertEqual(result["delivery_tier"], "staging")
+        self.assertFalse(result["release_requirements"]["checks"]["submission_audit"])
         result2, _, root_dir2 = self._deliver(
             "test-manuscripts/cn-clean-draft.md",
             submission_audit=True,
             allow_conditional_release=True,
+            release_waivers=["final_review", "precision_gate"],
         )
-        self.assertEqual(result2["delivery_tier"], "release")
-        self.assertTrue((root_dir2 / "cn-clean-draft_可投稿候选.docx").exists())
+        self.assertEqual(result2["delivery_tier"], "staging")
+        checks = result2["release_requirements"]["checks"]
+        self.assertTrue(checks["final_review"])
+        self.assertTrue(checks["precision_gate"])
+        self.assertFalse(checks["submission_audit"], "预审未通过必须挡住 release")
 
 
 class OptimizerLoopTests(unittest.TestCase):

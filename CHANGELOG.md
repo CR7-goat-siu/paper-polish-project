@@ -3,6 +3,33 @@
 本项目的显著变更记录。格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循语义化版本。
 
+## [Unreleased] — v0.15.0 候选（2026-10-25）
+
+### 修复（架构评审二轮四条意见）
+
+- **最终评审不可绕过（第 1 条）**：stage_build 的"无任务 / 无锚定 / 轮数超限"
+  三个提前交付路径统一走 `_final_review_or_deliver`——评审启用且预算未用尽时
+  先对全章节发射最终评审再交付（干净稿 + review_sim=True 此前 review_cycles=0，
+  现在必须 ≥1 且测试断言）。
+- **正式 release 不可绕过 submission-audit（第 2 条）**：`_release_requirements`
+  四条件聚合——①确定性审计 ②最终评审完成 ③预审已执行且 automated_pass
+  （**不可豁免**）④人工 precision 门禁；预审未执行的 READY 只能是诊断包；
+  交付索引附条件状态表，结果带 `release_requirements`。`release_waivers`
+  仅接受 final_review / precision_gate（作者显式接管）。
+- **precision 门禁进入代码（第 3 条）**：`utils/adjudication.py` 读取裁决账本
+  （TP/FP/UNCLEAR 三值，UNCLEAR 不入分母），已裁决 ≥5 且 precision ≥ 0.8
+  才放行；stage_deliver 集成 `adjudication_ledger` 参数（默认探测
+  out_dir/adjudication-ledger.csv）。
+- **location 漂移豁免收紧（第 4 条）**：同 location 但两侧上下文都有且不相似
+  时不再豁免（同段新问题误豁口子堵上）；仅一侧上下文缺失（无凭据可比）时
+  允许仅凭 location 豁免，防止误拒。
+
+### 测试
+
+- 新增 tests/test_release_protocol.py（12 项：账本加载/门禁四分支/四条件聚合
+  六分支）+ 干净稿评审周期断言 + G4 豁免拆分 + G2 负路径重写；总收集 563 项
+  （docs-sync 数字闸门同步）。
+
 ## [Unreleased] — v0.14.0 候选（2026-10-25）
 
 ### 修复（架构评审 2026-10-25 六条意见的落实）

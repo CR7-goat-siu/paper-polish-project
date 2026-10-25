@@ -113,6 +113,13 @@
       10 万字段落实测 ≈0.5s（纯标准库）。
 - [ ] L3 批处理集成与 docx 批注告警（下一阶段）。
 
+## P8 — Release Protocol 闭合（二轮评审四条，已完成，2026-10-25）
+
+- [x] 最终评审不可绕过：全部停机路径先评后交付（含 build 无任务路径）。
+- [x] release 不可绕过 submission-audit（四条件聚合，预审不可豁免）。
+- [x] precision 门禁入库（utils/adjudication + adjudication_ledger 集成）。
+- [x] location 漂移豁免收紧（同段新问题不再误豁）。
+
 ## P7 — 架构评审六条意见落实（F1-F5，已完成，2026-10-25）
 
 - [x] F1 版本决策指纹化修复（同 kind 异处新实例必拒；漂移豁免可测）。

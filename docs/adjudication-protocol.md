@@ -31,9 +31,12 @@
 - `precision(source) = TP / (TP + FP)`，分母不含 UNCLEAR；UNCLEAR 占比单独报告。
 - 用途一（规则调阈）：某 source 的 FP 集中于特定 check 时，优先调整
   `config/issue-rules.yaml` 对应 `priority_overrides` / 阈值，而不是全局放宽。
-- 用途二（放行条件）："可投稿候选"的完整定义 = **F5 层 2（跨模型环内评审）
-  通过 + 本协议累计 precision ≥ 0.8 且 FP 集中的 check 已修**。两项独立于
-  执行模型，作者签核仍是最终门禁。
+- 用途二（放行条件，已进入代码）：`utils/adjudication.precision_gate` 读取
+  账本——已裁决（TP+FP）≥ 5 且整体 precision ≥ 0.8 才通过；该门禁是
+  optimizer-loop **Release Protocol 第 ④ 条件**（详见 SKILL.md），作者可经
+  `release_waivers=['precision_gate']` 显式接管。"可投稿候选"的完整定义 =
+  **F5 层 2（跨模型环内评审）通过 + 本门禁达标**；两者独立于执行模型，
+  作者签核仍是最终门禁。
 
 ## 5. 首批种子数据（2026-10-25）
 
