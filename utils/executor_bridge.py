@@ -1,7 +1,8 @@
 """免密钥执行桥：本地模型服务 / 用户已登录 CLI 的响应自动回填（R7）。
 
 宪章边界（唯一红线 = 零 API Key）：
-- 本模块绝不读取任何 Key / Token / Secret，不发 Authorization 头；
+- 本模块绝不读取任何 Key / Token / Secret，绝不发送鉴权类请求头
+  （该约束由 utils/web_fetch 的免密钥强制统一执行）；
 - CLI 通道只执行 config/executor-bridge.yaml 里声明的命令模板（argv 列表、
   无 shell），凭据由该 CLI 自身的登录态持有，项目代码与配置不接触凭据；
 - HTTP 通道只允许回环地址（本地推理服务），经 utils.web_fetch.post_text_
