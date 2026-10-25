@@ -9,10 +9,11 @@
 
 ## 当前版本
 
-- 版本：`v0.11.0`（未发布改动：计划驱动修订、全源审计、交付闭环、句级外科回退，
-  见 docs/roadmap.md P4.5 / P4.6）
-- 日期：2026-10-23
-- 离线回归：364 项通过，4 项真实公网测试在普通回归中跳过
+- 版本：`v0.12.0`（未发布改动：计划驱动修订、交付闭环、外科回退、五项能力升级、
+  语义层真实验证、金标 v3 双口径、YAML 解析器补全，见 docs/roadmap.md）
+- 日期：2026-10-25
+- 离线回归：570+ 项通过（含 PyYAML/scipy 可选对拍与文档同步闸门），
+  4 项真实公网测试在普通回归中跳过
 - 端到端红队 3 连：中文 Markdown（36→20）/ 英文 Markdown（45→22）/ LaTeX 换主题
   （29→8）三轮全部自动收敛并交付，零关键失败（docs/roadmap.md P4）
 - optimizer-loop 状态机：init / audit / build / apply / decide / deliver 分步契约 +
@@ -24,14 +25,27 @@
   埋坑稿 4 轮循环 36 → 20 问题自动收敛并交付（DOCX + 渲染 PDF + 预审）；
   剩余问题全部 requires_human，fail-closed 诚实交付
 - 全源审计：issue-registry 文本模式覆盖 claim-guard / term-check /
-  cite-manager audit / lit-search gap / consistency-check，
+  cite-manager audit / lit-search gap / consistency-check / stat-check，
   引用越界、图表未定义、摘要数字不一致等结构缺陷已登记为 P0-P3 问题
 - 句级外科式 Fail-Closed：门禁重试耗尽时逐句回退违例句，保留已过审修改
-- 真实论文黄金标准评测集：56 篇 arXiv 全文 × 4 领域（biomedical-eeg 32 /
-  computer-vision 8 / nlp 8 / time-series 8；tools/build_gold_standard_corpus.py，
-  data/eval/gold-standard/）——阴性对照 P0 误报 0/56（四领域分域干净率均 1.0），
-  五类植入缺陷分域召回均 1.0；语料 v2 落实 corpus/candidates 分离与 index.json
-  全集清单；暴露并修复区间记号误判、无标题摘要盲区与年份标注式文献表的金标适配
+- 五项能力升级（2026-10-25）：stat-check 统计一致性重算（statcheck+GRIM 纯标准库，
+  面向生物医学类投稿——ML 类稿件推断统计报告密度极低，56 篇金标语料实测 0 命中）/
+  review-sim 模拟同行评审（四角色作业包 + 逐字锚定 fail-closed + 双层
+  requires_human 硬门禁）/ journal-compliance 期刊合规网关（三档案 + 纯 struct
+  图像头 DPI 解析 + 五大声明区；档案阈值未经官方指南核对前一律 WARN 提示）/
+  cite-intent 引用证据强度预填（三源摘要链 + 证据句逐字锚定）/ lit-search
+  refill 文献条目自动补全（严格匹配 + 歧义中止 + Token 级改写计划）
+- 语义层真实验证（docs/validation-report.md）：真实 EEG v7 稿上 review-sim
+  锚定通过率 93.8%、cite-intent 摘要覆盖率 77.8%、证据句通过率 100%——
+  双特性 validated；验证中修复 3 个真实管线缺陷（GB 著录标题提取、标题兜底
+  错配、arXiv DOI 404），并实证语义评审捕获确定性审计盲区（跨表 SNR 数值
+  不一致，全源审计 20 问题零命中）
+- 真实论文黄金标准评测集 v3：56 篇 arXiv 全文 × 4 领域（biomedical-eeg 32 /
+  computer-vision 8 / nlp 8 / time-series 8）——summary 双口径：官方集干净率
+  （选择后口径，回归门槛用）+ 全评测 P0 率（含抽取工件的诚实假阳性口径）；
+  五类植入缺陷分域召回均 1.0（年份式文献表行级重复检测闭环 56/56）；
+  corpus/ 仅官方集、candidates/ 二级缓存 + rejections.json 跨运行淘汰账本；
+  暴露并修复区间记号误判与无标题摘要盲区
 - 真实公网文献基准：6 个公开免密钥数据源连通，正样本核验与伪造样本拦截通过
 - 模拟坏稿：构建、Fail-Closed 和最终发表阻断行为通过
 - DOCX smoke：真实 Word 渲染通过，页面非空

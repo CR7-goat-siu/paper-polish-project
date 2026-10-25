@@ -1,3 +1,6 @@
+# CI 基线守护：全量离线套件（ubuntu + windows 矩阵）+ 零 Key 静态扫描。
+# 真实公网 live 套件不随 push 触发（共享 IP 限速 + 可复现性），
+# 需要时在 Actions 页面手动触发 live-lit 工作流。
 name: ci
 
 on: [push, pull_request, workflow_dispatch]
@@ -13,5 +16,25 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      - name: Run unit tests
+      - name: 全量离线测试
+        run: python -m unittest discover -s tests -v
+      - name: 零 Key 静态扫描
+        run: python -m unittest discover -s tests -p "test_no_api_keys.py" -v
+
+  # oracle 对拍：装有 scipy / PyYAML 的环境自动互验数学内核与 YAML 解析器。
+  # 依赖只装在 CI 的这个 job（纯测试期），运行时零依赖红线不受影响。
+  oracle-parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: 安装测试期 oracle 依赖
+        run: pip install scipy pyyaml
+      - name: 数学内核对拍（scipy.stats）
+        run: python -m unittest discover -s tests -p "test_stat_oracle.py" -v
+      - name: YAML 解析器对拍（PyYAML parity）
+        run: python -m unittest discover -s tests -p "test_yaml_parser.py" -v
+      - name: 全量套件（对拍不跳过）
         run: python -m unittest discover -s tests -v

@@ -28,6 +28,9 @@ def skill_path(skill_name: str) -> Path:
     return path
 
 
+_SKILL_MODULES: dict[str, ModuleType] = {}
+
+
 @lru_cache(maxsize=None)
 def load_skill(skill_name: str) -> ModuleType:
     path = skill_path(skill_name)
@@ -37,7 +40,15 @@ def load_skill(skill_name: str) -> ModuleType:
         raise SkillNotFoundError(f"无法加载 Skill: {skill_name}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    # importlib 按路径加载不注册 sys.modules；自带注册表供测试工具
+    # （如 conftest.isolated_web_cache）枚举已加载的 Skill 模块。
+    _SKILL_MODULES[skill_name] = module
     return module
+
+
+def loaded_skills() -> dict[str, ModuleType]:
+    """已加载 Skill 模块的快照（名称 → 模块）。"""
+    return dict(_SKILL_MODULES)
 
 
 def run_skill(skill_name: str, args: dict[str, Any]) -> dict[str, Any]:

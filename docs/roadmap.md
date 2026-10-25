@@ -113,6 +113,34 @@
       10 万字段落实测 ≈0.5s（纯标准库）。
 - [ ] L3 批处理集成与 docx 批注告警（下一阶段）。
 
+## P5 — 对标能力升级与诚实验证（已完成，2026-10-25）
+
+- [x] **五项能力升级**（对标调研后按架构红线落地）：stat-check 统计一致性
+      重算（statcheck+GRIM 纯标准库，接入全源审计与 submission-audit）/
+      review-sim 模拟同行评审（四角色作业包 + 逐字锚定 fail-closed + 双层
+      requires_human 硬门禁）/ journal-compliance 期刊合规网关（三档案 + 纯
+      struct 图像头 DPI + 五大声明区 + run_audit(journal=<id>) 硬门禁）/
+      cite-intent 引用证据强度预填（三源摘要链 + 证据句逐字锚定）/
+      lit-search refill 文献条目自动补全（严格匹配 + 歧义中止 + Token 级计划）。
+- [x] **语义层真实验证**（`docs/validation-report.md`，真实 EEG v7 稿）：
+      review-sim 锚定通过率 93.8%（预声明门槛 ≥60%）、cite-intent 摘要覆盖率
+      77.8%（门槛 ≥50%）、证据句通过率 100%（18/18）——双特性 validated；
+      验证中修复 3 个真实管线缺陷（GB 著录标题提取 / 标题兜底错配 GAN→cGAN /
+      arXiv DOI 404），并实证语义评审捕获确定性审计盲区（跨表 SNR 不一致，
+      全源审计 20 问题零命中）。
+- [x] **诚实验证配套**：utils/anchor_norm 字符级等价归一（排版差异放行、
+      措辞改写仍拒）；金标语料 v3 双口径（官方集干净率 + 全评测 P0 率含抽取
+      工件）+ rejections.json 跨运行淘汰账本 + candidates 二级缓存；
+      cite-manager 行级重复检测补齐年份式文献表盲区（金标 56/56 闭环）。
+- [x] **工程纪律**：CI（双 OS 矩阵 + 零 Key 扫描 + scipy/PyYAML oracle 对拍
+      job + live 手动触发）；CHANGELOG + 分支规则（feature 分支 + 自审 PR）；
+      文档同步闸门 test_docs_sync（调度表全覆盖 / 模板有消费者）；测试缓存
+      隔离基建（conftest.isolated_web_cache + skill_loader.loaded_skills 注册表）；
+      期刊档案溯源 WARN（verified_against 未填持续提示）；评分机制改三轴口径
+      （骨架 / 验证完成度 / 交付诚实度，只有挂接实测数字的轴才能变动）。
+- [x] 测试：全量 580+ 项离线回归通过（13 skip = 4 网络 + 8 scipy 对拍 +
+      1 PyYAML 对拍，均为条件性跳过）。
+
 ## P4.6 — 交付闭环、真实循环验证与句级外科回退（已完成，2026-10-23）
 
 - [x] **交付闭环**：optimizer-loop `stage=deliver` 产出终稿 DOCX（docx 输入取
@@ -193,8 +221,16 @@
       nlp 8 / time-series 8，公开免密钥，全文只在 `output/gold-standard/`）；
       阴性对照（真实论文全源审计）P0 误报 0/56；阳性对照（五类植入缺陷：
       引用越界/摘要假数字/幽灵图表/浮夸句/重复条目）分域召回均 1.0；
-      文件管理 v2：`corpus/` 仅存官方集、淘汰稿带因移入 `candidates/`、
-      `index.json` 全集清单；离线回归夹具（真实论文短摘录，每领域 2 篇）入
+      文件管理 v3：`corpus/` 仅存官方集（official=true）、淘汰稿移入
+      `candidates/` 且抓取前查二级缓存（原因跨运行稳定）、
+      `candidates/rejections.json` 跨运行淘汰账本、`index.json` 全集清单；
+      summary 双口径：`clean_rate_official`（选择后，回归门槛用）与
+      `p0_rate_all_evaluated`（含抽取工件的诚实假阳性）。
+      【2026-10-25 检测缺口闭环】年份标注式参考文献（ACL [2018]）的
+      "重复条目"检测缺口已修复：cite-manager audit 新增与编号风格无关的
+      行级重复检测（`duplicated_entry_line`），金标恢复对该风格的植入，
+      duplicated_reference 召回 56/56（含 3 篇年份式论文）。
+      离线回归夹具（真实论文短摘录，每领域 2 篇）入
       `data/eval/gold-standard/fixtures/`（`test_gold_standard.py`）。
       评测暴露并修复两个真实缺陷：数学区间记号 `[0, 1]` 被 cite-manager 误判
       引用越界（引用编号从 1 起，含 0 的方括号组跳过）；无独立摘要标题的

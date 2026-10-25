@@ -1,0 +1,21 @@
+# 真实公网文献基准（手动触发）。
+# 六个公开免密钥数据源连通性 / 正样本核验 / 伪造拦截；共享 IP 限速敏感，
+# 不随 push 自动跑。
+name: live-lit
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  live-literature:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: 真实公网文献基准
+        env:
+          RUN_LIVE_LITERATURE: "1"
+        run: python -m unittest discover -s tests -p "test_live_literature.py" -v

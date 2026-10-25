@@ -97,6 +97,10 @@ GLEU（近似实现）en 0.64–0.73、cn 0.31–0.70，仅作同档相对比较
 
 ## 6. 开发与变更守则
 
+- 分支纪律：功能开发走 feature 分支 + 自审 PR 合入 main，不直推 main；
+  每次合入前跑全量离线套件（CI 也会跑）。
+- 变更入 `CHANGELOG.md`（Keep a Changelog 格式）；文档同步由
+  `tests/test_docs_sync.py` 闸门强制（调度表覆盖全部 Skill、模板有消费者）。
 - 新增三档强度或调整规则时只改 `config/*-rules.yaml`，并同步更新受影响模板与测试。
 - 新增领域：在 `config/domains/<id>.yaml` + `data/terms/<id>-{lang}.json` 各加一个文件即可，无需改代码。
 - 新增 Skill：先写 `SKILL.md` 与输入输出契约，再实现 `run(args) -> dict`，最后补齐 `tests/` 并加入 batch-processor 步骤映射。
@@ -104,6 +108,9 @@ GLEU（近似实现）en 0.64–0.73、cn 0.31–0.70，仅作同档相对比较
 - 跑测试：`py -m unittest discover -s tests -v`（Windows 下 `python` 可能是商店占位符）；
   真实公网基准用 `$env:RUN_LIVE_LITERATURE='1'; py -m unittest discover -s tests -p 'test_live_literature.py' -v`。
 - `cite-manager` 的 insert 模式只接受显式 `verdict=verified`，不存在人工绕过入口。
+- 期刊档案（`config/journals/*.yaml`）数值阈值在作者对照官方 Author Guide
+  核对并填写 `verified_against`（URL+日期）之前一律视为未验证——网关会持续
+  WARN 提示，不得把未验证档案的 PASS 当作投稿依据。
 
 ## 7. Skill 使用规则
 

@@ -14,7 +14,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from conftest import skill_module
+from conftest import isolated_web_cache, skill_module
 from utils.skill_loader import load_skill, run_skill
 import utils.web_fetch as web_fetch
 
@@ -142,10 +142,12 @@ class FormatAdapterRefillPlanTests(unittest.TestCase):
 
 class RefillPipelineTests(unittest.TestCase):
     def setUp(self):
-        self.module = load_skill("lit-search")
+        self.module = skill_module("lit-search")
         self.tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
-        self._original_transport = web_fetch._TRANSPORT
+        self._cache_ctx = isolated_web_cache(self.tmp / "webcache")
+        self._cache_ctx.__enter__()
+        self.addCleanup(self._cache_ctx.__exit__, None, None, None)
 
     def tearDown(self):
         web_fetch.set_transport(None)
@@ -158,8 +160,6 @@ class RefillPipelineTests(unittest.TestCase):
                 "entries": entries,
                 "language": "en",
                 "style": "ieee",
-                # force_refresh 绕过磁盘缓存读：同 query 的测试之间互不串味
-                "force_refresh": True,
                 "out": str(self.tmp / kwargs.pop("sub", "r")),
                 **kwargs,
             }
@@ -248,7 +248,6 @@ class RefillPipelineTests(unittest.TestCase):
                 "references": references_text,
                 "language": "en",
                 "style": "ieee",
-                "force_refresh": True,
                 "out": str(self.tmp / "reftext"),
             }
         )
