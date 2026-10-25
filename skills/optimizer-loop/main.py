@@ -30,6 +30,7 @@ import json
 import re
 import shutil
 import sys
+from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
 
@@ -151,6 +152,56 @@ def _round_record(audit: dict[str, Any]) -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 # 阶段六：版本决策
 # --------------------------------------------------------------------------- #
+def _blocking_issues(audit: dict[str, Any]) -> list[dict[str, Any]]:
+    """P0/P1 问题条目（版本决策与指纹比对都用完整条目而非 id 列表）。"""
+    return [
+        issue
+        for issue in audit["registry"].get("issues", [])
+        if issue.get("priority") in ("P0", "P1")
+    ]
+
+
+def _issue_kind(issue: dict[str, Any]) -> str:
+    """违规种类：source::check::found（上下文无关）。"""
+    metadata = issue.get("metadata") or {}
+    check = str(metadata.get("check") or "")
+    found = str(metadata.get("found") or issue.get("issue_id"))
+    return f"{issue.get('source')}::{check}::{found.lower()}"
+
+
+def _issue_context(issue: dict[str, Any]) -> str:
+    metadata = issue.get("metadata") or {}
+    return normalize_anchor(
+        str(issue.get("evidence") or metadata.get("context_snippet") or "")
+    )
+
+
+def _reanchor_exempt(
+    new_issue: dict[str, Any],
+    disappeared: list[dict[str, Any]],
+    *,
+    min_ratio: float = 0.6,
+) -> bool:
+    """判断新指纹是否只是旧同 kind 问题的"重锚定"（上下文窗口漂移）。
+
+    指纹含 ±60 字符上下文窗口：编辑点附近的改文会把旧问题的窗口扫成新指纹。
+    判定（确定性）：与任一**已消失**的同 kind 旧问题相比——
+    - location 完全一致；或
+    - 归一上下文的 difflib 相似度 ≥ min_ratio（窗口滑动会保留大部分上下文；
+      出现在别处的真新实例相似度低）。
+    保守原则：无上下文可比（双侧均空）时不豁免，按真新增处理。
+    """
+    new_ctx = _issue_context(new_issue)
+    new_loc = str(new_issue.get("location") or "")
+    for old in disappeared:
+        if new_loc and str(old.get("location") or "") == new_loc:
+            return True
+        old_ctx = _issue_context(old)
+        if new_ctx and old_ctx and SequenceMatcher(None, new_ctx, old_ctx).ratio() >= min_ratio:
+            return True
+    return False
+
+
 def decide(
     previous: dict[str, Any] | None,
     current: dict[str, Any],
@@ -162,34 +213,36 @@ def decide(
     PRD §5 阶段六：语言更流畅但引入未经支持的主张 → 必须拒绝；
     只在部分指标提升 → 结合问题严重程度与硬约束判断，不简单取分数最高者。
 
-    "新增"按违规种类（source::check::found，上下文无关）判定：issue_id 序号
-    跨轮漂移、指纹上下文窗口会被编辑点附近的改文扫中，二者都不能用于
-    跨轮对比；同类残留实例不算新增，交给下一轮计划继续处理。
+    "新增"按 **指纹** 判定（PRD 测试 G 语义：新实例即拒绝），并带显式漂移豁免：
+    候选侧新指纹若与一条已消失的同 kind 旧指纹构成"重锚定"（location 一致或
+    上下文相似度达标），视为同一问题被改文扫动了窗口，不计新增；除此之外——
+    包括同 kind 但出现在别处的实例（上下文相似度低）——一律按真新增拒绝。
+    纯种类集合比对（旧实现）会把"同类实例替换"误判为"同类残留"放行回归。
     """
     if previous is None:
         return {"decision": "accept", "reason": "首轮基线，作为历史最佳版本"}
 
-    def _blocking_kinds(audit: dict[str, Any]) -> set[str]:
-        """阻断级问题的"种类"集合：source::check::found（上下文无关）。
+    prev_blocking = _blocking_issues(previous)
+    curr_blocking = _blocking_issues(current)
+    prev_fps = {str(issue.get("fingerprint") or "") for issue in prev_blocking}
+    curr_fps = {str(issue.get("fingerprint") or "") for issue in curr_blocking}
 
-        指纹含 ±60 字符上下文窗口，编辑点附近的旧问题会因窗口扫到改文而
-        漂移成"新指纹"；版本决策关心的是"是否引入了新的违规种类"，
-        同类残留实例交给下一轮计划处理。
-        """
-        kinds: set[str] = set()
-        for issue in audit["registry"].get("issues", []):
-            if issue.get("priority") not in ("P0", "P1"):
-                continue
-            check = str((issue.get("metadata") or {}).get("check") or "")
-            found = str((issue.get("metadata") or {}).get("found") or issue.get("issue_id"))
-            kinds.add(f"{issue.get('source')}::{check}::{found.lower()}")
-        return kinds
+    disappeared_by_kind: dict[str, list[dict[str, Any]]] = {}
+    for old in prev_blocking:
+        if str(old.get("fingerprint") or "") not in curr_fps:
+            disappeared_by_kind.setdefault(_issue_kind(old), []).append(old)
 
-    prev_blocking = _blocking_kinds(previous)
-    curr_blocking = _blocking_kinds(current)
-    new_blocking = sorted(curr_blocking - prev_blocking)
+    new_blocking: list[str] = []
+    for issue in curr_blocking:
+        fingerprint = str(issue.get("fingerprint") or "")
+        if fingerprint in prev_fps:
+            continue
+        disappeared = disappeared_by_kind.get(_issue_kind(issue)) or []
+        if disappeared and _reanchor_exempt(issue, disappeared):
+            continue
+        new_blocking.append(f"{_issue_kind(issue)} (fp {fingerprint[:8]})")
 
-    # 硬约束：新增 P0/P1 种类一律拒绝（PRD 测试 G：修改回归必须被拒绝或回滚）
+    # 硬约束：新增 P0/P1 实例一律拒绝（PRD 测试 G：修改回归必须被拒绝或回滚）
     if new_blocking:
         return {
             "decision": "reject",
@@ -1343,11 +1396,18 @@ def _render_delivery_index(
     state: dict[str, Any],
     final_audit: dict[str, Any],
     root_files: list[str],
+    delivery_tier: str = "staging",
 ) -> str:
     counts = _priority_counts(final_audit)
+    tier_line = (
+        "- **交付层级：正式交付（release）**——已通过门禁，仍需作者签核后方可作为送审候选"
+        if delivery_tier == "release"
+        else "- **交付层级：诊断包（staging）**——存在未裁决阻断项，不构成送审候选正式交付"
+    )
     lines = [
         f"# 交付索引 — {stem}",
         "",
+        tier_line,
         f"- **交付状态：{merged['delivery_status']}**（PRD 三级状态与投稿预审门禁合并判定）",
         f"- 判定依据：{merged['reason']}",
         f"- 停止原因：{stop_reason or '未记录'}",
@@ -1398,12 +1458,24 @@ def stage_deliver(
     submission_audit: bool = True,
     render: bool = False,
     deliver_to_root: bool = False,
+    allow_conditional_release: bool = False,
+    root_dir: str | Path | None = None,
 ) -> dict[str, Any]:
     """阶段八：交付（PRD §8 五件套 + 终稿 DOCX + 投稿预审 + 合并就绪状态 + 交付索引）。
 
+    交付分两层（架构评审 2026-10-25 第 4 条）：
+    - **诊断包（staging）**：所有运行都产出到 out_dir；复制到根目录时命名
+      `*_诊断包.docx` / `*_诊断索引.md`——BLOCKED 或未显式放行的 CONDITIONAL
+      都属于这一层，索引首行明示"不构成送审候选正式交付"；
+    - **正式交付（release）**：merged = READY，或 CONDITIONAL 且调用方显式传
+      `allow_conditional_release=True` 时，根目录命名 `*_可投稿候选.docx` /
+      `*_交付索引.md`。release 仍只是送审候选，`final_publication_allowed`
+      恒为 false，人工签核门禁不变。
+
     - submission_audit：是否执行 submission-audit pipeline（确定性预审；默认开）
     - render：是否真实渲染 DOCX→PDF→页面图（需 Word COM / LibreOffice；默认关）
-    - deliver_to_root：按用户交付偏好把终稿 DOCX、渲染 PDF 与交付索引复制到项目根目录
+    - deliver_to_root：按用户交付偏好把终稿 DOCX、渲染 PDF 与交付索引复制到根目录
+    - root_dir：根目录覆盖（默认项目根；测试可指向临时目录）
     """
     out_dir = Path(out_dir)
     final_audit = _load_audit(Path(state["best"]["audit_dir"]))
@@ -1462,17 +1534,28 @@ def stage_deliver(
     )
 
     # 根目录交付（用户偏好：最终候选 DOCX / 渲染 PDF / 交付索引复制到项目根目录）
+    # 交付层级判定（架构评审 2026-10-25 第 4 条）：BLOCKED 或未放行的
+    # CONDITIONAL 只是诊断包；READY 或显式放行的 CONDITIONAL 才是正式交付
+    delivery_tier = (
+        "release"
+        if merged["delivery_status"] == READY
+        or (merged["delivery_status"] == CONDITIONAL and allow_conditional_release)
+        else "staging"
+    )
+    docx_label = "可投稿候选" if delivery_tier == "release" else "诊断包"
+    index_label = "交付索引" if delivery_tier == "release" else "诊断索引"
+
     root_files: list[str] = []
     if deliver_to_root:
         stem = Path(str(state.get("input_file") or "manuscript")).stem
         try:
-            root = Path(__file__).resolve().parents[2]
+            root = Path(root_dir) if root_dir else Path(__file__).resolve().parents[2]
             if docx_info.get("docx_path"):
-                target = root / f"{stem}_final.docx"
+                target = root / f"{stem}_{docx_label}.docx"
                 shutil.copy(docx_info["docx_path"], target)
                 root_files.append(str(target))
             for candidate in (out_dir / "submission-audit").rglob("*.pdf"):
-                target = root / f"{stem}_final.render.pdf"
+                target = root / f"{stem}_{docx_label}.render.pdf"
                 shutil.copy(candidate, target)
                 root_files.append(str(target))
                 break
@@ -1490,13 +1573,14 @@ def stage_deliver(
             state=state,
             final_audit=final_audit,
             root_files=root_files,
+            delivery_tier=delivery_tier,
         ),
         encoding="utf-8",
     )
     if deliver_to_root and docx_info.get("docx_path"):
         try:
-            root = Path(__file__).resolve().parents[2]
-            index_target = root / f"{stem}_交付索引.md"
+            root = Path(root_dir) if root_dir else Path(__file__).resolve().parents[2]
+            index_target = root / f"{stem}_{index_label}.md"
             index_target.write_text(
                 (out_dir / "delivery-index.md").read_text(encoding="utf-8"),
                 encoding="utf-8",
@@ -1508,6 +1592,12 @@ def stage_deliver(
     return {
         "schema_version": SCHEMA_VERSION,
         "status": merged["delivery_status"],
+        "delivery_tier": delivery_tier,
+        # PRD §8.5 三级状态（submission-audit 合并前）：READY 只表示自动检查
+        # 全部通过且无 requires_human 事项；合并状态会因证据绑定等材料门槛
+        # 降级为 CONDITIONAL——两级分开暴露，成功路径才可被验收测试断言
+        "prd_readiness": readiness["status"],
+        "prd_readiness_reason": readiness["reason"],
         "stop_reason": stop_reason,
         "final_manuscript": str(out_dir / "final_manuscript.md"),
         "final_docx": str(docx_info.get("docx_path") or "") or None,
@@ -1626,6 +1716,8 @@ def run_loop(
         submission_audit=bool(kwargs.get("submission_audit", True)),
         render=bool(kwargs.get("render", False)),
         deliver_to_root=bool(kwargs.get("deliver_to_root", False)),
+        allow_conditional_release=bool(kwargs.get("allow_conditional_release", False)),
+        root_dir=kwargs.get("root_dir"),
     )
 
 
@@ -1639,6 +1731,19 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
         if not raw_input:
             raise ValueError("optimizer-loop 需要 text_file 或 input")
         responses_dir = args.get("responses_dir")
+        # 交付选项（F3）：整体模式也要透传 submission_audit / render /
+        # deliver_to_root / allow_conditional_release / root_dir 到 stage_deliver
+        delivery_kwargs = {
+            key: args[key]
+            for key in (
+                "submission_audit",
+                "render",
+                "deliver_to_root",
+                "allow_conditional_release",
+                "root_dir",
+            )
+            if key in args
+        }
         return run_loop(
             Path(str(raw_input)),
             language=str(args.get("language") or "en"),
@@ -1652,6 +1757,7 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
             identity=bool(args.get("identity", False)),
             review_sim=_optional_bool(args.get("review_sim")),
             bridge=_optional_bool(args.get("bridge")),
+            **delivery_kwargs,
         )
 
     if stage == "init":
@@ -1711,6 +1817,8 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
             submission_audit=bool(args.get("submission_audit", True)),
             render=bool(args.get("render", False)),
             deliver_to_root=bool(args.get("deliver_to_root", False)),
+            allow_conditional_release=bool(args.get("allow_conditional_release", False)),
+            root_dir=args.get("root_dir"),
         )
     raise ValueError(f"未知 stage: {stage!r}，可选 {VALID_STAGES}")
 

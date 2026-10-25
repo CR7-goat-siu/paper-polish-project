@@ -205,6 +205,236 @@ class RevisionPlannerTests(unittest.TestCase):
         self.assertEqual(plan["task_count"], 0)
 
 
+class DecideFingerprintTests(unittest.TestCase):
+    """测试 G 直测（PRD §5 阶段六）：新增 P0/P1 实例必须拒绝并回滚。
+
+    三个层次：
+    - 全新 kind → 拒绝（旧行为保持）；
+    - 同 kind 但出现在别处（上下文相似度低）→ 拒绝——纯种类集合比对会放行的
+      回归反例（架构评审 2026-10-25 最小反例）；
+    - 编辑点附近窗口漂移（同 kind + 上下文高相似 / location 一致）→ 豁免不误拒。
+    """
+
+    @staticmethod
+    def _issue(fp, *, check="hype", found="显著", context="", priority="P1",
+               source="claim-guard", location=""):
+        return {
+            "issue_id": f"ISS-{fp[:8]}-001",
+            "source": source,
+            "priority": priority,
+            "dimension": "scientific_truth",
+            "severity": "warning",
+            "title": found,
+            "fingerprint": fp,
+            "evidence": context,
+            "location": location,
+            "metadata": {"check": check, "found": found},
+        }
+
+    @staticmethod
+    def _audit(issues, index=2.0):
+        return {
+            "registry": {
+                "issues": issues,
+                "issue_count": len(issues),
+                "counts_by_priority": {},
+            },
+            "scorecard": {"weighted_index": index, "hard_gate": {"pass": True}},
+        }
+
+    def setUp(self):
+        self.decide = skill_module("optimizer-loop").decide
+
+    def test_new_p1_kind_rejected(self):
+        prev = self._audit([], index=2.0)
+        curr = self._audit(
+            [self._issue("aaaa1111", context="全新上下文出现了显著的提升")], index=2.2
+        )
+        verdict = self.decide(prev, curr, min_gain=0.2)
+        self.assertEqual(verdict["decision"], "reject")
+
+    def test_same_kind_new_location_rejected(self):
+        """评审者最小反例：旧指纹 A 消失、同 kind 新指纹 B 出现在别处 → 必须拒绝。"""
+        prev = self._audit(
+            [self._issue("aaaa1111", context="方法部分甲处上下文显示结果显著优于基线模型很多")]
+        )
+        curr = self._audit(
+            [self._issue("bbbb2222", context="结论部分乙处上下文声称性能显著超越全部对比方法")]
+        )
+        verdict = self.decide(prev, curr, min_gain=0.2)
+        self.assertEqual(verdict["decision"], "reject")
+        self.assertTrue(verdict["new_blocking"])
+
+    def test_count_increase_rejected(self):
+        """旧实例仍在、又多出一条同 kind 新实例 → 拒绝。"""
+        prev = self._audit(
+            [self._issue("aaaa1111", context="甲处上下文显示结果显著优于基线模型很多个点")]
+        )
+        curr = self._audit(
+            [
+                self._issue("aaaa1111", context="甲处上下文显示结果显著优于基线模型很多个点"),
+                self._issue("cccc3333", context="乙处摘要声称准确率显著高于所有已发表的方法效果"),
+            ],
+            index=2.2,
+        )
+        self.assertEqual(self.decide(prev, curr, min_gain=0.2)["decision"], "reject")
+
+    def test_drifted_window_exempt(self):
+        """编辑点附近改文扫动上下文窗口：同 kind、上下文高相似 → 豁免不误拒。"""
+        ctx_old = "实验结果表明该方法在多个公开数据集上取得了显著优于现有方法的表现并且训练开销较低" * 1
+        ctx_new = "实验结果表明该方法在多个公开基准数据集上取得了显著优于现有方法的表现并且整体训练开销较低一" * 1
+        prev = self._audit([self._issue("aaaa1111", context=ctx_old, location="")])
+        curr = self._audit([self._issue("bbbb2222", context=ctx_new, location="")], index=2.2)
+        verdict = self.decide(prev, curr, min_gain=0.2)
+        self.assertIn(verdict["decision"], ("accept", "accept_no_gain"))
+
+    def test_same_location_exempt(self):
+        prev = self._audit(
+            [self._issue("aaaa1111", context="上下文窗口完全被改文替换的情形甲", location="p:12")]
+        )
+        curr = self._audit(
+            [self._issue("bbbb2222", context="完全不同的新窗口内容乙与旧窗口无重叠", location="p:12")],
+            index=2.2,
+        )
+        verdict = self.decide(prev, curr, min_gain=0.2)
+        self.assertIn(verdict["decision"], ("accept", "accept_no_gain"))
+
+    def test_unchanged_fingerprint_not_new(self):
+        issue = self._issue("aaaa1111", context="同样的上下文窗口原样保留")
+        prev = self._audit([issue], index=2.0)
+        curr = self._audit([dict(issue)], index=2.1)
+        verdict = self.decide(prev, curr, min_gain=0.2)
+        self.assertIn(verdict["decision"], ("accept", "accept_no_gain"))
+
+    def test_weighted_index_drop_rejected(self):
+        issue = self._issue("aaaa1111", context="同样的上下文窗口原样保留")
+        prev = self._audit([issue], index=2.0)
+        curr = self._audit([dict(issue)], index=1.5)
+        self.assertEqual(self.decide(prev, curr, min_gain=0.2)["decision"], "reject")
+
+
+class CleanManuscriptReadyPathTests(unittest.TestCase):
+    """PRD 成功路径验收：干净稿件必须能到达 READY_FOR_AUTHOR_REVIEW。
+
+    架构评审（2026-10-25）第 3 条：此前所有端到端运行都以 BLOCKED 收尾，
+    READY 只是代码里的字符串。本测试用无缺陷 fixture（引用成对、数字一致、
+    无 hype、GB/T 参考文献齐全）证明该状态真实可达。
+
+    注意：合并交付状态会因 submission-audit 的证据绑定门槛停在
+    CONDITIONAL（draft_unverified 需作者提供材料）——这是设计使然；
+    本测试断言的是 PRD 三级 readiness（自动检查维度）到达 READY。
+    """
+
+    def test_clean_manuscript_reaches_prd_ready(self):
+        loop = skill_module("optimizer-loop")
+        out_dir = Path(tempfile.mkdtemp(prefix="readypath-"))
+        self.addCleanup(shutil.rmtree, out_dir, ignore_errors=True)
+        result = loop.run(
+            {
+                "text_file": "test-manuscripts/cn-clean-draft.md",
+                "language": "cn",
+                "identity": True,
+                "review_sim": False,
+                "max_rounds": 2,
+                "out": str(out_dir),
+                "submission_audit": True,
+            }
+        )
+        self.assertEqual(result["prd_readiness"], "READY_FOR_AUTHOR_REVIEW")
+        self.assertTrue(result["final"]["hard_gate_pass"])
+        self.assertEqual(result["final"]["counts_by_priority"].get("P0", 0), 0)
+        self.assertEqual(result["final"]["counts_by_priority"].get("P1", 0), 0)
+        self.assertGreaterEqual(result["final"]["weighted_index"], 3.5)
+        for name in ("final_manuscript.md", "quality_report.md", "iteration_log.json", "delivery-index.md"):
+            self.assertTrue((out_dir / name).exists(), name)
+
+    def test_clean_manuscript_review_cycle_resolves_clean(self):
+        """干净稿 + 对抗闭环开启：评审无意见可报（无锚定缺陷），仍达 PRD READY。"""
+        loop = skill_module("optimizer-loop")
+        out_dir = Path(tempfile.mkdtemp(prefix="readyreview-"))
+        self.addCleanup(shutil.rmtree, out_dir, ignore_errors=True)
+        result = loop.run(
+            {
+                "text_file": "test-manuscripts/cn-clean-draft.md",
+                "language": "cn",
+                "identity": True,
+                "review_sim": True,
+                "max_rounds": 1,
+                "out": str(out_dir),
+                "submission_audit": False,
+            }
+        )
+        self.assertEqual(result["prd_readiness"], "READY_FOR_AUTHOR_REVIEW")
+
+
+class DeliveryTierTests(unittest.TestCase):
+    """交付层级拆分（架构评审 2026-10-25 第 4 条）：
+    BLOCKED / 未放行 CONDITIONAL → 诊断包命名；READY → 可投稿候选命名。"""
+
+    def _deliver(self, text_file, **extra):
+        loop = skill_module("optimizer-loop")
+        out_dir = Path(tempfile.mkdtemp(prefix="tier-"))
+        root_dir = Path(tempfile.mkdtemp(prefix="tierroot-"))
+        self.addCleanup(shutil.rmtree, out_dir, ignore_errors=True)
+        self.addCleanup(shutil.rmtree, root_dir, ignore_errors=True)
+        payload = {
+            "text_file": text_file,
+            "language": "cn",
+            "identity": True,
+            "review_sim": False,
+            "max_rounds": 1,
+            "out": str(out_dir),
+            "submission_audit": False,
+            "deliver_to_root": True,
+            "root_dir": str(root_dir),
+        }
+        payload.update(extra)
+        result = loop.run(payload)
+        return result, out_dir, root_dir
+
+    def test_blocked_delivery_is_staging_tier(self):
+        result, out_dir, root_dir = self._deliver(
+            "test-manuscripts/cn-eeg-denoising-draft.md"
+        )
+        if result["status"] in ("BLOCKED", "CONDITIONALLY_READY"):
+            self.assertEqual(result["delivery_tier"], "staging")
+            self.assertFalse((root_dir / "cn-eeg-denoising-draft_可投稿候选.docx").exists())
+            if result.get("final_docx"):
+                self.assertTrue((root_dir / "cn-eeg-denoising-draft_诊断包.docx").exists())
+                index = (root_dir / "cn-eeg-denoising-draft_诊断索引.md").read_text(encoding="utf-8")
+                self.assertIn("诊断包（staging）", index)
+                self.assertIn("不构成送审候选正式交付", index)
+        else:
+            self.assertEqual(result["delivery_tier"], "release")
+
+    def test_ready_delivery_is_release_tier(self):
+        result, out_dir, root_dir = self._deliver(
+            "test-manuscripts/cn-clean-draft.md"
+        )
+        self.assertEqual(result["prd_readiness"], "READY_FOR_AUTHOR_REVIEW")
+        self.assertEqual(result["delivery_tier"], "release")
+        self.assertTrue((root_dir / "cn-clean-draft_可投稿候选.docx").exists())
+        index = (root_dir / "cn-clean-draft_交付索引.md").read_text(encoding="utf-8")
+        self.assertIn("正式交付（release）", index)
+        self.assertIn("仍需作者签核", index)
+
+    def test_conditional_release_requires_explicit_allow(self):
+        """CONDITIONAL 默认是诊断包；显式 allow_conditional_release 才升级 release。"""
+        result, out_dir, root_dir = self._deliver(
+            "test-manuscripts/cn-clean-draft.md", submission_audit=True
+        )
+        # submission-audit 证据绑定门槛使合并状态为 CONDITIONAL
+        self.assertEqual(result["status"], "CONDITIONALLY_READY")
+        self.assertEqual(result["delivery_tier"], "staging")
+        result2, _, root_dir2 = self._deliver(
+            "test-manuscripts/cn-clean-draft.md",
+            submission_audit=True,
+            allow_conditional_release=True,
+        )
+        self.assertEqual(result2["delivery_tier"], "release")
+        self.assertTrue((root_dir2 / "cn-clean-draft_可投稿候选.docx").exists())
+
+
 class OptimizerLoopTests(unittest.TestCase):
     """闭环机制测试：用恒等响应隔离"循环逻辑"与"润色效果"。"""
 

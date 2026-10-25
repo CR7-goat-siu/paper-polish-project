@@ -1,0 +1,382 @@
+{
+  "schema_version": 1,
+  "fixture_count": 8,
+  "intact": {
+    "issue_count_total": 444,
+    "issues_per_fixture_avg": 55.5,
+    "fixtures_with_p0_or_p1": 6,
+    "p0p1_false_positive_rate": 0.75,
+    "noise_by_signature": {
+      "cite-manager::uncited_entry": 232,
+      "lit-search::incomplete_entry": 166,
+      "claim-guard::intensifier": 11,
+      "claim-guard::unanchored_claim": 6,
+      "claim-guard::unverifiable": 6,
+      "claim-guard::colloquial": 6,
+      "term-check::alias_without_canonical": 5,
+      "claim-guard::hype": 5,
+      "lit-search::missing_citation": 3,
+      "claim-guard::wordy": 2,
+      "claim-guard::absolute": 1,
+      "lit-search::stale_citation": 1
+    }
+  },
+  "planted": {
+    "variants_total": 35,
+    "variants_detected": 35,
+    "recall_rate": 1.0
+  },
+  "note": "阴性口径为启发式告警噪声画像（P0/P1 误报率为阻断级误报率）；P2/P3 告警不阻断，其触发频次是规则调阈的依据（人工裁决协议见 docs/adjudication-protocol.md）",
+  "per_fixture": [
+    {
+      "name": "",
+      "intact": {
+        "issue_count": 53,
+        "counts_by_priority": {
+          "P0": 0,
+          "P1": 2,
+          "P2": 3,
+          "P3": 48
+        },
+        "signature_counts": {
+          "claim-guard::absolute": 1,
+          "claim-guard::unanchored_claim": 2,
+          "lit-search::missing_citation": 1,
+          "claim-guard::unverifiable": 1,
+          "claim-guard::intensifier": 1,
+          "cite-manager::uncited_entry": 41,
+          "lit-search::incomplete_entry": 6
+        }
+      },
+      "recall": [
+        {
+          "variant": "abstract_fake_percent",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "ghost_figure_reference",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "hype_injection",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "duplicated_reference",
+          "planted": true,
+          "detected": true
+        }
+      ]
+    },
+    {
+      "name": "",
+      "intact": {
+        "issue_count": 70,
+        "counts_by_priority": {
+          "P0": 0,
+          "P1": 0,
+          "P2": 1,
+          "P3": 69
+        },
+        "signature_counts": {
+          "term-check::alias_without_canonical": 1,
+          "claim-guard::intensifier": 3,
+          "cite-manager::uncited_entry": 49,
+          "lit-search::incomplete_entry": 16,
+          "claim-guard::wordy": 1
+        }
+      },
+      "recall": [
+        {
+          "variant": "abstract_fake_percent",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "ghost_figure_reference",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "hype_injection",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "duplicated_reference",
+          "planted": true,
+          "detected": true
+        }
+      ]
+    },
+    {
+      "name": "",
+      "intact": {
+        "issue_count": 83,
+        "counts_by_priority": {
+          "P0": 0,
+          "P1": 2,
+          "P2": 1,
+          "P3": 80
+        },
+        "signature_counts": {
+          "claim-guard::hype": 1,
+          "claim-guard::unanchored_claim": 1,
+          "term-check::alias_without_canonical": 1,
+          "claim-guard::intensifier": 2,
+          "claim-guard::colloquial": 1,
+          "cite-manager::uncited_entry": 36,
+          "lit-search::incomplete_entry": 40,
+          "claim-guard::wordy": 1
+        }
+      },
+      "recall": [
+        {
+          "variant": "citation_out_of_bounds",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "abstract_fake_percent",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "ghost_figure_reference",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "hype_injection",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "duplicated_reference",
+          "planted": true,
+          "detected": true
+        }
+      ]
+    },
+    {
+      "name": "",
+      "intact": {
+        "issue_count": 88,
+        "counts_by_priority": {
+          "P0": 0,
+          "P1": 2,
+          "P2": 2,
+          "P3": 84
+        },
+        "signature_counts": {
+          "claim-guard::hype": 1,
+          "claim-guard::unanchored_claim": 1,
+          "term-check::alias_without_canonical": 1,
+          "lit-search::missing_citation": 1,
+          "claim-guard::colloquial": 4,
+          "cite-manager::uncited_entry": 40,
+          "lit-search::incomplete_entry": 38,
+          "lit-search::stale_citation": 1,
+          "claim-guard::unverifiable": 1
+        }
+      },
+      "recall": [
+        {
+          "variant": "citation_out_of_bounds",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "abstract_fake_percent",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "ghost_figure_reference",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "hype_injection",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "duplicated_reference",
+          "planted": true,
+          "detected": true
+        }
+      ]
+    },
+    {
+      "name": "",
+      "intact": {
+        "issue_count": 76,
+        "counts_by_priority": {
+          "P0": 0,
+          "P1": 1,
+          "P2": 1,
+          "P3": 74
+        },
+        "signature_counts": {
+          "claim-guard::hype": 1,
+          "claim-guard::unverifiable": 1,
+          "claim-guard::intensifier": 1,
+          "cite-manager::uncited_entry": 36,
+          "lit-search::incomplete_entry": 37
+        }
+      },
+      "recall": [
+        {
+          "variant": "citation_out_of_bounds",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "abstract_fake_percent",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "ghost_figure_reference",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "hype_injection",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "duplicated_reference",
+          "planted": true,
+          "detected": true
+        }
+      ]
+    },
+    {
+      "name": "",
+      "intact": {
+        "issue_count": 62,
+        "counts_by_priority": {
+          "P0": 0,
+          "P1": 0,
+          "P2": 2,
+          "P3": 60
+        },
+        "signature_counts": {
+          "term-check::alias_without_canonical": 2,
+          "claim-guard::intensifier": 1,
+          "lit-search::incomplete_entry": 29,
+          "cite-manager::uncited_entry": 30
+        }
+      },
+      "recall": [
+        {
+          "variant": "abstract_fake_percent",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "ghost_figure_reference",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "hype_injection",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "duplicated_reference",
+          "planted": true,
+          "detected": true
+        }
+      ]
+    },
+    {
+      "name": "",
+      "intact": {
+        "issue_count": 6,
+        "counts_by_priority": {
+          "P0": 0,
+          "P1": 1,
+          "P2": 2,
+          "P3": 3
+        },
+        "signature_counts": {
+          "claim-guard::unanchored_claim": 1,
+          "claim-guard::unverifiable": 2,
+          "claim-guard::intensifier": 2,
+          "claim-guard::colloquial": 1
+        }
+      },
+      "recall": [
+        {
+          "variant": "abstract_fake_percent",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "ghost_figure_reference",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "hype_injection",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "duplicated_reference",
+          "planted": true,
+          "detected": true
+        }
+      ]
+    },
+    {
+      "name": "",
+      "intact": {
+        "issue_count": 6,
+        "counts_by_priority": {
+          "P0": 0,
+          "P1": 3,
+          "P2": 2,
+          "P3": 1
+        },
+        "signature_counts": {
+          "claim-guard::hype": 2,
+          "claim-guard::unanchored_claim": 1,
+          "lit-search::missing_citation": 1,
+          "claim-guard::unverifiable": 1,
+          "claim-guard::intensifier": 1
+        }
+      },
+      "recall": [
+        {
+          "variant": "abstract_fake_percent",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "ghost_figure_reference",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "hype_injection",
+          "planted": true,
+          "detected": true
+        },
+        {
+          "variant": "duplicated_reference",
+          "planted": true,
+          "detected": true
+        }
+      ]
+    }
+  ]
+}

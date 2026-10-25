@@ -21,7 +21,8 @@ run({"stage": "backfill", "out": "<目录>",
      "kind": "review-sim",                      # 可选 polish / review-sim / cite-intent
      "bridge_config": {}})                      # 免密钥执行桥自动回填（R7）
 run({"stage": "deliver", "out": "<目录>",
-     "render": True, "deliver_to_root": True})  # 交付（预审默认开）
+     "render": True, "deliver_to_root": True,
+     "allow_conditional_release": False, "root_dir": None})  # 交付（预审默认开）
 run({"stage": "status", "out": "<目录>"})       # 只读状态视图（断点观测）
 
 # 整体模式（离线验证闭环机制 / 已有 responses_dir 时）
@@ -41,7 +42,7 @@ run_loop(text_file, language="cn", strength="deep", out_dir=<目录>,
 | decide | 独立复核（重跑全量确定性审计 + 活跃评审意见同场登记）→ 版本决策（**新 P0/P1 按指纹判定**）→ 任务级验证 → 停止判定；**接受且启用评审时对改动章节发射评审周期（R1）**；停机路径上最终版本也先评后交付 | 接受则更新 best；next=review / build / deliver |
 | review | **R1 对抗闭环消费**：apply 校验评审响应（fail-closed 锚定）→ 意见生命周期（new / still_open / resolved_by_reReview）→ 活跃意见刷新进最佳版本审计 → 平台期止损（连续 2 轮无进展换角色组合，4 轮停止升级人工）；响应未齐保持 awaiting_review_sim 幂等返回 | `work/review-cycle-XXX/`；next=build 或 deliver |
 | backfill | **R7 免密钥执行桥**：按状态把待回填作业交给 config/executor-bridge.yaml 配置的通道（CLI argv / 回环 HTTP），响应写 responses/<job_id>.txt，调用写穿 `bridge-log.jsonl`；失败作业保持 pending（fail-closed） | 回填报告 `{attempted, filled, skipped, failed}` |
-| deliver | PRD §8 五件套 + **终稿 DOCX** + **submission-audit 预审**（默认开）+ **双门禁合并状态** + `delivery-index.md`；`deliver_to_root: true` 复制到根目录 | 状态=delivered |
+| deliver | PRD §8 五件套 + **终稿 DOCX** + **submission-audit 预审**（默认开）+ **双门禁合并状态** + `delivery-index.md`；**交付分层（架构评审第 4 条）**：BLOCKED / 未放行 CONDITIONAL → 诊断包（根目录 `*_诊断包.docx` / `*_诊断索引.md`，索引明示不构成送审候选正式交付）；READY 或显式 `allow_conditional_release: true` → release（`*_可投稿候选.docx` / `*_交付索引.md`，仍需作者签核）；`root_dir` 覆盖根目录（测试用）；结果含 `delivery_tier` 与 `prd_readiness`（合并前 PRD 三级状态，供成功路径验收） | 状态=delivered |
 
 - 计划无可自动执行任务（全部 requires_human / 缺材料 / 无锚定）时，build 直接转 deliver，不空转。
 - requires_human 来源（lit-verify / lit-search / cite-manager / consistency-check / review-sim）
@@ -54,8 +55,12 @@ run_loop(text_file, language="cn", strength="deep", out_dir=<目录>,
 - `review_sim`：对抗闭环开关（None 读 config/review-sim.yaml `loop.enabled`）；
   `bridge`：执行桥开关（None 读 config/executor-bridge.yaml `enabled`，默认关）。
 
-**版本决策规则（PRD §5 阶段六）**
-- 新增 P0/P1（按指纹）→ **拒绝并回滚**到历史最佳（PRD 测试 G）
+**版本决策规则（PRD §5 阶段六；架构评审 2026-10-25 第 1 条修复）**
+- **新增 P0/P1 按指纹判定**：候选侧指纹与历史最佳做差；新指纹若与一条已消失的
+  同 kind 旧指纹构成"重锚定"（location 一致，或归一上下文 difflib 相似度 ≥ 0.6，
+  即编辑点扫动上下文窗口的漂移形态）则豁免，其余一律视为真新增 →
+  **拒绝并回滚**到历史最佳（PRD 测试 G；纯种类集合比对的旧实现会把"同类实例
+  替换"放行，已有最小反例回归测试锁定）
 - 加权指数下降 → 拒绝并回滚
 - 指数上升或问题数下降且无新增 P0/P1 → 接受
 - 无新增 P0/P1 但增益低于阈值 → 记为零收益轮
