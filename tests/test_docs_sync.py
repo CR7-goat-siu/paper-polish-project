@@ -13,6 +13,7 @@ import unittest
 from pathlib import Path
 
 from conftest import ROOT
+from utils.config_loader import PROJECT_ROOT
 
 AGENTS = ROOT / "AGENTS.md"
 SKILLS_DIR = ROOT / "skills"
@@ -103,6 +104,27 @@ class DocsSyncTests(unittest.TestCase):
         text = VALIDATION_REPORT.read_text(encoding="utf-8")
         for token in ("review-sim", "cite-intent", "validated"):
             self.assertIn(token, text)
+
+
+class TestCountGateTests(unittest.TestCase):
+    """架构评审（2026-10-25）第 6 条：文档中的回归测试数必须与实际收集数一致。"""
+
+    def test_current_status_test_count_matches_discovered(self):
+        import re
+        import unittest
+
+        loader = unittest.TestLoader()
+        suite = loader.discover(str(PROJECT_ROOT / "tests"))
+        actual = suite.countTestCases()
+        text = (PROJECT_ROOT / "docs" / "current-status.md").read_text(encoding="utf-8")
+        match = re.search(r"离线回归[：:]\s*(\d+)\s*项", text)
+        self.assertIsNotNone(match, "current-status.md 必须声明『离线回归：N 项』")
+        declared = int(match.group(1))
+        self.assertEqual(
+            declared,
+            actual,
+            f"current-status.md 声明 {declared} 项，实际收集 {actual} 项——文档数字与代码漂移",
+        )
 
 
 if __name__ == "__main__":

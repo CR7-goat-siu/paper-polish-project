@@ -62,9 +62,28 @@ harness 把 requires_human 事项交给作者；作者签核（硬门禁）
 
 ### 3.4 交付与签核
 - 交付状态 = PRD 三级（READY_FOR_AUTHOR_REVIEW / CONDITIONALLY_READY / BLOCKED）
-  与 submission-audit 自动门禁**合并**判定。
+  与 submission-audit 自动门禁**合并**判定；正式交付（release）另受
+  **Release Protocol 四条件**约束（确定性审计 / final_acquittal accepted /
+  submission-audit 不可豁免 / 人工 precision 门禁），未全满足输出诊断包。
 - `final_publication_allowed` 恒为 false；人工签核状态在预审报告中显式记录。
 - `deliver_to_root=true` 按用户交付偏好复制终稿 DOCX、渲染 PDF、交付索引到根目录。
+
+### 3.6 评审证据链（reviewer 身份契约，F1-F5）
+- 最终放行评审（final_acquittal）使用**全新 reviewer 上下文**：输入白名单 =
+  当前全文、图表清单、期刊约束、artifact hash、文件路径；prompt 模板不含
+  focus_issues / 审计批注 / 历史意见 / 修改摘要。
+- 响应携带身份契约字段（executor_model / reviewer_model / model_family /
+  identity_source / thread_id）；`model_family` 由
+  `utils/model_identity` 从模型名确定性推导核对，伪造即无效。
+- 验收三态（`review_acceptance`）：done（响应有效但未达 acquittal）/
+  provisional（同族或 caller_declared）/ accepted（跨族 + 可信身份 + complete
+  + scope final_full + `reviewed_text_sha256` == 当前最终稿哈希 + verdict 正面）。
+  Release 只消费 accepted。
+- 每次 reviewer 调用落盘不可变 trace（`output/<run>/review-traces/<trace_id>/`：
+  request.json / response.md / meta.json，内嵌内容哈希）并追加
+  `review-events.jsonl`（prev_event_sha256 / event_sha256 hash chain，
+  append-only）。release 重新验签 trace 与链，任何损坏 / 缺失 / 跨 run
+  复用 → staging。
 
 ### 3.5 轮间规则变更
 - 规则/词库/术语包在轮间被修正后，`stage=audit` 对当前最佳版本重跑全量审计，

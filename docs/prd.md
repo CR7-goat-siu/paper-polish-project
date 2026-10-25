@@ -12,6 +12,9 @@
 - coding harness 是执行主体和 Orchestrator：理解意图、规划、调模型、回填响应、决定下一步。
 - 本项目提供领域引擎、编辑协议、确定性变换、质量门禁与审计（唯一红线：零 API Key）。
 - 发布前作者/通讯作者人工签核是硬门禁。本项目不宣称"无需人工签核的最终发表系统"。
+- 评审证据链：最终放行评审必须由身份可信（host_session_event / backend_reported）、
+  与执行模型跨族、全新上下文（fresh_only）的 reviewer 完成，证据绑定当前稿件
+  哈希并落盘可验签 trace；三态验收 done/provisional/accepted，release 只消费 accepted。
 
 ## 2. 修改可追溯（§2）
 

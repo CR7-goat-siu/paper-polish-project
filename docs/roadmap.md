@@ -113,6 +113,30 @@
       10 万字段落实测 ≈0.5s（纯标准库）。
 - [ ] L3 批处理集成与 docx 批注告警（下一阶段）。
 
+## P9 — Release 证据完整性（三轮评审，已完成，2026-10-25）
+
+- [x] 评审证据绑定最终稿哈希（reviewed_text_sha256；skipped 不计）。
+- [x] apply 异常路径先评后交付（全停机路径闭合）。
+- [x] 账本有效性审计（唯一 id / 署名 / 多来源 / 版本哈希绑定）。
+- [x] waiver 签核工件化（waiver-record.json 可审计，str 形式失效）。
+- [x] 四条件 release E2E 边界 + 伪造账本反例（材料门诚实阻断）。
+
+## P8 — Release Protocol 闭合（二轮评审四条，已完成，2026-10-25）
+
+- [x] 最终评审不可绕过：全部停机路径先评后交付（含 build 无任务路径）。
+- [x] release 不可绕过 submission-audit（四条件聚合，预审不可豁免）。
+- [x] precision 门禁入库（utils/adjudication + adjudication_ledger 集成）。
+- [x] location 漂移豁免收紧（同段新问题不再误豁）。
+
+## P7 — 架构评审六条意见落实（F1-F5，已完成，2026-10-25）
+
+- [x] F1 版本决策指纹化修复（同 kind 异处新实例必拒；漂移豁免可测）。
+- [x] F2 测试 G 直测 + 干净稿 READY 成功路径 E2E（cn-clean-draft.md）。
+- [x] F3 交付分层 staging / release（诊断包命名 + allow_conditional_release）。
+- [x] F4 文档数字闸门（current-status 测试数与实际收集数一致）。
+- [x] F5 独立质量评估三层：检测器量化报告 / 跨模型环内评审 / 人工裁决协议
+  （precision ≥ 0.8 为"可投稿候选"的人工证据轴）。
+
 ## P6 — 对抗闭环与免密钥执行桥（R1+R7，已完成，2026-10-25）
 
 - [x] R1 对抗闭环：review-sim 接入 optimizer-loop decide 轮——decide 接受后对

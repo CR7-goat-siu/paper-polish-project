@@ -3,6 +3,143 @@
 本项目的显著变更记录。格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循语义化版本。
 
+## [Unreleased] — v0.17.0 候选（2026-10-26）
+
+### 新增（reviewer 身份契约与评审证据链，F1-F5）
+
+- **F1 reviewer 身份契约**：review-sim job 声明 `identity_contract` 与
+  `required_response_fields`；响应必须回填 executor_model / reviewer_model /
+  model_family / identity_source（枚举 host_session_event | backend_reported |
+  caller_declared | unavailable）；`model_family` 由新工具
+  `utils/model_identity.py` 从模型名确定性推导核对（OpenAI / Anthropic /
+  Google / DeepSeek / Moonshot / Qwen / Zhipu / MiniMax / xAI / Meta，
+  无法唯一识别 → unknown），伪造 family → 响应无效。
+- **F2 fresh final review**：review-sim 新增 `purpose=final_acquittal` 与
+  `build_final` 模式；全新 reviewer 上下文（context_policy=fresh_only），
+  输入白名单 = 当前全文 / 图表清单 / 期刊约束 / artifact hash / 文件路径，
+  prompt 模板 `prompts/{cn,en}/review-sim-final.md` 不含 focus_issues /
+  审计批注 / 历史意见（测试锁定）；响应必须返回全新 `thread_id`，
+  复用 previous_thread_ids 中任一 id → invalid。
+- **F3 评审证据绑定最终 artifact**：job 保存 `artifact_sha256`（换行归一
+  SHA-256），响应回填 `reviewed_text_sha256` 并声明 scope
+  （mode=final_full / sections=["__all__"] / includes_references /
+  includes_figures / char_count）；release 重算当前最终稿哈希，三者一致才有效，
+  任意字符变化 → 旧 accepted 过期（显式 stale_review 原因）。
+- **F4 done / provisional / accepted 三态**：`review_acceptance` 入 run-state
+  与 iteration log；状态迁移语义固定（未知身份 / missing identity /
+  negative verdict / incomplete → done 并写 gate_reason；同族或
+  caller_declared → provisional；跨族 + 可信身份 + 全条件 → accepted）；
+  Release Protocol 只消费 accepted，provisional / done 输出 staging；
+  老 run-state 迁移为 done，永不升格 accepted。
+- **F5 append-only review trace**：每次 reviewer 调用落盘
+  `output/<run>/review-traces/<trace_id>/`（request.json / response.md /
+  meta.json，内嵌内容哈希）；`review-events.jsonl` 追加式 hash chain
+  （prev_event_sha256 / event_sha256）；trace_id 绑定
+  run/job/round/artifact hash/thread 五元组；release 验签
+  （文件齐全 / 原始响应未变 / 哈希一致 / 身份一致 / 链完整），
+  损坏 / 缺失 / 跨 run 复用 → staging。
+
+### 测试
+
+- 新增 tests/test_review_evidence.py（17 项）+ test_release_protocol.py 重写
+  扩展（29 项）+ F4 端到端四项（accepted E2E / provisional 拒绝 /
+  stale 降级 / 接线级 release 成功路径）；总收集 603 项。
+- 六类负路径全部锁定：same-family provisional、unknown identity done、
+  stale hash 过期、skipped review 不计、旧 thread 拒绝、损坏 trace staging。
+
+## [Unreleased] — v0.16.0 候选（2026-10-25）
+
+### 修复（架构评审三轮三条证据约束 + 两个漏口）
+
+- **评审证据绑定最终稿版本（第 1 条）**：stage_review 消费完成时记录
+  `reviewed_text_sha256`（评审对象文本哈希）；release 校验要求其等于最终稿
+  哈希——评审后稿件再被改动而未复审 → 阻断；skipped 周期不再计入最终评审。
+- **apply 异常路径先评后交付（第 2 条）**：apply 未产出终稿的停机同样走
+  `_final_review_or_deliver`（评审对象是历史最佳），堵住最后一个漏口。
+- **裁决账本有效性审计（第 3 条）**：issue_id 重复 → fail-closed；空白
+  adjudicator → 无效证据；已裁决来源 < 2 → 拒绝；新增 manuscript_sha256
+  列绑定稿件版本（缺失或不一致 → 拒绝）。评审者最小反例（5 条同 id、空白
+  署名、precision=1.0 的 TP 行）现被拒绝并指明证据缺陷。
+- **waiver 签核工件化（第 4 条）**：豁免必须是 `{check, author, reason}`
+  工件（纯字符串不再生效）；每次豁免落盘 `waiver-record.json`
+  （作者/原因/时间/被豁免条件/稿件哈希/运行状态）并在交付索引可审计。
+- **H5 端到端边界**：新增四条件 release 的 E2E——有效评审哈希 + 有效账本 +
+  放行 CONDITIONAL 时，release 仍且仅被 submission-audit 材料门挡住
+  （evidence 门要求文献核验与作者材料，离线无法合法变绿是其设计目的）；
+  伪造账本 E2E 反例拒绝。四条件全绿 → release 由单元级钉死
+  （tests/test_release_protocol.py）。
+
+### 测试
+
+- test_release_protocol.py 重写为 17 项（评审者反例/哈希绑定/账本审计/
+  豁免工件/apply 路由）+ E2E 边界 2 项；总收集 570 项。
+
+## [Unreleased] — v0.15.0 候选（2026-10-25）
+
+### 修复（架构评审二轮四条意见）
+
+- **最终评审不可绕过（第 1 条）**：stage_build 的"无任务 / 无锚定 / 轮数超限"
+  三个提前交付路径统一走 `_final_review_or_deliver`——评审启用且预算未用尽时
+  先对全章节发射最终评审再交付（干净稿 + review_sim=True 此前 review_cycles=0，
+  现在必须 ≥1 且测试断言）。
+- **正式 release 不可绕过 submission-audit（第 2 条）**：`_release_requirements`
+  四条件聚合——①确定性审计 ②最终评审完成 ③预审已执行且 automated_pass
+  （**不可豁免**）④人工 precision 门禁；预审未执行的 READY 只能是诊断包；
+  交付索引附条件状态表，结果带 `release_requirements`。`release_waivers`
+  仅接受 final_review / precision_gate（作者显式接管）。
+- **precision 门禁进入代码（第 3 条）**：`utils/adjudication.py` 读取裁决账本
+  （TP/FP/UNCLEAR 三值，UNCLEAR 不入分母），已裁决 ≥5 且 precision ≥ 0.8
+  才放行；stage_deliver 集成 `adjudication_ledger` 参数（默认探测
+  out_dir/adjudication-ledger.csv）。
+- **location 漂移豁免收紧（第 4 条）**：同 location 但两侧上下文都有且不相似
+  时不再豁免（同段新问题误豁口子堵上）；仅一侧上下文缺失（无凭据可比）时
+  允许仅凭 location 豁免，防止误拒。
+
+### 测试
+
+- 新增 tests/test_release_protocol.py（12 项：账本加载/门禁四分支/四条件聚合
+  六分支）+ 干净稿评审周期断言 + G4 豁免拆分 + G2 负路径重写；总收集 563 项
+  （docs-sync 数字闸门同步）。
+
+## [Unreleased] — v0.14.0 候选（2026-10-25）
+
+### 修复（架构评审 2026-10-25 六条意见的落实）
+
+- **版本决策指纹化修复（评审第 1 条，安全缺口）**：decide() 的新增 P0/P1 判定
+  从"种类集合比对"改为**指纹比对 + 显式漂移豁免**——新指纹与已消失的同 kind
+  旧指纹构成重锚定（location 一致或上下文 difflib 相似度 ≥ 0.6）才豁免；
+  评审者的最小反例（同 kind 异处实例替换）此前会以 accept_no_gain 放行回归，
+  现已拒绝并回滚，反例固化为回归测试。
+- **测试 G 落实（评审第 2 条）**：新增 DecideFingerprintTests 直测 decide()
+  七个分支（新 kind / 同 kind 异处 / 计数膨胀 / 窗口漂移豁免 / 同 location 豁免 /
+  指纹未变 / 指数下降）；此前文档声称覆盖却无任何直接测试。
+- **READY 成功路径验收（评审第 3 条）**：新增无缺陷 fixture
+  `test-manuscripts/cn-clean-draft.md`（GB/T 参考文献齐全、引用成对、数字一致），
+  端到端断言 PRD 三级 readiness 真实到达 **READY_FOR_AUTHOR_REVIEW**
+  （加权指数 4.0、硬门槛通过）；stage_deliver 结果新增 `prd_readiness`
+  暴露合并前状态。submission-audit 证据绑定门槛使合并状态停在 CONDITIONAL
+  属设计使然（纯文本稿件无法自证材料）。
+- **交付分层（评审第 4 条）**：BLOCKED / 未放行 CONDITIONAL → 诊断包
+  （根目录 `*_诊断包.docx` / `*_诊断索引.md`，索引明示不构成送审候选正式交付）；
+  READY 或显式 `allow_conditional_release` → release（`*_可投稿候选.docx`）；
+  run() 整体模式此前不透传交付选项的缺陷一并修复。
+- **文档数字闸门（评审第 6 条）**：current-status.md 的 570+ 项（虚高）改为实测
+  550 项，docs-sync 新增闸门断言文档数字 == unittest 实际收集数，数字漂移从此被测试拦截。
+
+### 新增
+
+- **F5 独立质量评估三层（评审第 5 条）**：
+  - 层 1 检测器量化报告（`tools/eval_gold_detectors.py`）：8 篇金标夹具，
+    植入召回 35/35=1.0；干净文本 P0/P1 误报率 0.75，噪声画像定位到
+    `cite-manager::uncited_entry` 与 `lit-search::incomplete_entry`
+    （摘录体裁截断伪影，全文运行不适用）——规则调阈有了可测量依据；
+  - 层 2 跨模型环内评审：GLM-5.3（非 Flash）评审员对真实手稿终稿出评审
+    响应，经宽容匹配进环消费（区别于执行模型 Flash，"独立复核"的跨模型读法）；
+  - 层 3 人工裁决协议（`docs/adjudication-protocol.md`）：P1/P2 告警三值裁决
+    （TP/FP/UNCLEAR）+ precision 门槛 ≥ 0.8 作为"可投稿候选"的人工证据轴；
+    首批 17 条种子账本已从真实稿运行导出。
+- 干净稿夹具与对抗闭环/交付分层/指纹决策共 12 个新测试（总收集 550 项）。
+
 ## [Unreleased] — v0.13.0 候选（2026-10-25）
 
 ### 新增
