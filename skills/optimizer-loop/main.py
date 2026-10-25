@@ -37,7 +37,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from utils import issue_model, job_io  # noqa: E402
+from utils import executor_bridge, issue_model, job_io  # noqa: E402
 from utils.config_loader import PROJECT_ROOT, load_yaml_file, normalize_language  # noqa: E402
 from utils.logger import get_logger  # noqa: E402
 from utils.skill_loader import run_skill  # noqa: E402
@@ -46,7 +46,7 @@ LOG = get_logger("optimizer-loop")
 
 SCHEMA_VERSION = 1
 STATE_VERSION = 3
-VALID_STAGES = ("init", "audit", "build", "apply", "decide", "review", "deliver", "status")
+VALID_STAGES = ("init", "audit", "build", "apply", "decide", "review", "backfill", "deliver", "status")
 
 REVIEW_SIM_CONFIG_PATH = PROJECT_ROOT / "config" / "review-sim.yaml"
 
@@ -549,6 +549,7 @@ def stage_review(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
             f"评审平台期止损：连续 {stagnant} 轮评审无新增意见且无收敛，"
             "按对抗循环纪律升级人工复核"
         )
+        state.pop("review_pending_deliver", None)
         state["next_stage"] = "deliver"
         state["status"] = "stopped"
         _save_state(out_dir, state)
@@ -578,8 +579,57 @@ def stage_review(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
     state["next_stage"] = "build"
     state["status"] = "running"
     state["review_cycle"] = None
+    if state.pop("review_pending_deliver", None):
+        # 停机路径上的最终评审已完成，转入交付
+        state["next_stage"] = "deliver"
+        state["status"] = "stopped"
     _save_state(out_dir, state)
     return state
+
+
+def _bridge_backfill_state(
+    state: dict[str, Any],
+    out_dir: Path,
+    *,
+    kind: str | None = None,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """按运行状态把待回填作业交给免密钥执行桥（R7）。
+
+    状态 awaiting_responses → 润色作业（kind=polish）；
+    状态 awaiting_review_sim → 评审作业（kind=review-sim）。
+    失败作业保持 pending（fail-closed），报告如实返回。
+    """
+    status = str(state.get("status") or "")
+    if status == "awaiting_review_sim":
+        cycle = state.get("review_cycle") or {}
+        if not cycle:
+            return {"attempted": 0, "filled": 0, "skipped": 0, "failed": [], "reason": "无活动评审周期"}
+        payload = json.loads(Path(cycle["jobs_file"]).read_text(encoding="utf-8"))
+        jobs = [job for job in payload.get("jobs") or [] if isinstance(job, dict)]
+        responses_dir = Path(cycle["responses_dir"])
+        kind = kind or "review-sim"
+    elif status == "awaiting_responses":
+        jobs = job_io.read_jobs(state["jobs_file"])
+        responses_dir = Path(state["responses_dir"])
+        kind = kind or "polish"
+    else:
+        return {
+            "attempted": 0,
+            "filled": 0,
+            "skipped": 0,
+            "failed": [],
+            "reason": f"状态 {status!r} 无待回填作业",
+        }
+    bridge_config = config or executor_bridge.load_bridge_config()
+    report = executor_bridge.backfill_jobs(
+        jobs,
+        responses_dir,
+        kind=kind,
+        config=bridge_config,
+        log_file=Path(out_dir) / executor_bridge.LOG_FILENAME,
+    )
+    return report
 
 
 def _identity_fill_review(state: dict[str, Any]) -> None:
@@ -623,8 +673,12 @@ def _skip_review_cycle(state: dict[str, Any], out_dir: Path, *, reason: str) -> 
     ]
     state["review_cycle"] = None
     state["review_pending_jobs"] = []
-    state["next_stage"] = "build"
-    state["status"] = "running"
+    if state.pop("review_pending_deliver", None):
+        state["next_stage"] = "deliver"
+        state["status"] = "stopped"
+    else:
+        state["next_stage"] = "build"
+        state["status"] = "running"
     _save_state(Path(out_dir), state)
     return state
 
@@ -793,6 +847,7 @@ def _migrate_state(state: dict[str, Any]) -> dict[str, Any]:
     state.setdefault("review_stagnant", 0)
     state.setdefault("review_cycle", None)
     state.setdefault("review_pending_jobs", [])
+    state.setdefault("review_pending_deliver", False)
     state.setdefault("guidance_chunk_count", 0)
     return state
 
@@ -1156,8 +1211,19 @@ def stage_decide(state: dict[str, Any], out_dir: Path) -> dict[str, Any]:
     )
     if stop:
         state["stop_reason"] = stop_reason
-        state["next_stage"] = "deliver"
-        state["status"] = "stopped"
+        review = state.get("review_sim") or {}
+        cycles_done = len(state.get("review_history") or [])
+        if (
+            review.get("enabled")
+            and verdict["decision"] != "reject"
+            and cycles_done < int(review.get("max_review_cycles", 8))
+        ):
+            # 最终版本也要评审：交付报告需要语义复核结果，先评后交付
+            state["review_pending_deliver"] = True
+            _emit_review_cycle(state, out_dir, prev_text_file)
+        else:
+            state["next_stage"] = "deliver"
+            state["status"] = "stopped"
     else:
         state["round"] = round_index + 1
         review = state.get("review_sim") or {}
@@ -1490,11 +1556,13 @@ def run_loop(
     responses_dir: Path | None = None,
     identity: bool = False,
     review_sim: bool | None = None,
+    bridge: bool | None = None,
     **kwargs: Any,
 ) -> dict[str, Any]:
-    """整体模式：内部依次驱动各 stage（identity / responses_dir 自动回填）。
+    """整体模式：内部依次驱动各 stage（identity / responses_dir / 执行桥自动回填）。
 
     kwargs 透传交付选项：submission_audit（默认开）/ render / deliver_to_root。
+    bridge：None 读 config/executor-bridge.yaml enabled；True/False 显式覆盖。
     """
     out_dir = Path(out_dir)
     state = _load_state(out_dir)
@@ -1511,15 +1579,27 @@ def run_loop(
             review_sim=review_sim,
         )
     state = _migrate_state(state)
+    bridge_config: dict[str, Any] | None = None
+    if bridge is True or (bridge is None and bool(executor_bridge.load_bridge_config().get("enabled"))):
+        bridge_config = executor_bridge.load_bridge_config()
     while state.get("next_stage") in ("build", "apply", "decide", "review"):
         next_stage = state["next_stage"]
         if next_stage == "build":
             state = stage_build(state, out_dir)
         elif next_stage == "apply":
+            if (
+                bridge_config is not None
+                and not identity
+                and responses_dir is None
+                and state.get("status") == "awaiting_responses"
+            ):
+                _bridge_backfill_state(state, out_dir, kind="polish", config=bridge_config)
             state = stage_apply(
                 state, out_dir, responses_dir=responses_dir, identity=identity
             )
         elif next_stage == "review":
+            if bridge_config is not None and state.get("status") == "awaiting_review_sim":
+                _bridge_backfill_state(state, out_dir, kind="review-sim", config=bridge_config)
             state = stage_review(state, out_dir)
             if state.get("status") == "awaiting_review_sim":
                 if identity:
@@ -1563,6 +1643,7 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
             responses_dir=Path(str(responses_dir)) if responses_dir else None,
             identity=bool(args.get("identity", False)),
             review_sim=_optional_bool(args.get("review_sim")),
+            bridge=_optional_bool(args.get("bridge")),
         )
 
     if stage == "init":
@@ -1605,6 +1686,14 @@ def run(args: dict[str, Any]) -> dict[str, Any]:
         )
     if stage == "review":
         return _state_view(stage_review(state, out_dir))
+    if stage == "backfill":
+        report = _bridge_backfill_state(
+            state,
+            out_dir,
+            kind=str(args["kind"]) if args.get("kind") else None,
+            config=args.get("bridge_config") if isinstance(args.get("bridge_config"), dict) else None,
+        )
+        return {"stage": "backfill", **report, "state": _state_view(state)}
     if stage == "decide":
         return _state_view(stage_decide(state, out_dir))
     if stage == "deliver":

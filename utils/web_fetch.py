@@ -106,6 +106,51 @@ def _urllib_transport(url: str, params: dict[str, Any], headers: dict[str, str],
 
 _TRANSPORT: Transport = _urllib_transport
 
+# 执行桥（本地模型服务）专用：只允许回环地址
+_LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
+
+_POST_TRANSPORT: Callable[[str, dict[str, Any], dict[str, str], float], str] | None = None
+
+
+def set_post_transport(
+    transport: Callable[[str, dict[str, Any], dict[str, str], float], str] | None,
+) -> None:
+    """注入回环 POST 传输层（测试用）；传 None 恢复 urllib 实现。"""
+    global _POST_TRANSPORT
+    _POST_TRANSPORT = transport
+
+
+def post_text_loopback(
+    url: str,
+    payload: dict[str, Any],
+    *,
+    timeout: float = 120.0,
+    accept: str = "application/json",
+) -> str:
+    """POST JSON 到本机回环服务（免密钥执行桥专用通道）。
+
+    宪章边界（唯一红线 = 零 API Key）：
+    - 只允许 loopback 主机（本地推理服务，如 Ollama）；外部网络一律走
+      fetch_text 的免密钥 GET 通道，本函数拒绝一切非回环地址；
+    - 请求头固定且过 _assert_key_free 检查，绝不携带或读取任何凭据；
+    - 不落磁盘缓存（模型调用不可复用为文献证据）。
+    """
+    host = (urllib.parse.urlsplit(url).hostname or "").lower()
+    if host not in _LOOPBACK_HOSTS:
+        raise AssertionError(f"执行桥只允许回环地址（localhost / 127.0.0.1 / ::1），拒绝: {url}")
+    headers = {
+        "User-Agent": "paper-polish-project/1.0",
+        "Accept": accept,
+        "Content-Type": "application/json",
+    }
+    _assert_key_free(headers)
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    if _POST_TRANSPORT is not None:
+        return _POST_TRANSPORT(url, payload, headers, timeout)
+    request = urllib.request.Request(url, data=body, headers=headers, method="POST")
+    with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310 - 仅回环白名单主机
+        return response.read().decode("utf-8", errors="replace")
+
 
 def set_transport(transport: Transport | None) -> None:
     """注入自定义传输层（测试用）；传 None 恢复 urllib 实现。"""
