@@ -320,6 +320,78 @@ class BuildEndToEndTests(unittest.TestCase):
         self.assertIn("NO ABSTRACT AVAILABLE", Path(job["prompt_file"]).read_text(encoding="utf-8"))
 
 
+class ArxivFallbackTests(unittest.TestCase):
+    """S3：arXiv 摘要兜底（arXiv DOI 在 Crossref 常为 404）。"""
+
+    def setUp(self):
+        self.module = skill_module("cite-intent")
+        import utils.web_fetch as web_fetch
+
+        self.web_fetch = web_fetch
+        self._original = web_fetch._TRANSPORT
+        self.addCleanup(web_fetch.set_transport, None)
+
+    def test_arxiv_doi_regex(self):
+        match = self.module._ARXIV_DOI_RE.match("10.48550/arxiv.1312.6199")
+        self.assertIsNotNone(match)
+        self.assertEqual(match.group(1), "1312.6199")
+        self.assertIsNone(self.module._ARXIV_DOI_RE.match("10.1109/tsp.2013.2288675"))
+
+    def test_arxiv_id_lookup(self):
+        atom = (
+            '<feed xmlns="http://www.w3.org/2005/Atom"><entry>'
+            "<title>Generative Adversarial Nets</title>"
+            "<summary> We propose a new framework via advers process. </summary>"
+            "</entry></feed>"
+        )
+        self.web_fetch.set_transport(lambda url, params, headers, timeout: atom)
+        abstract = self.module._arxiv_abstract(arxiv_id="1406.2661", title="", config={"sources": {"arxiv": {"enabled": True, "min_interval_seconds": 0}}}, offline=False)
+        self.assertEqual(abstract, "We propose a new framework via advers process.")
+
+    def test_arxiv_title_gate_rejects_mismatch(self):
+        atom = (
+            '<feed xmlns="http://www.w3.org/2005/Atom"><entry>'
+            "<title>A Totally Different Paper About Cooking</title>"
+            "<summary>Unrelated summary text that should be rejected.</summary>"
+            "</entry></feed>"
+        )
+        self.web_fetch.set_transport(lambda url, params, headers, timeout: atom)
+        abstract = self.module._arxiv_abstract(
+            arxiv_id="", title="Generative Adversarial Nets",
+            config={"sources": {"arxiv": {"enabled": True, "min_interval_seconds": 0}}}, offline=False,
+        )
+        self.assertEqual(abstract, "")
+
+    def test_full_chain_arxiv_doi_hit(self):
+        def transport(url: str, params: dict, headers: dict, timeout: float) -> str:
+            if "api.crossref.org/works" in url:
+                raise RuntimeError("HTTP 404")
+            if "api.openalex.org" in url:
+                return json.dumps({"abstract_inverted_index": None})
+            if "export.arxiv.org" in url:
+                return (
+                    '<feed xmlns="http://www.w3.org/2005/Atom"><entry>'
+                    "<title>Adam: A Method for Stochastic Optimization</title>"
+                    "<summary>We introduce Adam, an algorithm for first-order gradient-based optimization.</summary>"
+                    "</entry></feed>"
+                )
+            raise AssertionError(f"unexpected url: {url}")
+
+        self.web_fetch.set_transport(transport)
+        result = self.module.fetch_reference_abstract(
+            {"doi": "10.48550/arxiv.1412.6980", "title": "Adam: A Method for Stochastic Optimization"},
+            config={
+                "sources": {
+                    "crossref": {"min_interval_seconds": 0},
+                    "openalex": {"enabled": True, "min_interval_seconds": 0},
+                    "arxiv": {"enabled": True, "min_interval_seconds": 0},
+                }
+            },
+        )
+        self.assertEqual(result["source"], "arxiv-doi")
+        self.assertIn("Adam", result["abstract"])
+
+
 class OfflineNoNetworkTests(unittest.TestCase):
     def test_offline_build_with_empty_cache_degrades_to_no_abstract(self):
         module = skill_module("cite-intent")

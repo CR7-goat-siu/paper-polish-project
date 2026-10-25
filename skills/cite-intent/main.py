@@ -26,7 +26,13 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from utils.citation_check import clean_text, doi_normalize, title_similarity  # noqa: E402
+from utils.anchor_norm import normalize_anchor  # noqa: E402
+from utils.citation_check import (  # noqa: E402
+    clean_text,
+    doi_normalize,
+    normalize_title,
+    title_similarity,
+)
 from utils.config_loader import load_literature_config, normalize_language  # noqa: E402
 from utils.fidelity import CITATION_BRACKET_RE  # noqa: E402
 from utils.logger import get_logger  # noqa: E402
@@ -85,13 +91,96 @@ def _strip_jats(abstract: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _arxiv_abstract(
+    *,
+    arxiv_id: str = "",
+    title: str = "",
+    config: dict[str, Any],
+    offline: bool | None,
+) -> str:
+    """arXiv Atom API 摘要兜底：按 arXiv ID 直查，或按标题检索取 top-1。
+
+    arXiv DOI（10.48550/arxiv.*）在 Crossref 常为 404，本函数是这类文献的
+    主要摘要来源；标题检索复用与 OpenAlex 相同的 0.92 相似度门禁防错配。
+    """
+    sources = config.get("sources") or {}
+    arxiv_cfg = sources.get("arxiv") or {}
+    if not arxiv_cfg.get("enabled", True):
+        return ""
+    endpoint = str(arxiv_cfg.get("endpoint") or "https://export.arxiv.org/api/query")
+    params: dict[str, Any] = {"max_results": "1"}
+    if arxiv_id:
+        params["id_list"] = arxiv_id
+    elif title:
+        params["search_query"] = f'ti:"{title}"'
+        params["sortBy"] = "relevance"
+    else:
+        return ""
+    try:
+        result = web_fetch.fetch_text(
+            endpoint,
+            params,
+            config=config,
+            min_interval=float(arxiv_cfg.get("min_interval_seconds", 3.0)),
+            offline=offline,
+        )
+        from xml.etree import ElementTree as ET
+
+        root = ET.fromstring(result.body or "<feed/>")
+        atom = "{http://www.w3.org/2005/Atom}"
+        for entry in root.findall(f"{atom}entry"):
+            summary = " ".join((entry.findtext(f"{atom}summary") or "").split())
+            if not summary:
+                continue
+            if title and not arxiv_id:
+                entry_title = " ".join((entry.findtext(f"{atom}title") or "").split())
+                if not _title_match_is_exact(title, entry_title):
+                    return ""
+            return summary
+    except Exception as exc:  # noqa: BLE001 - 兜底失败按无摘要处理
+        logger.warning("arXiv 摘要兜底失败 id=%r title=%r err=%s", arxiv_id, title[:50], exc)
+    return ""
+
+
+_ARXIV_DOI_RE = re.compile(r"10\.48550/arxiv\.([0-9]{4}\.[0-9]{4,5})(v\d+)?$", re.IGNORECASE)
+
+
+_GB_TITLE_RE = re.compile(r"[《“]([^》”]{6,200})[》”]")
+
+
+def _reference_title(reference: dict[str, Any]) -> str:
+    """标题：显式 title 字段优先；缺失时从原始著录行提取《》/引号内标题。
+
+    GB/T 著录（submission-audit 参考文献解析）不带 title 字段，只有 raw 行；
+    不提取则标题检索链路（OpenAlex / arXiv 兜底）整体失效。
+    """
+    explicit = clean_text(reference.get("title"))
+    if explicit:
+        return explicit
+    raw = str(reference.get("raw") or reference.get("line") or "")
+    match = _GB_TITLE_RE.search(raw)
+    return match.group(1).strip() if match else ""
+
+
+def _title_match_is_exact(query: str, candidate: str) -> bool:
+    """标题检索兜底的精确门禁：归一化标题完全相等。
+
+    序列相似度对"严格扩展"标题过松（实测 "Generative adversarial nets" 与
+    "Conditional Generative Adversarial Nets" 相似度 0.95 仍错配）；标题兜底
+    没有 DOI 锚点，必须要求归一化精确相等才允许采信摘要。
+    """
+    left = normalize_title(query)
+    right = normalize_title(candidate)
+    return bool(left) and left == right
+
+
 def fetch_reference_abstract(
     reference: dict[str, Any],
     *,
     config: dict[str, Any] | None = None,
     offline: bool | None = None,
 ) -> dict[str, Any]:
-    """拉取被引文献摘要：Crossref DOI 直查 → OpenAlex DOI 查 → OpenAlex 标题检索。
+    """拉取被引文献摘要：Crossref DOI → OpenAlex DOI → OpenAlex 标题检索 → arXiv 兜底。
 
     返回 {abstract, source, source_id, doi, fetched_url}；全部失败时 abstract=""。
     网络失败按无摘要处理（fail-closed），绝不抛出到调用方。
@@ -99,7 +188,7 @@ def fetch_reference_abstract(
     config = config or load_literature_config()
     sources = config.get("sources") or {}
     doi = doi_normalize(reference.get("doi"))
-    title = clean_text(reference.get("title"))
+    title = _reference_title(reference)
     result: dict[str, Any] = {"abstract": "", "source": "", "source_id": "", "doi": doi, "fetched_url": ""}
 
     crossref_works = str((config.get("verification") or {}).get("crossref_works_endpoint") or "https://api.crossref.org/works")
@@ -154,8 +243,9 @@ def fetch_reference_abstract(
             results = (data or {}).get("results") or []
             if results:
                 candidate = results[0]
-                similarity = title_similarity(title, candidate.get("title") or candidate.get("display_name"))
-                if similarity >= 0.92:
+                candidate_title = candidate.get("title") or candidate.get("display_name")
+                similarity = title_similarity(title, candidate_title)
+                if similarity >= 0.92 and _title_match_is_exact(title, candidate_title):
                     abstract = openalex_abstract_text(candidate)
                     if abstract:
                         result.update(
@@ -169,7 +259,29 @@ def fetch_reference_abstract(
                         return result
         except Exception as exc:  # noqa: BLE001
             logger.warning("OpenAlex 标题检索摘要失败 title=%r err=%s", title[:60], exc)
+    # arXiv 兜底：arXiv DOI 直查（10.48550/arxiv.* 在 Crossref 常为 404）或标题检索
+    arxiv_match = _ARXIV_DOI_RE.match(doi or "")
+    if arxiv_cfg_enabled(config) or arxiv_match:
+        abstract = _arxiv_abstract(
+            arxiv_id=arxiv_match.group(1) if arxiv_match else "",
+            title="" if arxiv_match else title,
+            config=config,
+            offline=offline,
+        )
+        if abstract:
+            result.update(
+                {
+                    "abstract": abstract,
+                    "source": "arxiv-doi" if arxiv_match else "arxiv-title",
+                    "source_id": arxiv_match.group(1) if arxiv_match else "",
+                    "fetched_url": str(((config.get("sources") or {}).get("arxiv") or {}).get("endpoint") or ""),
+                }
+            )
     return result
+
+
+def arxiv_cfg_enabled(config: dict[str, Any]) -> bool:
+    return bool(((config.get("sources") or {}).get("arxiv") or {}).get("enabled", True))
 
 
 def fetch_s2_intents(
@@ -300,7 +412,7 @@ def build_intent_jobs(
         job_id = f"citeintent-{pair['claim_id']}-{pair['reference_id']}"
         abstract_info = fetch_reference_abstract(
             reference, config=config, offline=offline
-        ) if (reference.get("doi") or reference.get("title")) else {
+        ) if (reference.get("doi") or _reference_title(reference)) else {
             "abstract": "",
             "source": "",
             "source_id": "",
@@ -326,7 +438,7 @@ def build_intent_jobs(
             claim_text=pair["claim_text"],
             claim_location="",
             reference_id=pair["reference_id"],
-            reference_title=clean_text(reference.get("title")) or "(untitled)",
+            reference_title=_reference_title(reference) or "(untitled)",
             reference_doi=abstract_info["doi"] or "(unknown)",
             source_abstract=source_abstract,
             s2_intents=", ".join(s2_intents) or "(none)",
@@ -373,7 +485,8 @@ def build_intent_jobs(
 
 
 def normalize_ws_lower(text: str) -> str:
-    return re.sub(r"\s+", " ", str(text or "")).strip().casefold()
+    """（保留别名）锚定比对统一走 utils.anchor_norm.normalize_anchor。"""
+    return normalize_anchor(text)
 
 
 def _parse_response_json(raw: str) -> dict[str, Any]:

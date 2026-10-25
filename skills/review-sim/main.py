@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from utils.anchor_norm import normalize_anchor  # noqa: E402
 from utils.config_loader import PROJECT_ROOT, load_yaml_file, normalize_language  # noqa: E402
 from utils.logger import get_logger  # noqa: E402
 from utils.prompt_renderer import render_template  # noqa: E402
@@ -337,7 +338,7 @@ def _assemble_cross_text(
 
 
 def normalize_ws(text: str) -> str:
-    """空白归一：折叠连续空白为单个空格并去除首尾（跨换行匹配锚点用）。"""
+    """空白归一（保持向后兼容的轻量版本；锚定比对统一走 utils.anchor_norm）。"""
     return re.sub(r"\s+", " ", str(text or "")).strip()
 
 
@@ -400,7 +401,9 @@ def apply_responses(
                 {"job_id": job_id, "finding_index": None, "reason": "section_text_missing"}
             )
             continue
-        haystack = normalize_ws(section_text) if normalize else section_text
+        # 锚定比对统一走字符级等价归一（弯引号/连字/空白/大小写等价；
+        # 任何措辞差异仍然拒绝）
+        haystack = normalize_anchor(section_text) if normalize else section_text
 
         raw_response = str(job.get("response") or "")
         if not raw_response and response_root is not None:
@@ -443,7 +446,7 @@ def apply_responses(
                 )
                 continue
             quote = str(item["exact_source_quote"])
-            quote_norm = normalize_ws(quote) if normalize else quote
+            quote_norm = normalize_anchor(quote) if normalize else quote
             if len(quote_norm) < min_quote:
                 rejected.append(
                     {"job_id": job_id, "finding_index": index, "reason": "quote_too_short"}
